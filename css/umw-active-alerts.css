@@ -2,6 +2,17 @@
 	position: relative;
 }
 
+.wptouch-pro > .emergency-alert, 
+.wptouch-pro > .active-alert {
+	height: 35px;
+}
+
+.alert-title {
+	font-family: MuseoSans700, Arial, Helvetica, sans-serif;
+}
+
+/* @ Emergency Alerts
+------------------------------------------------------------ */
 #wrap > .emergency-alert {
 	position: absolute;
 	top: 0;
@@ -9,13 +20,6 @@
 	height: 28px;
 }
 
-.wptouch-pro > .emergency-alert, 
-.wptouch-pro > .active-alert {
-	height: 35px;
-}
-
-/* @ Emergency Alerts
------------------------------------------------------------- */
 .emergency-alert {
 	background-color: #fe0000;
 	
@@ -112,7 +116,7 @@
 	padding-top: 28px;
 }
 
-.admin-bar.has-active-alert #wrap > .active-alert {
+.admin-bar.has-active-alert #wrap > .emergency-alert {
 	top: 28px;
 }
 
@@ -165,13 +169,7 @@
 	text-decoration: none;
 }
 
-/*.active-alert .alert-title, 
-.active-alert .alert-content {
-	font-size: 1.1em;
-}*/
-
 .active-alert .alert-title {
-	font-family: MuseoSans700, Arial, Helvetica, sans-serif;
 	font-style: normal;
 }
 
