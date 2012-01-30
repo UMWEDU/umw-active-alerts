@@ -11,6 +11,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 	class umw_active_alerts {
 		var $ad_id = 0;
 		var $ad_cat = null;
+		var $em_cat = null;
 		
 		function __construct() {
 			$this->set_values();
@@ -20,6 +21,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 				add_action( 'wp_print_styles', array( $this, 'print_styles' ) );
 				add_action( 'wp_print_scripts', array( $this, 'localize_js' ) );
 			}
+			$this->check_categories();
 			add_action( 'save_post', array( $this, 'clear_active_alert' ), 99, 2 );
 			add_action( 'trash_post', array( $this, 'clear_active_alert' ), 99, 2 );
 		}
@@ -32,6 +34,44 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			$this->ad_cat	= $this->get_value( 'umw_advisories_active_cat' );
 			if( empty( $this->ad_cat ) )
 				$this->ad_cat = 'current';
+			
+			$this->em_cat = $this->get_value( 'umw_advisories_emergency_cat' );
+			if ( empty( $this->em_cat ) )
+				$this->em_cat = 'emergency';
+		}
+		
+		function check_categories() {
+			if ( empty( $this->ad_id ) )
+				return;
+			if ( $this->ad_id != $GLOBALS['blog_id'] )
+				return;
+			
+			$ad_cat = get_term_by( 'slug', 'current', 'category' );
+			$em_cat = get_term_by( 'slug', 'emergency', 'category' );
+			if ( empty( $ad_cat ) ) {
+				$ad_cat = wp_insert_term( __( 'Current University-wide Alerts' ), 'category', array( 
+					'description' => __( 'Current university-wide alerts that are not emergency notifications.' ), 
+					'slug'        => 'current', 
+				) );
+				$this->ad_cat = 'current';
+				
+				if ( function_exists( 'update_mnetwork_option' ) )
+					update_mnetwork_option( 'umw_advisories_active_cat', 'current' );
+				else
+					update_site_option( 'umw_advisories_active_cat', 'current' );
+			}
+			if ( empty( $em_cat ) ) {
+				$em_cat = wp_insert_term( __( 'Current Emergency Notifications' ), 'category', array(
+					'description' => __( 'Current university-wide emergency notifications' ),
+					'slug'        => 'emergency',
+				) );
+				$this->em_cat = 'emergency';
+				
+				if ( function_exists( 'update_mnetwork_option' ) )
+					update_mnetwork_option( 'umw_advisories_emergency_cat', 'emergency' );
+				else
+					update_site_option( 'umw_advisories_emergency_cat', 'emergency' );
+			}
 		}
 		
 		/* Get value functon
@@ -42,21 +82,24 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 		
 		function insert_active_alert() {
 			header( "Content-Type: application/json" );
-			if( false === ( $aa = $this->active_alert() ) )
-				echo json_encode( array( 'html' => -1 ) );
+			$aa = $this->active_alert();
+			$ae = $this->active_emergency();
+			if( false === $aa && false === $ae )
+				echo json_encode( array( 'alert' => array( 'html' => -1 ), 'emergency' => array( 'html' => -1 ) ) );
 			
 			$h = array( 'html' => $aa, 'ID' => $GLOBALS['post']->ID );
-			echo json_encode( $h );
+			$e = array( 'html' => $ae, 'ID' => $GLOBALS['post']->ID );
+			echo json_encode( array( 'alert' => $h, 'emergency' => $e ) );
 			
 			exit;
 		}
 		
 		function print_styles() {
-			wp_enqueue_style( 'umw-active-alerts', plugins_url( '/css/umw-active-alerts.css', __FILE__ ), array(), '0.1.11a', 'all' );
+			wp_enqueue_style( 'umw-active-alerts', plugins_url( '/css/umw-active-alerts.css', __FILE__ ), array(), '0.1.24a', 'all' );
 		}
 		
 		function localize_js() {
-			wp_enqueue_script( 'umw-active-alerts', plugins_url( '/js/umw-active-alerts.js', __FILE__ ), array( 'jquery' ), '0.1.18a', true );
+			wp_enqueue_script( 'umw-active-alerts', plugins_url( '/js/umw-active-alerts.js', __FILE__ ), array( 'jquery' ), '0.1.28a', true );
 			wp_localize_script( 'umw-active-alerts', 'umwActAlerts', array( 'ajaxurl' => admin_url( 'admin-ajax.php' ) ) );
 		}
 		
@@ -84,6 +127,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 				'orderby'		=> 'post_date',
 				'order'			=> 'DESC',
 			);
+			error_log( '[Active Alert Debug]: Non-Emergency Post args: ' . print_r( $args, true ) );
 			$alerts = get_posts( $args );
 			
 			if( isset( $org_blog ) )
@@ -103,9 +147,60 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 				$alert_excerpt = array_slice( $alert_excerpt, 0, 15 );
 				$alert_excerpt = implode( ' ', $alert_excerpt ) . '&hellip;';
 			}
-			$a = '<div class="active-alert"><span class="alert-icon alert-icon-left"></span><h1 class="alert-title"><a href="' . trailingslashit( $bloginfo->siteurl ) . '?p=' . $alert->ID . '">' . apply_filters( 'the_title', $alert->post_title ) . '</h1><div class="alert-content"><a href="' . trailingslashit( $bloginfo->siteurl ) . '?p=' . $alert->ID . '">' . $alert_excerpt . '</a></div><span class="alert-icon alert-icon-right"></span></div>';
+			$a = '<div class="active-alert"><h1 class="alert-title"><a href="' . trailingslashit( $bloginfo->siteurl ) . '?p=' . $alert->ID . '">' . apply_filters( 'the_title', $alert->post_title ) . '</h1><div class="alert-content"><a href="' . trailingslashit( $bloginfo->siteurl ) . '?p=' . $alert->ID . '">' . $alert_excerpt . '</a></div></div>';
 			if( function_exists( 'update_mnetwork_option' ) )
 				update_mnetwork_option( 'umw_active_alert', array( 'content' => $a, 'ID' => $alert->ID ) );
+			
+			return $a;
+		}
+		
+		/**
+		 * Check for active advisories
+		 */
+		function active_emergency() {
+			if( !function_exists( 'get_mnetwork_option' ) ) {
+				error_log( '[Active Alerts Debug]: The get_mnetwork_option function is not yet defined' );
+			}
+			if( function_exists( 'get_mnetwork_option' ) && $alert = get_mnetwork_option( 'umw_active_emergency', false ) )
+				if( is_array( $alert ) && array_key_exists( 'content', $alert ) )
+					return $alert['content'];
+			
+			global $wpdb;
+			
+			if( $this->ad_id != $GLOBALS['blog_id'] )
+				$org_blog = $wpdb->set_blog_id( $this->ad_id );
+				
+			$args = array(
+				'post_type'		=> 'post', 
+				'post_status'	=> 'publish', 
+				'category_name'	=> $this->em_cat,
+				'posts_per_page'=> 1,
+				'orderby'		=> 'post_date',
+				'order'			=> 'DESC',
+			);
+			error_log( '[Active Alert Debug]: Emergency Post args: ' . print_r( $args, true ) );
+			$alerts = get_posts( $args );
+			
+			if( isset( $org_blog ) )
+				$wpdb->set_blog_id( $org_blog );
+			
+			if( empty( $alerts ) ) {
+				if( function_exists( 'update_mnetwork_option' ) )
+					update_mnetwork_option( 'umw_active_emergency', array( 'content' => false, 'ID' => 0 ) );
+				return false;
+			}
+			
+			$alert = array_shift( $alerts );
+			$bloginfo = get_blog_details( $this->ad_id );
+			$alert_excerpt = empty( $alert->post_excerpt ) ? strip_tags( $alert->post_content ) : strip_tags( $alert->post_excerpt );
+			if( str_word_count( $alert_excerpt ) > 16 ) {
+				$alert_excerpt = explode( ' ', $alert_excerpt );
+				$alert_excerpt = array_slice( $alert_excerpt, 0, 15 );
+				$alert_excerpt = implode( ' ', $alert_excerpt ) . '&hellip;';
+			}
+			$a = '<div class="emergency-alert"><span class="alert-icon alert-icon-left"></span><h1 class="alert-title"><a href="' . trailingslashit( $bloginfo->siteurl ) . '?p=' . $alert->ID . '">' . apply_filters( 'the_title', $alert->post_title ) . '</h1><div class="alert-content"><a href="' . trailingslashit( $bloginfo->siteurl ) . '?p=' . $alert->ID . '">' . $alert_excerpt . '</a></div><span class="alert-icon alert-icon-right"></span></div>';
+			if( function_exists( 'update_mnetwork_option' ) )
+				update_mnetwork_option( 'umw_active_emergency', array( 'content' => $a, 'ID' => $alert->ID ) );
 			
 			return $a;
 		}
@@ -126,6 +221,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 				return $post_ID;
 			
 			delete_mnetwork_option( 'umw_active_alert' );
+			delete_mnetwork_option( 'umw_active_emergency' );
 		}
 	}
 }
