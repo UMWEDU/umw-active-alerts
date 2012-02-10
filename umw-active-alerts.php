@@ -24,6 +24,12 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			$this->check_categories();
 			add_action( 'save_post', array( $this, 'clear_active_alert' ), 99, 2 );
 			add_action( 'trash_post', array( $this, 'clear_active_alert' ), 99, 2 );
+			
+			if ( ! class_exists( 'active_alert_widget' ) )
+				require_once( 'active-alert-widget.php' );
+			
+			add_shortcode( 'alert', array( $this, 'shortcode' ) );
+			add_action( 'widgets_init', array( $this, 'init_widget' ) );
 		}
 		
 		function set_values() {
@@ -95,7 +101,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 		}
 		
 		function print_styles() {
-			wp_enqueue_style( 'umw-active-alerts', plugins_url( '/css/umw-active-alerts.css', __FILE__ ), array(), '0.1.41a', 'all' );
+			wp_enqueue_style( 'umw-active-alerts', plugins_url( '/css/umw-active-alerts.css', __FILE__ ), array(), '0.1.42a', 'all' );
 		}
 		
 		function localize_js() {
@@ -242,6 +248,56 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			
 			delete_mnetwork_option( 'umw_active_alert' );
 			delete_mnetwork_option( 'umw_active_emergency' );
+			delete_mnetwork_option( 'current_local_alerts' );
+		}
+		
+		function shortcode( $atts ) {
+			$instance = shortcode_atts( array( 
+				'category' => 'uncategorized', 
+			), $atts );
+			
+			$alerts = array();
+			$alert = false;
+			if ( function_exists( 'get_mnetwork_option' ) ) {
+				$alerts = get_mnetwork_option( 'current_local_alerts', array() );
+				if ( array_key_exists( $instance['category'], $alerts ) )
+					return $alerts[$instance['category']];
+			}
+			
+			global $umwaa;
+			if ( ! isset( $umwaa ) || ! is_object( $umwaa ) )
+				return false;
+			
+			switch_to_blog( $umwaa->ad_id );
+			$posts = get_posts( array( 'category_name' => $instance['category'], 'numberposts' => 1, 'post_type' => 'post', 'post_status' => 'publish', 'orderby' => 'post_date', 'order' => 'DESC' ) );
+			if ( empty( $posts ) ) {
+				$alerts[$instance['category']] = false;
+				update_mnetwork_option( 'current_local_alerts', $alerts );
+				restore_current_blog();
+				return false;
+			}
+			
+			$post = array_shift( $posts );
+			
+			$alert = '
+			<div class="current-alert">
+				<h3 class="alert-title">
+					<a href="' . get_permalink( $post->ID ) . '">' . apply_filters( 'the_title', $post->post_title ) . '</a>
+				</h3>
+				<p class="alert-date">
+					' . __( 'Posted: ' ) . get_post_time( get_option( 'date_format' ), false, $post ) . ' at ' . get_post_time( get_option( 'time_format' ), false, $post ) . '
+				</p>
+			</div>';
+			
+			$alerts[$instance['category']] = $alert;
+			update_mnetwork_option( 'current_local_alerts', $alerts );
+			restore_current_blog();
+			
+			return $alert;
+		}
+		
+		function init_widget() {
+			register_widget( 'active_alert_widget' );
 		}
 	}
 }

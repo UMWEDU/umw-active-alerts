@@ -1,5 +1,4 @@
 <?php
-if ( ! class_exists( 'active_alert_widget' ) ) {
 	class active_alert_widget extends WP_Widget {
 		function __construct() {
 			/**
@@ -50,10 +49,11 @@ if ( ! class_exists( 'active_alert_widget' ) ) {
 		}
 		
 		function widget( $args, $instance ) {
+			global $umwaa;
 			extract( $args );
 			$instance = wp_parse_args( $instance, $this->defaults() );
 			
-			$alert = $this->get_current_alert( $instance );
+			$alert = $umwaa->shortcode( $instance );
 			if ( empty( $alert ) )
 				return false;
 			
@@ -62,50 +62,15 @@ if ( ! class_exists( 'active_alert_widget' ) ) {
 			echo $before_widget;
 			if ( ! empty( $title ) )
 				echo $before_title . $title . $after_title;
+			echo '
+				<div class="umw-flag-content-widget-wrapper umw-red-flag-wrapper has_icon">
+					<div class="umw-icon-wrapper umw-umw-mark-icon-wrapper">';
 			echo $alert;
+			echo '
+					</div>
+				</div>';
 			echo $after_widget;
 		}
 		
-		function get_current_alert( $instance ) {
-			$alerts = array();
-			$alert = false;
-			if ( function_exists( 'get_mnetwork_option' ) ) {
-				$alerts = get_mnetwork_option( 'current_local_alerts', array() );
-				if ( array_key_exists( $instance['category'], $alerts ) )
-					return $alerts[$instance['category']];
-			}
-			
-			global $umwaa;
-			if ( ! isset( $umwaa ) || ! is_object( $umwaa ) )
-				return false;
-			
-			switch_to_blog( $umwaa->ad_id );
-			$posts = get_posts( array( 'category' => $instance['category'], 'numberposts' => 1, 'post_type' => 'post', 'post_status' => 'publish', 'orderby' => 'post_date', 'order' => 'DESC' ) );
-			if ( empty( $posts ) ) {
-				$alerts[$instance['category']] = false;
-				update_mnetwork_option( 'current_local_alerts', $alerts );
-				restore_current_blog();
-				return false;
-			}
-			
-			$post = array_shift( $posts );
-			
-			$alert = '
-			<div class="current-alert">
-				<h3 class="alert-title">
-					<a href="' . get_permalink( $post->ID ) . '">' . apply_filters( 'the_title', $post->post_title ) . '</a>
-				</h3>
-				<p class="alert-date">
-					<a href="' . get_permalink( $post->ID ) . '?p=' . $post->ID . '">[' . __( 'Posted: ' ) . get_post_time( get_option( 'date_format' ), false, $post ) . ' at ' . get_post_time( get_option( 'time_format' ), false, $post ) . ']</a>
-				</p>
-			</div>';
-			
-			$alerts[$instance['category']] = $alert;
-			update_mnetwork_option( 'current_local_alerts', $alerts );
-			restore_current_blog();
-			
-			return $alert;
-		}
 	}
-}
 ?>

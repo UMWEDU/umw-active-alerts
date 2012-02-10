@@ -224,3 +224,17 @@
 .active-alert .alert-content {
 	display: none;
 }
+
+/* @ Local Alerts (site-specific)
+------------------------------------------------------------ */
+.current-alert a {
+	color: #b60000;
+}
+
+.current-alert .alert-date {
+	font-size: .8em;
+}
+
+.widget .current-alert a {
+	color: #fff;
+}
