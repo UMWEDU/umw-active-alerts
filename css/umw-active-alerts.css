@@ -11,6 +11,11 @@
 	font-family: MuseoSans700, Arial, Helvetica, sans-serif;
 }
 
+.alert-date {
+	font-size: .7em;
+	font-style: italic;
+}
+
 /* @ Emergency Alerts
 ------------------------------------------------------------ */
 #wrap > .emergency-alert {
@@ -80,20 +85,33 @@
 }
 
 .emergency-alert .alert-title {
-	display: inline;
+	display: inline-block;
 	padding-right: 1em;
 	line-height: 35px;
+	height: 35px;
 }
 
-.emergency-alert .alert-content {
-	display: inline;
+.emergency-alert .alert-content, 
+.emergency-alert .alert-date {
+	display: inline-block;
 	line-height: 35px;
+	height: 35px;
+}
+
+.emergency-alert .alert-date {
+	float: right;
+	height: 35px;
+	display: inline-block;
 }
 
 #wrap > .emergency-alert .alert-title, 
 #wrap > .emergency-alert .alert-content {
 	font-size: 1.1em;
 	line-height: 28px;
+}
+
+#wrap > .emergency-alert .alert-date {
+	float: none;
 }
 
 .wptouch-pro > .emergency-alert .alert-title, 
@@ -170,12 +188,23 @@
 }
 
 .active-alert .alert-title {
+	font-size: 1.3em;
 	font-style: normal;
+	line-height: 1.4em;
 }
 
 .active-alert .alert-title, 
 .active-alert .alert-title a {
 	color: #2F4100;
+}
+
+.active-alert .alert-date {
+	display: block;
+	width: 100%;
+	text-align: center;
+	margin: 0 auto;
+	position: absolute;
+	bottom: 5px;
 }
 
 .wptouch-pro > .active-alert .alert-title, 
@@ -189,4 +218,9 @@
 .wptouch-pro > .active-alert .alert-title {
 	font-size: 1.3em;
 	font-weight: bolder;
+}
+
+.emergency-alert .alert-content, 
+.active-alert .alert-content {
+	display: none;
 }

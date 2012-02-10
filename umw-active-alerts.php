@@ -95,7 +95,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 		}
 		
 		function print_styles() {
-			wp_enqueue_style( 'umw-active-alerts', plugins_url( '/css/umw-active-alerts.css', __FILE__ ), array(), '0.1.27a', 'all' );
+			wp_enqueue_style( 'umw-active-alerts', plugins_url( '/css/umw-active-alerts.css', __FILE__ ), array(), '0.1.41a', 'all' );
 		}
 		
 		function localize_js() {
@@ -141,13 +141,22 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			
 			$alert = array_shift( $alerts );
 			$bloginfo = get_blog_details( $this->ad_id );
-			$alert_excerpt = empty( $alert->post_excerpt ) ? strip_tags( $alert->post_content ) : strip_tags( $alert->post_excerpt );
+			$alert_excerpt = empty( $alert->post_excerpt ) ? $alert->post_content : $alert->post_excerpt;
+			$alert_excerpt = strip_tags( strip_shortcodes( $alert_excerpt ) );
 			if( str_word_count( $alert_excerpt ) > 16 ) {
 				$alert_excerpt = explode( ' ', $alert_excerpt );
 				$alert_excerpt = array_slice( $alert_excerpt, 0, 15 );
 				$alert_excerpt = implode( ' ', $alert_excerpt ) . '&hellip;';
 			}
-			$a = '<div class="active-alert"><h1 class="alert-title"><a href="' . trailingslashit( $bloginfo->siteurl ) . '?p=' . $alert->ID . '">' . apply_filters( 'the_title', $alert->post_title ) . '</h1><div class="alert-content"><a href="' . trailingslashit( $bloginfo->siteurl ) . '?p=' . $alert->ID . '">' . $alert_excerpt . '</a></div></div>';
+			$alert_excerpt = strip_tags( strip_shortcodes( $alert_excerpt ) );
+			$a = '
+			<div class="active-alert">
+				<h1 class="alert-title"><a href="' . trailingslashit( $bloginfo->siteurl ) . '?p=' . $alert->ID . '">' . apply_filters( 'the_title', $alert->post_title ) . '</a></h1>
+				<div class="alert-content">
+					<a href="' . trailingslashit( $bloginfo->siteurl ) . '?p=' . $alert->ID . '">' . $alert_excerpt . '</a>
+				</div>
+				<div class="alert-date"><a href="' . trailingslashit( $bloginfo->siteurl ) . '?p=' . $alert->ID . '">[' . __( 'Posted: ' ) . get_post_time( get_option( 'date_format' ), false, $alert ) . ' at ' . get_post_time( get_option( 'time_format' ), false, $alert ) . ']</a></div>
+			</div>';
 			if( function_exists( 'update_mnetwork_option' ) )
 				update_mnetwork_option( 'umw_active_alert', array( 'content' => $a, 'ID' => $alert->ID ) );
 			
@@ -192,13 +201,24 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			
 			$alert = array_shift( $alerts );
 			$bloginfo = get_blog_details( $this->ad_id );
-			$alert_excerpt = empty( $alert->post_excerpt ) ? strip_tags( $alert->post_content ) : strip_tags( $alert->post_excerpt );
+			$alert_excerpt = empty( $alert->post_excerpt ) ? $alert->post_content : $alert->post_excerpt;
+			$alert_excerpt = strip_tags( strip_shortcodes( $alert_excerpt ) );
 			if( str_word_count( $alert_excerpt ) > 16 ) {
 				$alert_excerpt = explode( ' ', $alert_excerpt );
 				$alert_excerpt = array_slice( $alert_excerpt, 0, 15 );
 				$alert_excerpt = implode( ' ', $alert_excerpt ) . '&hellip;';
 			}
-			$a = '<div class="emergency-alert"><span class="alert-icon alert-icon-left"></span><h1 class="alert-title"><a href="' . trailingslashit( $bloginfo->siteurl ) . '?p=' . $alert->ID . '">' . apply_filters( 'the_title', $alert->post_title ) . '</h1><div class="alert-content"><a href="' . trailingslashit( $bloginfo->siteurl ) . '?p=' . $alert->ID . '">' . $alert_excerpt . '</a></div><span class="alert-icon alert-icon-right"></span></div>';
+			$alert_excerpt = strip_tags( strip_shortcodes( $alert_excerpt ) );
+			$a = '
+			<div class="emergency-alert">
+				<span class="alert-icon alert-icon-left"></span>
+				<h1 class="alert-title"><a href="' . trailingslashit( $bloginfo->siteurl ) . '?p=' . $alert->ID . '">' . apply_filters( 'the_title', $alert->post_title ) . '</a></h1>
+				<div class="alert-content">
+					<a href="' . trailingslashit( $bloginfo->siteurl ) . '?p=' . $alert->ID . '">' . $alert_excerpt . '</a>
+				</div>
+				<div class="alert-date"><a href="' . trailingslashit( $bloginfo->siteurl ) . '?p=' . $alert->ID . '">[' . __( 'Posted: ' ) . get_post_time( get_option( 'date_format' ), false, $alert ) . ' at ' . get_post_time( get_option( 'time_format' ), false, $alert ) . ']</a></div>
+				<span class="alert-icon alert-icon-right"></span>
+			</div>';
 			if( function_exists( 'update_mnetwork_option' ) )
 				update_mnetwork_option( 'umw_active_emergency', array( 'content' => $a, 'ID' => $alert->ID ) );
 			
@@ -228,6 +248,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 
 add_action( 'plugins_loaded', 'init_umw_active_alerts' );
 function init_umw_active_alerts() {
+	global $umwaa;
 	$umwaa = new umw_active_alerts();
 	return $umwaa;
 }
