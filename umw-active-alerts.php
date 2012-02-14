@@ -25,11 +25,16 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			add_action( 'save_post', array( $this, 'clear_active_alert' ), 99, 2 );
 			add_action( 'trash_post', array( $this, 'clear_active_alert' ), 99, 2 );
 			
-			if ( ! class_exists( 'active_alert_widget' ) )
+			$this->register_post_type();
+			
+			if ( $this->ad_id != $GLOBALS['blog_id'] )
+				add_action( 'genesis_before_content', array( $this, 'insert_local_alert' ) );
+			
+			/*if ( ! class_exists( 'active_alert_widget' ) )
 				require_once( 'active-alert-widget.php' );
 			
 			add_shortcode( 'alert', array( $this, 'shortcode' ) );
-			add_action( 'widgets_init', array( $this, 'init_widget' ) );
+			add_action( 'widgets_init', array( $this, 'init_widget' ) );*/
 		}
 		
 		function set_values() {
@@ -54,6 +59,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			
 			$ad_cat = get_term_by( 'slug', 'current', 'category' );
 			$em_cat = get_term_by( 'slug', 'emergency', 'category' );
+			$local_cat = get_term_by( 'slug', 'local-alerts', 'category' );
 			if ( empty( $ad_cat ) ) {
 				$ad_cat = wp_insert_term( __( 'Current University-wide Alerts' ), 'category', array( 
 					'description' => __( 'Current university-wide alerts that are not emergency notifications.' ), 
@@ -78,12 +84,212 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 				else
 					update_site_option( 'umw_advisories_emergency_cat', 'emergency' );
 			}
+			if ( empty( $local_cat ) ) {
+				$local_cat = wp_insert_term( __( 'Department, Division and Program Alerts' ), 'category', array( 
+					'description' => __( 'Advisories and announcements related to specific departments, divisions and programs within the University.' ), 
+					'slug'        => 'local-alerts',
+				) );
+			}
 		}
 		
 		/* Get value functon
 		------------------------------------------------------------ */
 		function get_value( $key = '' ) {
 			return stripslashes( htmlspecialchars( function_exists( 'get_mnetwork_option' ) ? get_mnetwork_option( $key ) : get_site_option( $key ) ) );
+		}
+		
+		/**
+		 * Register an "Alerts" post type on sites outside of the main advisories site
+		 */
+		function register_post_type() {
+			if ( $this->ad_id == $GLOBALS['blog_id'] )
+				return;
+			
+			$labels = array(
+				'name' => _x( 'Adivisories', 'post type general name' ),
+				'singular_name' => _x( 'Adivisory', 'post type singular name' ),
+				'add_new' => _x( 'Add New', 'advisory' ),
+				'add_new_item' => __( 'Add New Adivisory' ),
+				'edit_item' => __( 'Edit Adivisory' ),
+				'new_item' => __( 'New Adivisory' ),
+				'all_items' => __( 'All Adivisories' ),
+				'view_item' => __( 'View Adivisory' ),
+				'search_items' => __( 'Search Adivisories' ),
+				'not_found' =>  __( 'No advisories found' ),
+				'not_found_in_trash' => __( 'No advisories found in Trash' ), 
+				'parent_item_colon' => '',
+				'menu_name' => 'Advisories'
+			);
+			$args = array(
+				'labels' => $labels,
+				'public' => true,
+				'publicly_queryable' => true,
+				'show_ui' => true, 
+				'show_in_menu' => true, 
+				'query_var' => true,
+				'rewrite' => true,
+				'capability_type' => 'page', 
+				'has_archive' => true, 
+				'hierarchical' => false, 
+				'menu_position' => null, 
+				'supports' => array( 'title', 'editor', 'author', 'thumbnail' ), 
+			);
+			register_post_type( 'advisory', $args );
+			
+			$labels = array(
+				'name' => _x( 'Alert Types', 'taxonomy general name' ),
+				'singular_name' => _x( 'Alert Type', 'taxonomy singular name' ),
+				'search_items' =>  __( 'Search Alert Types' ),
+				'all_items' => __( 'All Alert Types' ),
+				'parent_item' => __( 'Parent Alert Type' ),
+				'parent_item_colon' => __( 'Parent Alert Type:' ),
+				'edit_item' => __( 'Edit Alert Type' ), 
+				'update_item' => __( 'Update Alert Type' ),
+				'add_new_item' => __( 'Add New Alert Type' ),
+				'new_item_name' => __( 'New Alert Type Name' ),
+				'menu_name' => __( 'Alert Type' ),
+			);
+			
+			$args = array(
+				'hierarchical' => true,
+				'labels' => $labels,
+				'show_ui' => false,
+				'query_var' => true,
+				'rewrite' => false,
+			);
+			
+			register_taxonomy( 'alert-type', array( 'advisory' ), $args );
+			wp_insert_term( 'Active', 'alert-type', array( 'description' => 'Active advisories that are displayed throughout this section of the website.', 'slug' => 'active' ) );
+			wp_insert_term( 'Previous', 'alert-type', array( 'description' => 'Advisories for this section of the website that are no longer active.', 'slug' => 'previous' ) );
+			
+			add_action( 'save_post', array( $this, 'syndicate_post' ), 99999, 2 );
+			add_action( 'trash_post', array( $this, 'syndicate_post' ), 99999, 2 );
+		}
+		
+		/**
+		 * Copy any "alert" posts to the advisories site
+		 */
+		function syndicate_post( $post_ID, $post=NULL ) {
+			/**
+			 * Make sure we're supposed to do this
+			 */
+			if ( $this->ad_id == $GLOBALS['blog_id'] )
+				return $post_ID;
+			if( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
+				return $post_ID;
+			if( 'auto-draft' == $post->post_status || 'inherit' == $post->post_status )
+				return $post_ID;
+			
+			/**
+			 * Make sure the post var is set and that the post is an alert
+			 */
+			if( empty( $post ) )
+				$post = get_post( $post_ID );
+			if( is_object( $post ) && 'advisory' != $post->post_type )
+				return $post_ID;
+			
+			/**
+			 * Set up an identifier that will help us find copies of this post on the advisories site
+			 */
+			$guid = 'advisory.' . $GLOBALS['blog_id'] . '.' . $post_ID;
+			
+			if( 'trash' == $post->post_status ) {
+				return $this->remove_copy( $post_ID, $post, $guid );
+			}
+			
+			$pid = $this->add_copy( $post_ID, $post, $guid );
+		}
+		
+		/**
+		 * Delete an alert post on the Advisories site if it's removed from the originating site
+		 */
+		function remove_copy( $post_ID, $post=null, $guid=null ) {
+			if ( is_null( $post ) )
+				$post = get_post( $post_ID );
+			if ( is_null( $guid ) )
+				$guid = 'advisory.' . $GLOBALS['blog_id'] . '.' . $post_ID;
+			
+			$post->guid = $guid;
+			switch_to_blog( $this->ad_id );
+			$existing = $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE guid=%s", esc_url( $post->guid ) ) );
+			if ( $existing )
+				wp_delete_post( $existing, true );
+				
+			restore_current_blog();
+			
+			return $post_ID;
+		}
+		
+		/**
+		 * Insert a post on the Advisories site as a copy of the alert post on the originating site
+		 */
+		function add_copy( $post_ID, $post=null, $guid=null ) {
+			if ( $GLOBALS['blog_id'] == $this->ad_id )
+				return $post_ID;
+			
+			if ( empty( $post ) )
+				$post = get_post( $post_ID );
+			
+			if ( 'advisory' != $post->post_type )
+				return;
+			
+			if ( empty( $guid ) )
+				$guid = 'advisory.' . $GLOBALS['blog_id'] . '.' . $post_ID;
+			
+			$post->guid = $guid;
+			
+			$global_meta = array();
+			$global_meta['blogid'] = $org_blog_id = $wpdb->blogid; // org_blog_id
+			
+			$cat = array( 'cat_name' => get_bloginfo( 'name' ), 'description' => 'Alerts and advisories related to ' . get_bloginfo( 'name' ) );
+			
+			switch_to_blog( $this->ad_id );
+			$local_alerts_parent_cat = get_term_by( 'slug', 'local-alerts', 'category' );
+			$cat['category_parent'] = $local_alerts_parent_cat->term_id;
+			$post->post_type = 'post';
+			$post->post_category = wp_insert_category( $cat, true );
+			if ( is_wp_error( $post->post_category ) ) {
+				restore_current_blog();
+				return $post_ID;
+			}
+			
+			$existing = $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE guid=%s", esc_url( $guid ) ) );
+			if ( is_wp_error( $existing ) )
+				$existing = false;
+			if ( is_object( $existing ) && 'publish' != $post->post_status ) {
+				wp_delete_post( $existing, true );
+			} else {
+				if ( is_object( $existing ) && '' != $existing->ID ) {
+					$post->ID = $existing->ID;
+				
+					foreach ( array_keys( $global_meta ) as $key )
+						delete_post_meta( $existing->ID, $key );
+				} else {
+					unset( $post->ID );
+				}
+			}
+			
+			if ( 'publish' == $post->post_status ) {
+				$post->ping_status = $post->comment_status = 'closed';
+				
+				$p = wp_insert_post( $post );
+				foreach ( $global_meta as $key => $value )
+					if ( $value )
+						add_post_meta( $p, $key, $value );
+			}
+			
+			restore_current_blog();
+			
+			return $post_ID;
+		}
+		
+		function insert_local_alert() {
+			$args = array(
+				'post_type'  => 'advisory', 
+				'numberpost' => 1, 
+				'category'   => 'active', 
+				
+			);
 		}
 		
 		function insert_active_alert() {
