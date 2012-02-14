@@ -13,6 +13,16 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 		var $ad_cat = null;
 		var $em_cat = null;
 		
+		/**
+		 * Build the umw_active_alerts object
+		 * @uses umw_active_alerts::set_values()
+		 * @uses add_action() to set up the AJAX insertion of active/emergency alerts throughout the install
+		 & @uses add_action() to insert the appropriate styles/JavaScript for alerts
+		 * @uses add_action() to set up a function to clear out cached alerts whenever a post is saved
+		 * @uses add_action() to register the advisory post type on all sites except the advisories site
+		 * @uses add_action() to hook the 'genesis_before_content' and 'wptouch_body_top' actions to insert 
+		 * 		active local alerts above the content of a page
+		 */
 		function __construct() {
 			$this->set_values();
 			add_action( 'wp_ajax_nopriv_check_active_alert', array( $this, 'insert_active_alert' ) );
@@ -25,11 +35,14 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			add_action( 'save_post', array( $this, 'clear_active_alert' ), 99, 2 );
 			add_action( 'trash_post', array( $this, 'clear_active_alert' ), 99, 2 );
 			
-			$this->register_post_type();
+			add_action( 'init', array( $this, 'register_post_type' ) );
 			
-			if ( $this->ad_id != $GLOBALS['blog_id'] )
+			if ( $this->ad_id != $GLOBALS['blog_id'] ) {
 				add_action( 'genesis_before_content', array( $this, 'insert_local_alert' ) );
+				add_action( 'wptouch_body_top', array( $this, 'insert_local_alert' ) );
+			}
 			
+			/*add_action( 'add_meta_boxes', array( $this, 'add_expires_meta_box' ) );*/
 			/*if ( ! class_exists( 'active_alert_widget' ) )
 				require_once( 'active-alert-widget.php' );
 			
@@ -37,6 +50,13 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			add_action( 'widgets_init', array( $this, 'init_widget' ) );*/
 		}
 		
+		/**
+		 * Set the object's property values
+		 * @uses umw_active_alerts::get_value() to retrieve the value for each property
+		 * @uses umw_active_alerts::$ad_id as the ID of the advisories site
+		 * @uses umw_active_alerts::$ad_cat as the slug of the active alerts category
+		 * @uses umw_active_alerts::$em_cat as the slug of the emergency alerts category
+		 */
 		function set_values() {
 			$this->ad_id	= $this->get_value( 'umw_advisories_blog_id' );
 			if( empty( $this->ad_id ) )
@@ -51,6 +71,14 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 				$this->em_cat = 'emergency';
 		}
 		
+		/**
+		 * Ensure the appropriate categories exist on the advisories site
+		 * @uses umw_active_alerts::$ad_id to determine whether or not this is the advisories site
+		 * @uses get_term_by() to see if the categories exist
+		 * @uses wp_insert_term() to insert the categories if they don't exist
+		 *
+		 * @todo integrate this better with the pre-existing settings and vars
+		 */
 		function check_categories() {
 			if ( empty( $this->ad_id ) )
 				return;
@@ -92,29 +120,37 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			}
 		}
 		
-		/* Get value functon
-		------------------------------------------------------------ */
+		/**
+		 * Retrieve the value of an option in this plugin
+		 * @param string $key the key of the option to retrieve
+		 * @uses get_mnetwork_option() if it exists
+		 * @uses get_site_option() if get_mnetwork_option() doesn't exist
+		 */
 		function get_value( $key = '' ) {
 			return stripslashes( htmlspecialchars( function_exists( 'get_mnetwork_option' ) ? get_mnetwork_option( $key ) : get_site_option( $key ) ) );
 		}
 		
 		/**
 		 * Register an "Alerts" post type on sites outside of the main advisories site
+		 * @uses register_post_type() to register the advisory post type
+		 * @uses register_taxonomy() to register the alert-type taxonomy for the advisory post type
+		 * @uses wp_insert_term() to insert the two possible values of the alert-type taxonomy
+		 * @uses add_action() to hook into the save_post action to syndicate the post and apply appropriate taxonomy term
 		 */
 		function register_post_type() {
 			if ( $this->ad_id == $GLOBALS['blog_id'] )
 				return;
 			
 			$labels = array(
-				'name' => _x( 'Adivisories', 'post type general name' ),
-				'singular_name' => _x( 'Adivisory', 'post type singular name' ),
+				'name' => _x( 'Advisories', 'post type general name' ),
+				'singular_name' => _x( 'Advisory', 'post type singular name' ),
 				'add_new' => _x( 'Add New', 'advisory' ),
-				'add_new_item' => __( 'Add New Adivisory' ),
-				'edit_item' => __( 'Edit Adivisory' ),
-				'new_item' => __( 'New Adivisory' ),
-				'all_items' => __( 'All Adivisories' ),
-				'view_item' => __( 'View Adivisory' ),
-				'search_items' => __( 'Search Adivisories' ),
+				'add_new_item' => __( 'Add New Advisory' ),
+				'edit_item' => __( 'Edit Advisory' ),
+				'new_item' => __( 'New Advisory' ),
+				'all_items' => __( 'All Advisories' ),
+				'view_item' => __( 'View Advisory' ),
+				'search_items' => __( 'Search Advisories' ),
 				'not_found' =>  __( 'No advisories found' ),
 				'not_found_in_trash' => __( 'No advisories found in Trash' ), 
 				'parent_item_colon' => '',
@@ -137,25 +173,26 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			register_post_type( 'advisory', $args );
 			
 			$labels = array(
-				'name' => _x( 'Alert Types', 'taxonomy general name' ),
-				'singular_name' => _x( 'Alert Type', 'taxonomy singular name' ),
-				'search_items' =>  __( 'Search Alert Types' ),
-				'all_items' => __( 'All Alert Types' ),
-				'parent_item' => __( 'Parent Alert Type' ),
+				'name'              => _x( 'Alert Types', 'taxonomy general name' ),
+				'singular_name'     => _x( 'Alert Type', 'taxonomy singular name' ),
+				'search_items'      =>  __( 'Search Alert Types' ),
+				'all_items'         => __( 'All Alert Types' ),
+				'parent_item'       => __( 'Parent Alert Type' ),
 				'parent_item_colon' => __( 'Parent Alert Type:' ),
-				'edit_item' => __( 'Edit Alert Type' ), 
-				'update_item' => __( 'Update Alert Type' ),
-				'add_new_item' => __( 'Add New Alert Type' ),
-				'new_item_name' => __( 'New Alert Type Name' ),
-				'menu_name' => __( 'Alert Type' ),
+				'edit_item'         => __( 'Edit Alert Type' ), 
+				'update_item'       => __( 'Update Alert Type' ),
+				'add_new_item'      => __( 'Add New Alert Type' ),
+				'new_item_name'     => __( 'New Alert Type Name' ),
+				'menu_name'         => __( 'Alert Type' ),
 			);
 			
 			$args = array(
-				'hierarchical' => true,
-				'labels' => $labels,
-				'show_ui' => false,
-				'query_var' => true,
-				'rewrite' => false,
+				'hierarchical' => true, 
+				'labels'       => $labels, 
+				'public'       => false, 
+				'show_ui'      => true, 
+				'query_var'    => true, 
+				'rewrite'      => false, 
 			);
 			
 			register_taxonomy( 'alert-type', array( 'advisory' ), $args );
@@ -164,6 +201,80 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			
 			add_action( 'save_post', array( $this, 'syndicate_post' ), 99999, 2 );
 			add_action( 'trash_post', array( $this, 'syndicate_post' ), 99999, 2 );
+			add_action( 'save_post', array( $this, 'set_expires_time' ), 99, 2 );
+			add_action( 'wp_get_object_terms', array( $this, 'check_expiration_terms' ), 99, 4 );
+		}
+		
+		/**
+		 * Register the meta box that determines when the advisory expires
+		 */
+		function add_expires_meta_box() {
+			$object_type = $GLOBALS['blog_id'] == $this->ad_id ? 'post' : 'advisory';
+			add_meta_box(
+				/* Unique ID for the meta box */
+				'advisory_expires_meta_box', 
+				/* Title to display at top of meta box */
+				__( 'Advisory Expiration' ), 
+				/* Callback to output meta box content */
+				array( $this, 'expires_meta_box' ), 
+				/* Post type */
+				$object_type, 
+				/* Meta box position */
+				'side'
+			);
+		}
+		
+		/**
+		 * Output the contents of the advisory expiration meta box
+		 */
+		function expires_meta_box( $post ) {
+			$expires = get_post_meta( $post->ID, '_advisory_expiration' );
+			$is_active = get_transient( 'advisory-' . $post->ID . '-active' );
+			wp_nonce_field( 'advisory_expiration_meta', '_aexp_nonce' );
+			if ( empty( $expires ) ) {
+				$expires = array(
+					'is_active' => true, 
+					'expires_time' => ( time() + ( 24 * 60 * 60 ) ), 
+				);
+			} else if ( false === $is_active ) {
+				$expires['is_active'] = false;
+			}
+?>
+	<p><input type="checkbox" name="_advisory_expiration[is_active]" id="_advisory_is_active" value="1"<?php checked( $expires['is_active'] ) ?>/> 
+    	<label for="_advisory_is_active"><?php _e( 'Is this advisory currently active?' ) ?></label></p>
+    <p><label for="_advisory_expires_time"><?php _e( 'If so, when should it expire?' ) ?></label>
+    	<input type="datetime" name="_advisory_expiration[expires_time]" id="_advisory_expires_time" value="<?php echo date( "Y-m-d g:i:s", $expires['expires_time'] ) ?>"/></p>
+<?php
+		}
+		
+		/**
+		 * Set the expiration information for an advisory
+		 * @param int the ID of the post being saved
+		 * @param stdClass $post a WordPress post object
+		 */
+		function set_expires_time( $post_ID, $post=null ) {
+			if( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
+				return $post_ID;
+			if( 'auto-draft' == $post->post_status || 'inherit' == $post->post_status )
+				return $post_ID;
+			
+			if ( ! wp_verify_nonce( $_POST['_aexp_nonce'], 'advisory-expiration-meta' ) )
+				return $post_ID;
+			if ( ( $GLOBALS['blog_id'] == $this->ad_id && 'advisory' !== $post->post_type ) || ( $GLOBALS['blog_id'] != $this->ad_id && 'post' !== $post->post_type ) )
+				return $post_ID;
+			
+			$is_active = in_array( $_POST['_advisory_expiration']['is_active'], array( 1, '1', true ) );
+			$expires_time = @strtotime( $_POST['_advisory_expiration']['expires_time'] );
+			
+			if ( $expires_time < time() )
+				$is_active = false;
+			
+			$expires = array( 'is_active' => $is_active, 'expires_time' => $expires_time );
+			if ( $is_active && $expires_time )
+				set_transient( 'advisory-' . $post_ID . '-active', $post_ID, ( $expires_time - time() ) );
+			update_post_meta( $post_ID, '_advisory_expiration', $expires );
+			
+			return $post_ID;
 		}
 		
 		/**
@@ -181,12 +292,25 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 				return $post_ID;
 			
 			/**
-			 * Make sure the post var is set and that the post is an alert
+			 * Make sure the post var is set
 			 */
 			if( empty( $post ) )
 				$post = get_post( $post_ID );
+			
 			if( is_object( $post ) && 'advisory' != $post->post_type )
 				return $post_ID;
+			
+			if ( 'publish' == $post->post_status ) {
+				$terms = wp_get_post_terms( $post_ID, 'alert-type' );
+				$active = get_term_by( 'slug', 'active', 'alert-type' );
+				if ( empty( $terms ) ) {
+					/*$expires = get_post_meta( $post_ID, '_advisory_expiration' );
+					if ( false === get_transient( 'advisory-' . $post_ID . '-active' ) ) {
+						wp_set_object_terms( $post_ID, 'previous', 'alert-type' );
+					}*/
+					wp_set_object_terms( $post->ID, array( intval( $active->term_id ) ), 'alert-type' );
+				}
+			}
 			
 			/**
 			 * Set up an identifier that will help us find copies of this post on the advisories site
@@ -211,6 +335,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			
 			$post->guid = $guid;
 			switch_to_blog( $this->ad_id );
+			global $wpdb;
 			$existing = $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE guid=%s", esc_url( $post->guid ) ) );
 			if ( $existing )
 				wp_delete_post( $existing, true );
@@ -253,6 +378,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 				return $post_ID;
 			}
 			
+			global $wpdb;
 			$existing = $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE guid=%s", esc_url( $guid ) ) );
 			if ( is_wp_error( $existing ) )
 				$existing = false;
@@ -288,8 +414,37 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 				'post_type'  => 'advisory', 
 				'numberpost' => 1, 
 				'category'   => 'active', 
-				
+				'tax_query'  => array(
+					array( 
+						'taxonomy' => 'alert-type', 
+						'field'    => 'slug', 
+						'terms'    => 'active', 
+					), 
+				), 
 			);
+			$posts = get_posts( $args );
+			if ( empty( $posts ) )
+				return false;
+			
+			foreach ( $posts as $post ) {
+				$alert_excerpt = empty( $post->post_excerpt ) ? $post->post_content : $post->post_excerpt;
+				$alert_excerpt = strip_tags( strip_shortcodes( $alert_excerpt ) );
+				if( str_word_count( $alert_excerpt ) > 16 ) {
+					$alert_excerpt = explode( ' ', $alert_excerpt );
+					$alert_excerpt = array_slice( $alert_excerpt, 0, 15 );
+					$alert_excerpt = implode( ' ', $alert_excerpt ) . '&hellip;';
+				}
+				$alert_excerpt = strip_tags( strip_shortcodes( $alert_excerpt ) );
+?>
+			<div class="local-alert">
+				<h1 class="alert-title"><a href="<?php echo get_permalink( $post->ID ) ?>"><?php echo apply_filters( 'the_title', $post->post_title ) ?></a></h1>
+				<div class="alert-content">
+					<a href="<?php echo get_permalink( $post->ID ) ?>"><?php echo $alert_excerpt ?></a>
+				</div>
+				<div class="alert-date"><a href="<?php echo get_permalink( $post->ID ) ?>">[<?php _e( 'Posted: ' ); echo get_post_time( get_option( 'date_format' ), false, $post ); ?> at <?php echo get_post_time( get_option( 'time_format' ), false, $post ) ?>]</a></div>
+			</div>
+<?php
+			}
 		}
 		
 		function insert_active_alert() {
@@ -307,7 +462,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 		}
 		
 		function print_styles() {
-			wp_enqueue_style( 'umw-active-alerts', plugins_url( '/css/umw-active-alerts.css', __FILE__ ), array(), '0.1.42a', 'all' );
+			wp_enqueue_style( 'umw-active-alerts', plugins_url( '/css/umw-active-alerts.css', __FILE__ ), array(), '0.1.45a', 'all' );
 		}
 		
 		function localize_js() {

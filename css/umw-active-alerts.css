@@ -225,7 +225,7 @@
 	display: none;
 }
 
-/* @ Local Alerts (site-specific)
+/* @ Local Alerts Widget (site-specific)
 ------------------------------------------------------------ */
 .current-alert a {
 	color: #b60000;
@@ -237,4 +237,38 @@
 
 .widget .current-alert a {
 	color: #fff;
+}
+
+/* @ Local Alerts auto-inserted content
+------------------------------------------------------------ */
+.local-alert {
+	width: 100%;
+	padding: .5em 0;
+	margin: 0;
+	
+	background: #ff3a3a; /* Old browsers */
+	background: -moz-linear-gradient(top,  #ff3a3a 0%, #ffcccc 30%, #ffadad 82%, #ff9e9e 100%); /* FF3.6+ */
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#ff3a3a), color-stop(30%,#ffcccc), color-stop(82%,#ffadad), color-stop(100%,#ff9e9e)); /* Chrome,Safari4+ */
+	background: -webkit-linear-gradient(top,  #ff3a3a 0%,#ffcccc 30%,#ffadad 82%,#ff9e9e 100%); /* Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(top,  #ff3a3a 0%,#ffcccc 30%,#ffadad 82%,#ff9e9e 100%); /* Opera 11.10+ */
+	background: -ms-linear-gradient(top,  #ff3a3a 0%,#ffcccc 30%,#ffadad 82%,#ff9e9e 100%); /* IE10+ */
+	background: linear-gradient(top,  #ff3a3a 0%,#ffcccc 30%,#ffadad 82%,#ff9e9e 100%); /* W3C */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ff3a3a', endColorstr='#ff9e9e',GradientType=0 ); /* IE6-9 */
+}
+
+.local-alert a {
+	color: #610000;
+}
+
+.local-alert .alert-content {
+	display: none;
+}
+
+.local-alert .alert-title, 
+.local-alert .alert-content, 
+.local-alert .alert-date {
+	width: auto;
+	padding: 0 1em;
+	margin: 0 auto;
+	text-align: center;
 }
