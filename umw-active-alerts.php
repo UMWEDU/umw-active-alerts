@@ -201,8 +201,8 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			
 			add_action( 'save_post', array( $this, 'syndicate_post' ), 99999, 2 );
 			add_action( 'trash_post', array( $this, 'syndicate_post' ), 99999, 2 );
-			add_action( 'save_post', array( $this, 'set_expires_time' ), 99, 2 );
-			add_action( 'wp_get_object_terms', array( $this, 'check_expiration_terms' ), 99, 4 );
+			/*add_action( 'save_post', array( $this, 'set_expires_time' ), 99, 2 );
+			add_action( 'wp_get_object_terms', array( $this, 'check_expiration_terms' ), 99, 4 );*/
 		}
 		
 		/**
@@ -308,14 +308,15 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 					if ( false === get_transient( 'advisory-' . $post_ID . '-active' ) ) {
 						wp_set_object_terms( $post_ID, 'previous', 'alert-type' );
 					}*/
-					wp_set_object_terms( $post->ID, array( intval( $active->term_id ) ), 'alert-type' );
+					$terms = array_map( 'intval', array( $active->term_id ) );
+					wp_set_object_terms( $post_ID, array( intval( $active->term_id ) ), 'alert-type' );
 				}
 			}
 			
 			/**
 			 * Set up an identifier that will help us find copies of this post on the advisories site
 			 */
-			$guid = 'advisory.' . $GLOBALS['blog_id'] . '.' . $post_ID;
+			$guid = 'advisory.' . $GLOBALS['blog_id'] . '.' . $post->ID;
 			
 			if( 'trash' == $post->post_status ) {
 				return $this->remove_copy( $post_ID, $post, $guid );
@@ -361,7 +362,9 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			if ( empty( $guid ) )
 				$guid = 'advisory.' . $GLOBALS['blog_id'] . '.' . $post_ID;
 			
-			$post->guid = $guid;
+			$post->guid = esc_url( $guid );
+			
+			global $wpdb;
 			
 			$global_meta = array();
 			$global_meta['blogid'] = $org_blog_id = $wpdb->blogid; // org_blog_id
@@ -372,21 +375,28 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			$local_alerts_parent_cat = get_term_by( 'slug', 'local-alerts', 'category' );
 			$cat['category_parent'] = $local_alerts_parent_cat->term_id;
 			$post->post_type = 'post';
-			$post->post_category = wp_insert_category( $cat, true );
-			if ( is_wp_error( $post->post_category ) ) {
-				restore_current_blog();
-				return $post_ID;
+			$category = wp_insert_category( $cat, true );
+			if ( is_wp_error( $category ) ) {
+				error_log( '[Alerts Debug]: Attempted to assign a category that threw an error. ' . $category->get_error_message() );
+				$category = get_term_by( 'name', $cat['cat_name'], 'category' );
+				$category = $category->term_id;
 			}
 			
-			global $wpdb;
-			$existing = $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE guid=%s", esc_url( $guid ) ) );
+			ob_start();
+			var_dump( $category );
+			$tmpcat = ob_get_clean();
+			
+			error_log( '[Alerts Debug]: Attempting to insert a new advisory with a category with an ID of ' . $tmpcat );
+			
+			$post->post_category = array( intval( $category ) );
+			$existing = $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE guid=%s", $post->guid ) );
 			if ( is_wp_error( $existing ) )
 				$existing = false;
-			if ( is_object( $existing ) && 'publish' != $post->post_status ) {
+			if ( $existing && 'publish' != $post->post_status ) {
 				wp_delete_post( $existing, true );
 			} else {
-				if ( is_object( $existing ) && '' != $existing->ID ) {
-					$post->ID = $existing->ID;
+				if ( $existing ) {
+					$post->ID = $existing;
 				
 					foreach ( array_keys( $global_meta ) as $key )
 						delete_post_meta( $existing->ID, $key );
