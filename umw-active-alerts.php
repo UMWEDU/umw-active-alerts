@@ -42,7 +42,11 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 				add_action( 'wptouch_body_top', array( $this, 'insert_local_alert' ) );
 			}
 			
-			/*add_action( 'add_meta_boxes', array( $this, 'add_expires_meta_box' ) );*/
+			add_action( 'add_meta_boxes', array( $this, 'add_expires_meta_box' ) );
+			wp_register_script( 'jquery-ui-timepicker-addon', plugins_url( '/js/jquery-ui-timepicker-addon.js', __FILE__ ), array( 'jquery-ui-datepicker', 'jquery-ui-slider' ), '0.9.9', true );
+			wp_register_script( 'umw-active-alerts-admin', plugins_url( '/js/umw-active-alerts.admin.js', __FILE__ ), array( 'jquery-ui-timepicker-addon' ), '0.1.3', true );
+			wp_register_style( 'wp-jquery-ui-datepicker', plugins_url( '/css/smoothness/jquery-ui-1.8.17.custom.css', __FILE__ ), array(), '0.1', 'screen' );
+			wp_register_style( 'jquery-ui-timepicker', plugins_url( '/css/jquery-ui-timepicker-addon.css', __FILE__ ), array( 'wp-jquery-ui-datepicker' ), '0.1', 'screen' );
 			/*if ( ! class_exists( 'active_alert_widget' ) )
 				require_once( 'active-alert-widget.php' );
 			
@@ -190,7 +194,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 				'hierarchical' => true, 
 				'labels'       => $labels, 
 				'public'       => false, 
-				'show_ui'      => true, 
+				'show_ui'      => false, 
 				'query_var'    => true, 
 				'rewrite'      => false, 
 			);
@@ -201,8 +205,8 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			
 			add_action( 'save_post', array( $this, 'syndicate_post' ), 99999, 2 );
 			add_action( 'trash_post', array( $this, 'syndicate_post' ), 99999, 2 );
-			/*add_action( 'save_post', array( $this, 'set_expires_time' ), 99, 2 );
-			add_action( 'wp_get_object_terms', array( $this, 'check_expiration_terms' ), 99, 4 );*/
+			add_action( 'save_post', array( $this, 'set_expires_time' ), 99, 2 );
+			add_action( 'wp_get_object_terms', array( $this, 'check_expiration_terms' ), 99, 4 );
 		}
 		
 		/**
@@ -228,9 +232,14 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 		 * Output the contents of the advisory expiration meta box
 		 */
 		function expires_meta_box( $post ) {
-			$expires = get_post_meta( $post->ID, '_advisory_expiration' );
+			wp_enqueue_style( 'jquery-ui-timepicker' );
+			wp_enqueue_script( 'umw-active-alerts-admin' );
+			$expires = get_post_meta( $post->ID, '_advisory_expiration', true );
 			$is_active = get_transient( 'advisory-' . $post->ID . '-active' );
-			wp_nonce_field( 'advisory_expiration_meta', '_aexp_nonce' );
+			wp_nonce_field( 'advisory-expiration-meta', '_aexp_nonce' );
+			print( "\n<!-- Expires Info:\n" );
+			var_dump( $expires );
+			print( "\n-->\n" );
 			if ( empty( $expires ) ) {
 				$expires = array(
 					'is_active' => true, 
@@ -243,7 +252,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 	<p><input type="checkbox" name="_advisory_expiration[is_active]" id="_advisory_is_active" value="1"<?php checked( $expires['is_active'] ) ?>/> 
     	<label for="_advisory_is_active"><?php _e( 'Is this advisory currently active?' ) ?></label></p>
     <p><label for="_advisory_expires_time"><?php _e( 'If so, when should it expire?' ) ?></label>
-    	<input type="datetime" name="_advisory_expiration[expires_time]" id="_advisory_expires_time" value="<?php echo date( "Y-m-d g:i:s", $expires['expires_time'] ) ?>"/></p>
+    	<input type="text" class="datetimepicker" name="_advisory_expiration[expires_time]" id="_advisory_expires_time" value="<?php echo date( "Y-m-d g:i", $expires['expires_time'] ) ?>"/></p>
 <?php
 		}
 		
@@ -260,7 +269,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			
 			if ( ! wp_verify_nonce( $_POST['_aexp_nonce'], 'advisory-expiration-meta' ) )
 				return $post_ID;
-			if ( ( $GLOBALS['blog_id'] == $this->ad_id && 'advisory' !== $post->post_type ) || ( $GLOBALS['blog_id'] != $this->ad_id && 'post' !== $post->post_type ) )
+			if ( ( $GLOBALS['blog_id'] != $this->ad_id && 'advisory' !== $post->post_type ) || ( $GLOBALS['blog_id'] == $this->ad_id && 'post' !== $post->post_type ) )
 				return $post_ID;
 			
 			$is_active = in_array( $_POST['_advisory_expiration']['is_active'], array( 1, '1', true ) );
