@@ -193,8 +193,8 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			$args = array(
 				'hierarchical' => true, 
 				'labels'       => $labels, 
-				'public'       => false, 
-				'show_ui'      => false, 
+				'public'       => true, 
+				'show_ui'      => true, 
 				'query_var'    => true, 
 				'rewrite'      => false, 
 			);
@@ -206,7 +206,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			add_action( 'save_post', array( $this, 'syndicate_post' ), 99999, 2 );
 			add_action( 'trash_post', array( $this, 'syndicate_post' ), 99999, 2 );
 			add_action( 'save_post', array( $this, 'set_expires_time' ), 99, 2 );
-			add_action( 'wp_get_object_terms', array( $this, 'check_expiration_terms' ), 99, 4 );
+			/*add_action( 'wp_get_object_terms', array( $this, 'check_expiration_terms' ), 99, 4 );*/
 		}
 		
 		/**
@@ -243,7 +243,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			if ( empty( $expires ) ) {
 				$expires = array(
 					'is_active' => true, 
-					'expires_time' => ( time() + ( 24 * 60 * 60 ) ), 
+					'expires_time' => ( current_time('timestamp') + ( 24 * 60 * 60 ) ), 
 				);
 			} else if ( false === $is_active ) {
 				$expires['is_active'] = false;
@@ -252,7 +252,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 	<p><input type="checkbox" name="_advisory_expiration[is_active]" id="_advisory_is_active" value="1"<?php checked( $expires['is_active'] ) ?>/> 
     	<label for="_advisory_is_active"><?php _e( 'Is this advisory currently active?' ) ?></label></p>
     <p><label for="_advisory_expires_time"><?php _e( 'If so, when should it expire?' ) ?></label>
-    	<input type="text" class="datetimepicker" name="_advisory_expiration[expires_time]" id="_advisory_expires_time" value="<?php echo date( "Y-m-d g:i", $expires['expires_time'] ) ?>"/></p>
+    	<input type="text" class="datetimepicker" name="_advisory_expiration[expires_time]" id="_advisory_expires_time" value="<?php echo date( "Y-m-d H:i", $expires['expires_time'] ) ?>"/></p>
 <?php
 		}
 		
@@ -264,6 +264,8 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 		function set_expires_time( $post_ID, $post=null ) {
 			if( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
 				return $post_ID;
+			if ( ! is_object( $post ) )
+				$post = get_post( $post_ID );
 			if( 'auto-draft' == $post->post_status || 'inherit' == $post->post_status )
 				return $post_ID;
 			
@@ -275,15 +277,52 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			$is_active = in_array( $_POST['_advisory_expiration']['is_active'], array( 1, '1', true ) );
 			$expires_time = @strtotime( $_POST['_advisory_expiration']['expires_time'] );
 			
-			if ( $expires_time < time() )
+			if ( $expires_time < current_time('timestamp') )
 				$is_active = false;
 			
 			$expires = array( 'is_active' => $is_active, 'expires_time' => $expires_time );
 			if ( $is_active && $expires_time )
-				set_transient( 'advisory-' . $post_ID . '-active', $post_ID, ( $expires_time - time() ) );
+				set_transient( 'advisory-' . $post_ID . '-active', $post_ID, ( $expires_time - current_time('timestamp') ) );
 			update_post_meta( $post_ID, '_advisory_expiration', $expires );
 			
+			$this->set_object_terms( $post );
+			
 			return $post_ID;
+		}
+		
+		/**
+		 * Determine whether a post is an active advisory or not, and set the "alert-type" term appropriately.
+		 * @param stdClass $post a WordPress post object
+		 * @param bool $force whether or not to force the term update (if false, the list of existing terms will 
+		 * 		be checked, and, if the target term is already applied to the object, the function will exit.
+		 * @return void
+		 */
+		function set_object_terms( $post, $force = true ) {
+			if ( 'advisory' !== $post->post_type )
+				return;
+			
+			$is_active = get_transient( 'advisory-' . $post->ID . '-active' );
+			$active = get_term_by( 'slug', 'active', 'alert-type' );
+			$prev = get_term_by( 'slug', 'previous', 'alert-type' );
+			
+			$target = $is_active ? $active->term_id : $prev->term_id;
+			
+			if ( ! $force ) {
+				$terms = wp_get_object_terms( $post->ID, 'alert-type' );
+				if ( is_array( $terms ) ) {
+					foreach ( $terms as $term ) {
+						if ( $term->term_id === $target )
+							return;
+					}
+				}
+			}
+			
+			error_log( '[Alerts Debug]: Preparing to set the alert-type taxonomy to ' . $target );
+			$result = wp_set_object_terms( $post->ID, array( intval( $target ) ), 'alert-type', false );
+			ob_start();
+			var_dump( $result );
+			$results = ob_get_clean();
+			error_log( '[Alerts Debug]: Results of setting alert-type taxonomy: ' . $results );
 		}
 		
 		/**
@@ -310,16 +349,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 				return $post_ID;
 			
 			if ( 'publish' == $post->post_status ) {
-				$terms = wp_get_post_terms( $post_ID, 'alert-type' );
-				$active = get_term_by( 'slug', 'active', 'alert-type' );
-				if ( empty( $terms ) ) {
-					/*$expires = get_post_meta( $post_ID, '_advisory_expiration' );
-					if ( false === get_transient( 'advisory-' . $post_ID . '-active' ) ) {
-						wp_set_object_terms( $post_ID, 'previous', 'alert-type' );
-					}*/
-					$terms = array_map( 'intval', array( $active->term_id ) );
-					wp_set_object_terms( $post_ID, array( intval( $active->term_id ) ), 'alert-type' );
-				}
+				$this->set_object_terms( $post );
 			}
 			
 			/**
@@ -431,8 +461,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 		function insert_local_alert() {
 			$args = array(
 				'post_type'  => 'advisory', 
-				'numberpost' => 1, 
-				'category'   => 'active', 
+				'numberpost' => -1, 
 				'tax_query'  => array(
 					array( 
 						'taxonomy' => 'alert-type', 
@@ -446,6 +475,16 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 				return false;
 			
 			foreach ( $posts as $post ) {
+				$is_active = get_transient( 'advisory-' . $post->ID . '-active' );
+				/**
+				 * If the transient doesn't exist, or is empty, we make sure the "active" alert-type term is not 
+				 * 		applied to this post and we continue the loop with the next item
+				 */
+				if ( ! $is_active ) {
+					$this->set_object_terms( $post, false );
+					continue;
+				}
+				
 				$alert_excerpt = empty( $post->post_excerpt ) ? $post->post_content : $post->post_excerpt;
 				$alert_excerpt = strip_tags( strip_shortcodes( $alert_excerpt ) );
 				if( str_word_count( $alert_excerpt ) > 16 ) {
@@ -463,6 +502,11 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 				<div class="alert-date"><a href="<?php echo get_permalink( $post->ID ) ?>">[<?php _e( 'Posted: ' ); echo get_post_time( get_option( 'date_format' ), false, $post ); ?> at <?php echo get_post_time( get_option( 'time_format' ), false, $post ) ?>]</a></div>
 			</div>
 <?php
+				/**
+				 * If we made it this far through the loop, we want to return so that we don't output 
+				 * 		more than one advisory.
+				 */
+				return;
 			}
 		}
 		
