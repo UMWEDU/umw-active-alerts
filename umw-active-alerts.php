@@ -44,7 +44,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			
 			add_action( 'add_meta_boxes', array( $this, 'add_expires_meta_box' ) );
 			wp_register_script( 'jquery-ui-timepicker-addon', plugins_url( '/js/jquery-ui-timepicker-addon.js', __FILE__ ), array( 'jquery-ui-datepicker', 'jquery-ui-slider' ), '0.9.9', true );
-			wp_register_script( 'umw-active-alerts-admin', plugins_url( '/js/umw-active-alerts.admin.js', __FILE__ ), array( 'jquery-ui-timepicker-addon' ), '0.1.3', true );
+			wp_register_script( 'umw-active-alerts-admin', plugins_url( '/js/umw-active-alerts.admin.js', __FILE__ ), array( 'jquery-ui-timepicker-addon' ), '0.1.6', true );
 			wp_register_style( 'wp-jquery-ui-datepicker', plugins_url( '/css/smoothness/jquery-ui-1.8.17.custom.css', __FILE__ ), array(), '0.1', 'screen' );
 			wp_register_style( 'jquery-ui-timepicker', plugins_url( '/css/jquery-ui-timepicker-addon.css', __FILE__ ), array( 'wp-jquery-ui-datepicker' ), '0.1', 'screen' );
 			/*if ( ! class_exists( 'active_alert_widget' ) )
@@ -193,8 +193,8 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			$args = array(
 				'hierarchical' => true, 
 				'labels'       => $labels, 
-				'public'       => true, 
-				'show_ui'      => true, 
+				'public'       => false, 
+				'show_ui'      => false, 
 				'query_var'    => true, 
 				'rewrite'      => false, 
 			);
@@ -206,7 +206,100 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			add_action( 'save_post', array( $this, 'syndicate_post' ), 99999, 2 );
 			add_action( 'trash_post', array( $this, 'syndicate_post' ), 99999, 2 );
 			add_action( 'save_post', array( $this, 'set_expires_time' ), 99, 2 );
+			
+			add_action( 'manage_edit-advisory_columns', array( $this, 'add_advisory_table_columns' ) );
+			add_action( 'manage_advisory_posts_custom_column', array( $this, 'output_custom_table_columns' ), 10, 2 );
+			/*add_action( 'quick_edit_custom_box', array( $this, 'quick_edit_expires_box' ), 10, 2 );
+			add_action( 'bulk_edit_custom_box', array( $this, 'bulk_edit_expires_box' ), 10, 2 );*/
+			/*add_action( 'edit_post', array( $this, 'syndicate_post' ), 99999, 2 );
+			add_action( 'edit_post', array( $this, 'set_expires_time' ), 99, 2 );*/
 			/*add_action( 'wp_get_object_terms', array( $this, 'check_expiration_terms' ), 99, 4 );*/
+		}
+		
+		/**
+		 * Register the extra columns for the advisory post list
+		 * @param array $columns the array of columns
+		 */
+		function add_advisory_table_columns( $columns ) {
+			$title_arr = array_slice( $columns, 0, 2, true );
+			return $title_arr + array( 
+				'active' => __( 'Is Active' ), 
+				'expires' => __( 'Expiration date' ) 
+			) + $columns;
+		}
+		
+		/**
+		 * Echo the HTML for the custom columns in the advisory edit table
+		 */
+		function output_custom_table_columns( $column, $post_ID ) {
+			switch( $column ) {
+				case 'active' :
+					wp_enqueue_style( 'jquery-ui-timepicker' );
+					wp_enqueue_script( 'umw-active-alerts-admin' );
+					$is_active = get_transient( 'advisory-' . $post_ID . '-active' );
+					echo $is_active ? __( 'Yes' ) : __( 'No' );
+					break;
+				case 'expires' :
+					$expires = get_post_meta( $post_ID, '_advisory_expiration', true );
+					echo date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $expires['expires_time'] );
+					break;
+			}
+		}
+		
+		/**
+		 * Echo the HTML to show in the Quick Edit area for advisories
+		 */
+		function quick_edit_expires_box( $column_name, $post_type ) {
+			if ( 'advisory' !== $post_type )
+				return;
+			
+			if ( ! in_array( $column_name, array( 'active', 'expires' ) ) )
+				return;
+			
+			global $post;
+			
+			if ( 'active' === $column_name ) {
+?>
+<fieldset class="inline-edit-col-right"><div class="inline-edit-col">
+<?php
+			}
+?>
+<div class="inline-edit-group">
+	<label class="inline-edit-<?php echo esc_attr( $column_name ) ?> alignleft">
+    	<span class="title"><?php echo 'active' == $column_name ? __( 'Active?' ) : __( 'Expires:' ) ?></span>
+<?php
+			switch( $column_name ) {
+				case 'active' :
+					$is_active = false === get_transient( 'advisory-' . $post->ID . '-active' ) ? false : true;
+?>
+<input type="checkbox" name="_advisory_expiration[is_active]" id="_advisory_is_active" value="1"<?php checked( $is_active ) ?>/>
+<?php
+				break;
+				case 'expires' : 
+					$expires = get_post_meta( $post->ID, '_advisory_expiration', true );
+?>
+<input type="text" class="datetimepicker" name="_advisory_expiration[expires_time]" id="_advisory_expires_time_<?php echo $post->ID ?>" value="<?php echo date( "Y-m-d H:i", $expires['expires_time'] ) ?>"/>
+<?php
+				break;
+			}
+?>
+    </label>
+</div>
+<?php
+			if ( 'expires' === $column_name ) {
+?>
+	<!--<input type="hidden" name="is_quickedit" value="1"/>-->
+</div></fieldset>
+<?php
+			}
+		}
+		
+		/**
+		 * Echo the HTML to show in the Bulk Edit area for advisories
+		 */
+		function bulk_edit_expires_box( $column_name, $post_type ) {
+			if ( 'advisory' !== $post_type )
+				return;
 		}
 		
 		/**
