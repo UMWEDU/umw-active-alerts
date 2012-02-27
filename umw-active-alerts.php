@@ -179,7 +179,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 		 * @uses wp_enqueue_style() to register/enqueue the stylesheet
 		 */
 		function print_styles() {
-			wp_enqueue_style( 'umw-active-alerts', plugins_url( '/css/umw-active-alerts.css', __FILE__ ), array(), '0.1.45a', 'all' );
+			wp_enqueue_style( 'umw-active-alerts', plugins_url( '/css/umw-active-alerts.css', __FILE__ ), array(), '0.1.50a', 'all' );
 		}
 		
 		/**
@@ -188,7 +188,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 		 * @uses wp_localize_script() to set the ajaxurl parameter in script
 		 */
 		function localize_js() {
-			wp_enqueue_script( 'umw-active-alerts', plugins_url( '/js/umw-active-alerts.js', __FILE__ ), array( 'jquery' ), '0.1.30a', true );
+			wp_enqueue_script( 'umw-active-alerts', plugins_url( '/js/umw-active-alerts.js', __FILE__ ), array( 'jquery' ), '0.1.31a', true );
 			wp_localize_script( 'umw-active-alerts', 'umwActAlerts', array( 'ajaxurl' => admin_url( 'admin-ajax.php' ) ) );
 		}
 		

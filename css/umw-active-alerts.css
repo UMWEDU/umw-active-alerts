@@ -4,6 +4,8 @@
 
 .wptouch-pro > .emergency-alert, 
 .wptouch-pro > .active-alert {
+	clear: both;
+	float: none;
 	height: 35px;
 }
 
@@ -271,4 +273,24 @@
 	padding: 0 1em;
 	margin: 0 auto;
 	text-align: center;
+}
+
+/* @ Override styles
+------------------------------------------------------------ */
+.wptouch-pro .emergency-alert, 
+.wptouch-pro .alert-title, 
+.wptouch-pro .alert-date, 
+.wptouch-pro .active-alert {
+	height: auto;
+	clear: both;
+	float: none;
+	line-height: normal;
+}
+
+.wptouch-pro .alert-title {
+	font-size: 1.1em;
+}
+
+.wptouch-pro.has-active-alert #content {
+	clear: both;
 }
