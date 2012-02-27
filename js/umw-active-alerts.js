@@ -52,7 +52,7 @@ jQuery( function( $ ) {
 			} else if( $( 'body' ).hasClass( 'wptouch-pro' ) ) {
 				$umwh.hide()
 					/*.prependTo( $( 'body' ) )*/
-					.insertAfter( $( '#header' ) )
+					.insertAfter( $( '#main-menu' ) )
 					.fadeIn( 1000 );
 				$('body').addClass( 'has-active-alert' );
 			}
