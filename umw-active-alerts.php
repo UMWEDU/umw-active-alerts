@@ -659,6 +659,19 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 		}
 		
 		/**
+		 * Check to see if the transient is set for the supplied post
+		 * @param int $post_ID the ID of the post being checked
+		 * @return bool whether or not the transient exists
+		 */
+		function is_active( $post_ID=null ) {
+			if ( empty( $post_ID ) )
+				return false;
+			
+			$is_active = get_transient( 'advisory-' . $post_ID . '-active' );
+			return is_numeric( $is_active ) && ! empty( $is_active );
+		}
+		
+		/**
 		 * Insert the HTML for an active local alert
 		 * @return void
 		 *
@@ -687,7 +700,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 				return false;
 			
 			foreach ( $posts as $post ) {
-				$is_active = get_transient( 'advisory-' . $post->ID . '-active' );
+				$is_active = $this->is_active( $post->ID );
 				/**
 				 * If the transient doesn't exist, or is empty, we make sure the "active" alert-type term is not 
 				 * 		applied to this post and we continue the loop with the next item
@@ -748,7 +761,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			wp_enqueue_style( 'jquery-ui-timepicker' );
 			wp_enqueue_script( 'umw-active-alerts-admin' );
 			$expires = get_post_meta( $post->ID, '_advisory_expiration', true );
-			$is_active = get_transient( 'advisory-' . $post->ID . '-active' );
+			$is_active = $this->is_active( $post->ID );
 			wp_nonce_field( 'advisory-expiration-meta', '_aexp_nonce' );
 			if ( empty( $expires ) ) {
 				$expires = array(
@@ -797,6 +810,8 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 					set_transient( 'advisory-' . $post_ID . '-active', $post_ID, $trans_time );
 				else
 					delete_transient( 'advisory-' . $post_ID . '-active', $post_ID );
+			} else {
+				delete_transient( 'advisory-' . $post_ID . '-active', $post_ID );
 			}
 			update_post_meta( $post_ID, '_advisory_expiration', $expires );
 			
@@ -816,7 +831,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			if ( 'advisory' !== $post->post_type )
 				return;
 			
-			$is_active = get_transient( 'advisory-' . $post->ID . '-active' );
+			$is_active = $this->is_active( $post->ID );
 			$active = get_term_by( 'slug', 'active', 'alert-type' );
 			$prev = get_term_by( 'slug', 'previous', 'alert-type' );
 			
@@ -860,7 +875,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 				case 'active' :
 					wp_enqueue_style( 'jquery-ui-timepicker' );
 					wp_enqueue_script( 'umw-active-alerts-admin' );
-					$is_active = get_transient( 'advisory-' . $post_ID . '-active' );
+					$is_active = $this->is_active( $post_ID );
 					echo $is_active ? __( '<strong>Yes</strong>' ) : __( 'No' );
 					break;
 				case 'expires' :
@@ -894,7 +909,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 <?php
 			switch( $column_name ) {
 				case 'active' :
-					$is_active = false === get_transient( 'advisory-' . $post->ID . '-active' ) ? false : true;
+					$is_active = $this->is_active( $post->ID );
 ?>
 <input type="checkbox" name="_advisory_expiration[is_active]" id="_advisory_is_active" value="1"<?php checked( $is_active ) ?>/>
 <?php
