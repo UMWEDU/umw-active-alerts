@@ -6,10 +6,10 @@ jQuery( function( $ ) {
 		/*if ( typeof( console ) !== 'undefined' ) {
 			console.log( 'Checking to see if this is the mobile home page' );
 		}*/
-		if ( document.location.pathname !== '/mobile/' || document.location.hostname !== 'www.umw.edu' ) {
-			/*if ( typeof( console ) !== 'undefined' ) {
-				console.log( document.location );
-			}*/
+		if ( document.location.pathname !== '/mobile/' || ( document.location.hostname.indexOf( 'www.' ) != 0 && document.location.hostname.indexOf( 'sfd-www.' ) != 0 ) ) {
+			if ( typeof( console ) !== 'undefined' ) {
+				console.log( document.location.hostname );
+			}
 			return false;
 		}
 		/*if ( typeof( console ) !== 'undefined' ) {
@@ -25,15 +25,6 @@ jQuery( function( $ ) {
 		/*if( typeof( console ) !== 'undefined' ) {
 			console.log( result );
 		}*/
-		
-		if ( 'emergency' in result ) {
-			/*if ( typeof( console ) !== 'undefined' ) {
-				console.log( 'Getting ready to insert an emergency alert' );
-			}*/
-			insert_emergency_alert( result.emergency );
-		/*} else if ( typeof( console ) !== 'undefined' ) {
-			console.log( 'No emergency alert was found' );*/
-		}
 		if ( 'alert' in result ) {
 			/*if ( typeof( console ) !== 'undefined' ) {
 				console.log( 'Getting ready to insert an alert' );
@@ -41,6 +32,14 @@ jQuery( function( $ ) {
 			insert_active_alert( result.alert );
 		/*} else if ( typeof( console ) !== 'undefined' ) {
 			console.log( 'No alert was found' );*/
+		}
+		if ( 'emergency' in result ) {
+			/*if ( typeof( console ) !== 'undefined' ) {
+				console.log( 'Getting ready to insert an emergency alert' );
+			}*/
+			insert_emergency_alert( result.emergency );
+		/*} else if ( typeof( console ) !== 'undefined' ) {
+			console.log( 'No emergency alert was found' );*/
 		}
 	} );
 	
@@ -97,6 +96,9 @@ jQuery( function( $ ) {
 		}
 		var $umwah = $( data.html );
 		if ( umwaa_is_mobile_home() ) {
+			/*if ( typeof( console ) !== 'undefined' ) {
+				console.log( 'Preparing to insert the active non-emergency alert on the mobile site' );
+			}*/
 			$umwah.hide()
 				/*.prependTo( $( 'body' ) )*/
 				.insertAfter( $( '#main-menu' ) )
