@@ -2,7 +2,7 @@
 /*
 Plugin Name: UMW Active Alerts
 Description: Inserts the active alert on the home page if there is an active alert.
-Version: 0.3a
+Version: 0.5
 Author: Curtiss Grymala
 Author URI: http://ten-321.com/
 License: GPL2
@@ -12,7 +12,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 		var $ad_id = 0;
 		var $ad_cat = null;
 		var $em_cat = null;
-		var $version = '0.3a';
+		var $version = '0.5';
 		
 		/**
 		 * Build the umw_active_alerts object
@@ -50,7 +50,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			add_action( 'add_meta_boxes', array( $this, 'add_expires_meta_box' ) );
 			wp_register_script( 'jquery-ui-timepicker-addon', plugins_url( '/js/jquery-ui-timepicker-addon.js', __FILE__ ), array( 'jquery-ui-datepicker', 'jquery-ui-slider' ), '0.9.9', true );
 			wp_register_script( 'umw-active-alerts-admin', plugins_url( '/js/umw-active-alerts.admin.js', __FILE__ ), array( 'jquery-ui-timepicker-addon' ), '0.1.6', true );
-			wp_register_style( 'umw-active-alerts-admin', plugins_url( '/css/umw-active-alerts.admin.css', __FILE__ ), array(), '0.2', 'screen' );
+			wp_register_style( 'umw-active-alerts-admin', plugins_url( '/css/umw-active-alerts.admin.css', __FILE__ ), array(), '0.5', 'screen' );
 			wp_register_style( 'wp-jquery-ui-datepicker', plugins_url( '/css/smoothness/jquery-ui-1.8.17.custom.css', __FILE__ ), array(), '0.1', 'screen' );
 			wp_register_style( 'jquery-ui-timepicker', plugins_url( '/css/jquery-ui-timepicker-addon.css', __FILE__ ), array( 'wp-jquery-ui-datepicker' ), '0.1', 'screen' );
 			/*if ( ! class_exists( 'active_alert_widget' ) )
@@ -213,7 +213,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			if ( is_admin() )
 				wp_enqueue_style( 'umw-active-alerts-admin' );
 			else
-				wp_enqueue_style( 'umw-active-alerts', plugins_url( '/css/umw-active-alerts.css', __FILE__ ), array(), '0.2.16a', 'all' );
+				wp_enqueue_style( 'umw-active-alerts', plugins_url( '/css/umw-active-alerts.css', __FILE__ ), array(), '0.5', 'all' );
 		}
 		
 		/**
@@ -222,7 +222,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 		 * @uses wp_localize_script() to set the ajaxurl parameter in script
 		 */
 		function localize_js() {
-			wp_enqueue_script( 'umw-active-alerts', plugins_url( '/js/umw-active-alerts.min.js', __FILE__ ), array( 'jquery' ), '0.2a', true );
+			wp_enqueue_script( 'umw-active-alerts', plugins_url( '/js/umw-active-alerts.min.js', __FILE__ ), array( 'jquery' ), '0.5', true );
 			wp_localize_script( 'umw-active-alerts', 'umwActAlerts', array( 'ajaxurl' => admin_url( 'admin-ajax.php' ) ) );
 		}
 		
