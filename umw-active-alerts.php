@@ -2,7 +2,7 @@
 /*
 Plugin Name: UMW Active Alerts
 Description: Inserts the active alert on the home page if there is an active alert.
-Version: 0.2a
+Version: 0.3a
 Author: Curtiss Grymala
 Author URI: http://ten-321.com/
 License: GPL2
@@ -12,7 +12,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 		var $ad_id = 0;
 		var $ad_cat = null;
 		var $em_cat = null;
-		var $version = '0.2a';
+		var $version = '0.3a';
 		
 		/**
 		 * Build the umw_active_alerts object
@@ -58,6 +58,34 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			
 			add_shortcode( 'alert', array( $this, 'shortcode' ) );
 			add_action( 'widgets_init', array( $this, 'init_widget' ) );*/
+			
+			add_action( 'template_redirect', array( $this, 'advisories_front_page' ) );
+		}
+		
+		function advisories_front_page() {
+			if ( $this->ad_id == $GLOBALS['blog_id'] && is_front_page() ) {
+				remove_action( 'genesis_loop', 'genesis_do_loop' );
+				add_action( 'genesis_loop', array( $this, 'advisories_front_page_loop' ) );
+			}
+		}
+		
+		/**
+		 * Replace the loop for the front page of the advisories site
+		 */
+		function advisories_front_page_loop() {
+			query_posts( 'category_name=' . $this->em_cat . '&numberposts=-1&order=asc&orderby=date&post_type=post' );
+			if ( ! have_posts() ) {
+				wp_reset_query();
+				genesis_standard_loop();
+				return;
+			}
+			
+			genesis_standard_loop();
+			
+			wp_reset_query();
+			genesis_standard_loop();
+			
+			return;
 		}
 		
 		/**
@@ -185,7 +213,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			if ( is_admin() )
 				wp_enqueue_style( 'umw-active-alerts-admin' );
 			else
-				wp_enqueue_style( 'umw-active-alerts', plugins_url( '/css/umw-active-alerts.css', __FILE__ ), array(), '0.2a', 'all' );
+				wp_enqueue_style( 'umw-active-alerts', plugins_url( '/css/umw-active-alerts.css', __FILE__ ), array(), '0.2.16a', 'all' );
 		}
 		
 		/**
