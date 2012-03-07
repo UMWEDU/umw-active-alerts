@@ -809,7 +809,8 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 	<p><input type="checkbox" name="_advisory_expiration[is_active]" id="_advisory_is_active" value="1"<?php checked( $expires['is_active'] ) ?>/> 
     	<label for="_advisory_is_active"><?php _e( 'Is this advisory currently active?' ) ?></label></p>
     <p><label for="_advisory_expires_time"><?php _e( 'If so, when should it expire?' ) ?></label>
-    	<input type="text" class="datetimepicker" name="_advisory_expiration[expires_time]" id="_advisory_expires_time" value="<?php echo date( "Y-m-d H:i", $expires['expires_time'] ) ?>"/></p>
+    	<input type="text" class="datetimepicker" name="_advisory_expiration[expires_time]" id="_advisory_expires_time" value="<?php echo date( "Y-m-d H:i", $expires['expires_time'] ) ?>"/>
+        <br/><em>Up to 72 hours</em></p>
 <?php
 		}
 		
