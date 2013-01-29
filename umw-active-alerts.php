@@ -12,7 +12,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 		var $ad_id = 0;
 		var $ad_cat = null;
 		var $em_cat = null;
-		var $version = '0.5';
+		var $version = '0.6.1';
 		
 		/**
 		 * Build the umw_active_alerts object
@@ -37,7 +37,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 				add_action( 'admin_print_styles', array( $this, 'print_styles' ) );
 			}
 				
-			add_action( 'save_post', array( $this, 'clear_active_alert' ), 99, 2 );
+			add_action( 'save_post', array( $this, 'clear_active_alert' ), 79, 2 );
 			add_action( 'trash_post', array( $this, 'clear_active_alert' ), 99, 2 );
 			
 			add_action( 'init', array( $this, 'register_post_type' ) );
@@ -49,8 +49,8 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			
 			add_action( 'add_meta_boxes', array( $this, 'add_expires_meta_box' ) );
 			wp_register_script( 'jquery-ui-timepicker-addon', plugins_url( '/js/jquery-ui-timepicker-addon.js', __FILE__ ), array( 'jquery-ui-datepicker', 'jquery-ui-slider' ), '0.9.9', true );
-			wp_register_script( 'umw-active-alerts-admin', plugins_url( '/js/umw-active-alerts.admin.js', __FILE__ ), array( 'jquery-ui-timepicker-addon' ), '0.1.6', true );
-			wp_register_style( 'umw-active-alerts-admin', plugins_url( '/css/umw-active-alerts.admin.css', __FILE__ ), array(), '0.5', 'screen' );
+			wp_register_script( 'umw-active-alerts-admin', plugins_url( '/js/umw-active-alerts.admin.js', __FILE__ ), array( 'jquery-ui-timepicker-addon' ), $this->version, true );
+			wp_register_style( 'umw-active-alerts-admin', plugins_url( '/css/umw-active-alerts.admin.css', __FILE__ ), array(), $this->version, 'screen' );
 			wp_register_style( 'wp-jquery-ui-datepicker', plugins_url( '/css/smoothness/jquery-ui-1.8.17.custom.css', __FILE__ ), array(), '0.1', 'screen' );
 			wp_register_style( 'jquery-ui-timepicker', plugins_url( '/css/jquery-ui-timepicker-addon.css', __FILE__ ), array( 'wp-jquery-ui-datepicker' ), '0.1', 'screen' );
 			/*if ( ! class_exists( 'active_alert_widget' ) )
@@ -213,7 +213,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			if ( is_admin() )
 				wp_enqueue_style( 'umw-active-alerts-admin' );
 			else
-				wp_enqueue_style( 'umw-active-alerts', plugins_url( '/css/umw-active-alerts.css', __FILE__ ), array(), '0.5', 'all' );
+				wp_enqueue_style( 'umw-active-alerts', plugins_url( '/css/umw-active-alerts.css', __FILE__ ), array(), $this->version, 'all' );
 		}
 		
 		/**
@@ -222,7 +222,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 		 * @uses wp_localize_script() to set the ajaxurl parameter in script
 		 */
 		function localize_js() {
-			wp_enqueue_script( 'umw-active-alerts', plugins_url( '/js/umw-active-alerts.min.js', __FILE__ ), array( 'jquery' ), '0.5', true );
+			wp_enqueue_script( 'umw-active-alerts', plugins_url( '/js/umw-active-alerts.min.js', __FILE__ ), array( 'jquery' ), $this->version, true );
 			wp_localize_script( 'umw-active-alerts', 'umwActAlerts', array( 'ajaxurl' => admin_url( 'admin-ajax.php' ) ) );
 		}
 		
@@ -508,10 +508,10 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 				update_option( '_umwaa_advisory_tax_set', $this->version );
 			}
 			
-			add_action( 'save_post', array( $this, 'syndicate_post' ), 99999, 2 );
-			add_action( 'trash_post', array( $this, 'syndicate_post' ), 99999, 2 );
+			add_action( 'save_post', array( $this, 'syndicate_post' ), 99, 2 );
+			add_action( 'trash_post', array( $this, 'syndicate_post' ), 99, 2 );
 			
-			add_action( 'save_post', array( $this, 'set_expires_time' ), 99, 2 );
+			add_action( 'save_post', array( $this, 'set_expires_time' ), 89, 2 );
 			
 			add_action( 'manage_edit-advisory_columns', array( $this, 'add_advisory_table_columns' ) );
 			add_action( 'manage_advisory_posts_custom_column', array( $this, 'output_custom_table_columns' ), 10, 2 );
@@ -659,7 +659,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			var_dump( $category );
 			$tmpcat = ob_get_clean();
 			
-			error_log( '[Alerts Debug]: Attempting to insert a new advisory with a category with an ID of ' . $tmpcat );
+			/*error_log( '[Alerts Debug]: Attempting to insert a new advisory with a category with an ID of ' . $tmpcat );*/
 			
 			$post->post_category = array( intval( $category ) );
 			$existing = $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE guid=%s", $post->guid ) );
@@ -671,8 +671,9 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 				if ( $existing ) {
 					$post->ID = $existing;
 				
-					foreach ( array_keys( $global_meta ) as $key )
+					foreach ( array_keys( $global_meta ) as $key ) {
 						delete_post_meta( $existing->ID, $key );
+					}
 				} else {
 					unset( $post->ID );
 				}
@@ -682,9 +683,11 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 				$post->ping_status = $post->comment_status = 'closed';
 				
 				$p = wp_insert_post( $post );
-				foreach ( $global_meta as $key => $value )
+				/*error_log( '[UMW Alerts Debug]: Just tried to insert post with result of ' . print_r( $p, true ) );*/
+				foreach ( $global_meta as $key => $value ) {
 					if ( $value )
 						add_post_meta( $p, $key, $value );
+				}
 			}
 			
 			restore_current_blog();
@@ -870,7 +873,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			$active = get_term_by( 'slug', 'active', 'alert-type' );
 			$prev = get_term_by( 'slug', 'previous', 'alert-type' );
 			
-			$target = $is_active ? $active->term_id : $prev->term_id;
+			$target = $is_active ? (int) $active->term_id : (int) $prev->term_id;
 			
 			if ( ! $force ) {
 				$terms = wp_get_object_terms( $post->ID, 'alert-type' );
@@ -882,12 +885,10 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 				}
 			}
 			
-			error_log( '[Alerts Debug]: Preparing to set the alert-type taxonomy to ' . $target );
 			$result = wp_set_object_terms( $post->ID, array( intval( $target ) ), 'alert-type', false );
 			ob_start();
 			var_dump( $result );
 			$results = ob_get_clean();
-			error_log( '[Alerts Debug]: Results of setting alert-type taxonomy: ' . $results );
 		}
 		
 		/**

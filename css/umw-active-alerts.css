@@ -155,7 +155,7 @@
 	border-right: none;
 	position: relative;
 	
-	width: 231px;
+	/*width: 231px;
 	padding: 5px 10px;
 	height: 70px;
 	position: absolute;
@@ -163,7 +163,10 @@
 	right: 0;
 	top: auto;
 	left: auto;
-	z-index: 1000;
+	z-index: 1000;*/
+	line-height: 35px;
+	margin-top: -2px;
+	height: 35px;
 }
 
 .active-alert {
@@ -194,7 +197,7 @@
 .active-alert .alert-title {
 	font-size: 1.3em;
 	font-style: normal;
-	line-height: 1.4em;
+	/*line-height: 1.4em;*/
 }
 
 .active-alert .alert-title, 
@@ -203,12 +206,15 @@
 }
 
 .active-alert .alert-date {
-	display: block;
+	/*display: block;
 	width: 100%;
 	text-align: center;
 	margin: 0 auto;
 	position: absolute;
-	bottom: 5px;
+	bottom: 5px;*/
+	position: absolute;
+	right: 10px;
+	top: 0;
 }
 
 /*.wptouch-pro  .active-alert .alert-title, 
