@@ -48,11 +48,8 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			}
 			
 			add_action( 'add_meta_boxes', array( $this, 'add_expires_meta_box' ) );
-			wp_register_script( 'jquery-ui-timepicker-addon', plugins_url( '/js/jquery-ui-timepicker-addon.js', __FILE__ ), array( 'jquery-ui-datepicker', 'jquery-ui-slider' ), '0.9.9', true );
-			wp_register_script( 'umw-active-alerts-admin', plugins_url( '/js/umw-active-alerts.admin.js', __FILE__ ), array( 'jquery-ui-timepicker-addon' ), $this->version, true );
-			wp_register_style( 'umw-active-alerts-admin', plugins_url( '/css/umw-active-alerts.admin.css', __FILE__ ), array(), $this->version, 'screen' );
-			wp_register_style( 'wp-jquery-ui-datepicker', plugins_url( '/css/smoothness/jquery-ui-1.8.17.custom.css', __FILE__ ), array(), '0.1', 'screen' );
-			wp_register_style( 'jquery-ui-timepicker', plugins_url( '/css/jquery-ui-timepicker-addon.css', __FILE__ ), array( 'wp-jquery-ui-datepicker' ), '0.1', 'screen' );
+			add_action( 'wp_enqueue_scripts', array( $this, 'register_scripts' ) );
+			add_action( 'admin_enquque_scripts', array( $this, 'register_scripts' ) );
 			/*if ( ! class_exists( 'active_alert_widget' ) )
 				require_once( 'active-alert-widget.php' );
 			
@@ -60,6 +57,14 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			add_action( 'widgets_init', array( $this, 'init_widget' ) );*/
 			
 			add_action( 'template_redirect', array( $this, 'advisories_front_page' ) );
+		}
+		
+		function register_scripts() {
+			wp_register_script( 'jquery-ui-timepicker-addon', plugins_url( '/js/jquery-ui-timepicker-addon.js', __FILE__ ), array( 'jquery-ui-datepicker', 'jquery-ui-slider' ), '0.9.9', true );
+			wp_register_script( 'umw-active-alerts-admin', plugins_url( '/js/umw-active-alerts.admin.js', __FILE__ ), array( 'jquery-ui-timepicker-addon' ), $this->version, true );
+			wp_register_style( 'umw-active-alerts-admin', plugins_url( '/css/umw-active-alerts.admin.css', __FILE__ ), array(), $this->version, 'screen' );
+			wp_register_style( 'wp-jquery-ui-datepicker', plugins_url( '/css/smoothness/jquery-ui-1.8.17.custom.css', __FILE__ ), array(), '0.1', 'screen' );
+			wp_register_style( 'jquery-ui-timepicker', plugins_url( '/css/jquery-ui-timepicker-addon.css', __FILE__ ), array( 'wp-jquery-ui-datepicker' ), '0.1', 'screen' );
 		}
 		
 		function advisories_front_page() {
