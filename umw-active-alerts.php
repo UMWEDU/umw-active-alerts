@@ -12,7 +12,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 		var $ad_id = 0;
 		var $ad_cat = null;
 		var $em_cat = null;
-		var $version = '0.6.1';
+		var $version = '0.6.2';
 		
 		/**
 		 * Build the umw_active_alerts object
@@ -200,8 +200,15 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			header( "Content-Type: application/json" );
 			$aa = $this->active_alert();
 			$ae = $this->active_emergency();
-			if( false === $aa && false === $ae )
+			if( false === $aa && false === $ae ) {
 				echo json_encode( array( 'alert' => array( 'html' => -1 ), 'emergency' => array( 'html' => -1 ) ) );
+				exit;
+			}
+			
+			if ( ! is_object( $GLOBALS['post'] ) || ! property_exists( $GLOBALS['post'], 'ID' ) ) {
+				echo json_encode( array( 'alert' => array( 'html' => $aa ), 'emergency' => array( 'html' => $ae ) ) );
+				exit;
+			}
 			
 			$h = array( 'html' => $aa, 'ID' => $GLOBALS['post']->ID );
 			$e = array( 'html' => $ae, 'ID' => $GLOBALS['post']->ID );

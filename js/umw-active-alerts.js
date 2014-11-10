@@ -57,12 +57,12 @@ jQuery( function( $ ) {
 		}
 		
 		var $umwh = $( data.html );
-		if( $( '.home-top-left' ).length > 0 ) {
+		if( 0 < document.querySelectorAll( '.home-top-left' ).length ) {
 			$umwh.hide()
 				.prependTo( $( '.home-top-left' ) )
 				.fadeIn(1000);
 		} else {
-			if( $( '#wrap' ).length > 0 ) {
+			if( 0 < document.querySelectorAll( '#wrap' ).length ) {
 				$umwh.hide()
 					.prependTo( $( '#wrap' ) )
 					.fadeIn(1000);
@@ -88,7 +88,7 @@ jQuery( function( $ ) {
 			}
 */			return;
 		}
-		if ( $( '.home-top-left .slide-content' ).length <= 0 && !umwaa_is_mobile_home() ) {
+		if ( document.querySelectorAll( '.home-top-left .slide-content' ).length <= 0 && !umwaa_is_mobile_home() ) {
 /*			if ( typeof( console ) !== 'undefined' ) {
 				console.log( 'We did not find .slide-content inside .home-top-left' );
 			}
