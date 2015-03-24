@@ -2,7 +2,7 @@
 /*
 Plugin Name: UMW Active Alerts
 Description: Inserts the active alert on the home page if there is an active alert.
-Version: 0.5
+Version: 0.6
 Author: Curtiss Grymala
 Author URI: http://ten-321.com/
 License: GPL2
@@ -52,7 +52,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			
 			add_action( 'add_meta_boxes', array( $this, 'add_expires_meta_box' ) );
 			add_action( 'wp_enqueue_scripts', array( $this, 'register_scripts' ) );
-			add_action( 'admin_enquque_scripts', array( $this, 'register_scripts' ) );
+			add_action( 'admin_enqueue_scripts', array( $this, 'register_scripts' ) );
 			/*if ( ! class_exists( 'active_alert_widget' ) )
 				require_once( 'active-alert-widget.php' );
 			
