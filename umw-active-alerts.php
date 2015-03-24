@@ -25,9 +25,12 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 		 * 		active local alerts above the content of a page
 		 */
 		function __construct() {
+			add_action( 'wp', array( $this, 'check_page_type' ) );
+			
 			$this->set_values();
 			add_action( 'wp_ajax_nopriv_check_active_alert', array( $this, 'insert_active_alert' ) );
 			add_action( 'wp_ajax_check_active_alert', array( $this, 'insert_active_alert' ) );
+			
 			if( ! is_admin() ) {
 				add_action( 'wp_print_styles', array( $this, 'print_styles' ) );
 				add_action( 'wp_print_scripts', array( $this, 'localize_js' ) );
@@ -57,6 +60,12 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 			add_action( 'widgets_init', array( $this, 'init_widget' ) );*/
 			
 			add_action( 'template_redirect', array( $this, 'advisories_front_page' ) );
+		}
+		
+		function check_page_type() {
+			if ( is_feed() ) {
+				remove_action( 'wp', array( $this, 'initiate_all' ), 11 );
+			}
 		}
 		
 		function register_scripts() {
