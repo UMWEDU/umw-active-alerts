@@ -1,115 +1,148 @@
-jQuery( function( $ ) {
+var UMWAlerts = UMWAlerts || {
+	'av' : new Date().getTime(),
+	
 	/**
-	 * This is a stop-gap measure to see if someone is viewing the mobile home page of the root network
+	 * Create a console logging function
 	 */
-	function umwaa_is_mobile_home() {
-/*		if ( typeof( console ) !== 'undefined' ) {
-			console.log( 'Checking to see if this is the mobile home page' );
+	'log' : function( m ) {
+		return;
+		
+		if ( typeof( console ) === 'undefined' ) {
+			return;
 		}
-*/		if ( document.location.pathname !== '/mobile/' || ( document.location.hostname.indexOf( 'www.' ) != 0 && document.location.hostname.indexOf( 'sfd-www.' ) != 0 ) ) {
-/*			if ( typeof( console ) !== 'undefined' ) {
-				console.log( document.location.hostname );
-			}
-*/			return false;
+		console.log( m );
+	}, 
+	
+	/**
+	 * Most likely obsolete at this point
+	 */
+	'is_mobile_home' : function() {
+		if ( document.location.pathname !== '/mobile/' || ( document.location.hostname.indexOf( 'www.' ) != 0 && document.location.hostname.indexOf( 'sfd-www.' ) != 0 ) ) {
+			return false;
 		}
-/*		if ( typeof( console ) !== 'undefined' ) {
-			console.log( 'This is the university mobile home page' );
-		}
-*/		return true;
-	}
+		return true;
+	}, 
+	
 	/**
 	 * Perform the JSON request to check alert status
 	 */
-	var umwaav = new Date().getTime();
-	$.getJSON( umwActAlerts.ajaxurl, { 'action':'check_active_alert', 'v':umwaav }, function( result ) {
-/*		if( typeof( console ) !== 'undefined' ) {
-			console.log( result );
-		}
-*/		if ( 'alert' in result ) {
-/*			if ( typeof( console ) !== 'undefined' ) {
-				console.log( 'Getting ready to insert an alert' );
+	'do_ajax' : function() {
+		jQuery.getJSON( umwActAlerts.ajaxurl, { 
+			'action' : 'check_active_alert', 
+			'v' : this.av 
+		}, function( result ) {
+			if ( 'alert' in result ) {
+				UMWAlerts.insert_active_alert( result.alert );
 			}
-*/			insert_active_alert( result.alert );
-/*		} else if ( typeof( console ) !== 'undefined' ) {
-			console.log( 'No alert was found' );
-*/		}
-		if ( 'emergency' in result ) {
-/*			if ( typeof( console ) !== 'undefined' ) {
-				console.log( 'Getting ready to insert an emergency alert' );
+			if ( 'emergency' in result ) {
+				UMWAlerts.insert_emergency_alert( result.emergency );
 			}
-*/			insert_emergency_alert( result.emergency );
-/*		} else if ( typeof( console ) !== 'undefined' ) {
-			console.log( 'No emergency alert was found' );
-*/		}
-	} );
+		} );
+	}, 
 	
 	/**
 	 * Insert an emergency alert, if defined
 	 * Should occur on all pages throughout entire website
 	 */
-	function insert_emergency_alert( data ) {
-	
+	'insert_emergency_alert' : function( data ) {
+		this.log( 'Attempting to enter the insert_emergency_alert function' );
 		if( typeof( data.html ) === 'undefined' || -1 == data.html || '0' == data.html || null == data.html ) {
-/*			if( typeof( console ) !== 'undefined' ) {
-				console.log( 'No emergency alert defined' );
-			}
-*/			return;
+			return;
 		}
 		
-		var $umwh = $( data.html );
-		if( 0 < document.querySelectorAll( '.home-top-left' ).length ) {
+		var $umwh = jQuery( data.html );
+		/**
+		 * As a first resort, let's add the alert above the tools bar
+		 */
+		if ( this.exists( 'body > .umw-helpful-links' ) ) {
+			this.log( 'The helpful links toolbar was found, so we will insert the alert at the beginning of body' );
+			jQuery( 'body' ).prepend( $umwh );
+			return;
+		} else {
+			this.log( 'The helpful links toolbar was not found, so we are moving on to other options' );
+		}
+		
+		if( this.exists( '.home-top-left' ) ) {
 			$umwh.hide()
-				.prependTo( $( '.home-top-left' ) )
+				.prependTo( jQuery( '.home-top-left' ) )
 				.fadeIn(1000);
 		} else {
-			if( 0 < document.querySelectorAll( '#wrap' ).length ) {
+			if( this.exists( '#wrap' ) ) {
 				$umwh.hide()
-					.prependTo( $( '#wrap' ) )
+					.prependTo( jQuery( '#wrap' ) )
 					.fadeIn(1000);
-				$('body').addClass( 'has-active-alert' );
-			} else if( $( 'body' ).hasClass( 'wptouch-pro' ) ) {
+				jQuery('body').addClass( 'has-active-alert' );
+			} else if( jQuery( 'body' ).hasClass( 'wptouch-pro' ) ) {
 				$umwh.hide()
-					/*.prependTo( $( 'body' ) )*/
-					.insertAfter( $( '#main-menu' ) )
+					.insertAfter( jQuery( '#main-menu' ) )
 					.fadeIn( 1000 );
-				$('body').addClass( 'has-active-alert' );
+				jQuery('body').addClass( 'has-active-alert' );
 			}
 		}
-	}
+	}, 
 	
 	/**
 	 * Insert a non-emergency alert, if defined
 	 * Should only occur on home page of desktop website
 	 */
-	function insert_active_alert( data ) {
+	'insert_active_alert' : function( data ) {
 		if( typeof( data.html ) === 'undefined' || -1 == data.html || '0' == data.html || null == data.html ) {
-/*			if( typeof( console ) !== 'undefined' ) {
-				console.log( 'No alert defined' );
-			}
-*/			return;
-		}
-		if ( document.querySelectorAll( '.home-top-left .slide-content' ).length <= 0 && !umwaa_is_mobile_home() ) {
-/*			if ( typeof( console ) !== 'undefined' ) {
-				console.log( 'We did not find .slide-content inside .home-top-left' );
-			}
-*/			return;
-		}
-		var $umwah = $( data.html );
-		if ( umwaa_is_mobile_home() ) {
-/*			if ( typeof( console ) !== 'undefined' ) {
-				console.log( 'Preparing to insert the active non-emergency alert on the mobile site' );
-			}
-*/			$umwah.hide()
-				/*.prependTo( $( 'body' ) )*/
-				.insertAfter( $( '#main-menu' ) )
-				.fadeIn( 1000 );
-			$('body').addClass( 'has-active-alert' );
 			return;
 		}
-		$umwah.hide().appendTo( $( '.home-top-left' ) ).fadeIn( 1000 );
-/*		if ( typeof( console ) !== 'undefined' ) {
-			console.log( $umwah );
-			console.log( 'We should have just appended the object logged above to .home-top-left' );
+		
+		/**
+		 * If this isn't the root site of the root network, bail out
+		 */
+		if ( ( ! jQuery( 'body' ).hasClass( 'network-www.umw.wtf' ) && ! jQuery( 'body' ).hasClass( 'network-www.umw.red' ) && ! jQuery( 'body' ).hasClass( 'network-www.umw.edu' ) ) || ! jQuery( 'body' ).hasClass( 'site-root' ) ) {
+			this.log( 'The body did not appear to be at the root of the install, so we are bailing on inserting a non-emergency alert.' );
+			return;
 		}
-*/	}
+		/*if ( this.exists( '.home-top-left .slide-content' ) === false && !umwaa_is_mobile_home() ) {
+			return;
+		}*/
+		
+		var $umwah = jQuery( data.html );
+		
+		/**
+		 * As a first resort, let's add the alert below the header bar
+		 */
+		if ( this.exists( 'body > .umw-header-bar' ) ) {
+			jQuery( $umwah ).insertAfter( 'body > .umw-header-bar' );
+			return;
+		}
+		/**
+		 * As a second resort, let's add it after the tools bar
+		 */
+		if ( this.exists( 'body > .umw-helpful-links' ) ) {
+			jQuery( $umwah ).insertAfter( jQuery( 'body > .umw-helpful-links' ) );
+			return;
+		}
+		
+		if ( umwaa_is_mobile_home() ) {
+			$umwah.hide()
+				.insertAfter( jQuery( '#main-menu' ) )
+				.fadeIn( 1000 );
+			jQuery('body').addClass( 'has-active-alert' );
+			return;
+		}
+		$umwah.hide().appendTo( jQuery( '.home-top-left' ) ).fadeIn( 1000 );
+	}, 
+	
+	/**
+	 * Perform any initation actions that need to occur
+	 */
+	'init' : function() {
+		return this.do_ajax();
+	}, 
+	
+	/**
+	 * Check to see if an element exists in the DOM
+	 */
+	'exists' : function( e ) {
+		return document.querySelectorAll( e ).length > 0;
+	}
+};
+
+jQuery( function() {
+	return UMWAlerts.init();
 } );

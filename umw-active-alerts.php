@@ -12,7 +12,7 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 		var $ad_id = 0;
 		var $ad_cat = null;
 		var $em_cat = null;
-		var $version = '0.6.2';
+		var $version = '0.6.14';
 		
 		/**
 		 * Build the umw_active_alerts object
@@ -243,7 +243,9 @@ if( !class_exists( 'umw_active_alerts' ) ) {
 		 * @uses wp_localize_script() to set the ajaxurl parameter in script
 		 */
 		function localize_js() {
-			wp_enqueue_script( 'umw-active-alerts', plugins_url( '/js/umw-active-alerts.min.js', __FILE__ ), array( 'jquery' ), $this->version, true );
+			$min = '.min';
+			/*$min = '';*/
+			wp_enqueue_script( 'umw-active-alerts', plugins_url( '/js/umw-active-alerts' . $min . '.js', __FILE__ ), array( 'jquery' ), $this->version, true );
 			wp_localize_script( 'umw-active-alerts', 'umwActAlerts', array( 'ajaxurl' => admin_url( 'admin-ajax.php' ) ) );
 		}
 		
