@@ -300,8 +300,6 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 		 * Trash an external advisory on the main Advisories site
 		 */
 		function trash_advisory( $post_id=null, $force=false ) {
-			$force = true;
-			
 			if ( empty( $post_id ) ) {
 				$post_id = isset( $_REQUEST['post'] ) && is_numeric( $_REQUEST['post'] ) ? $_REQUEST['post'] : null;
 			}
@@ -317,16 +315,15 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			$body = array();
 			$body['ID'] = $syndicated_id;
 			if ( true === $force ) {
-				add_query_arg( 'force', true, $url );
+				add_query_arg( 'force', 'true', $url );
 				$body['force'] = true;
+				delete_post_meta( $post_id, '_syndicated-alert-id', $syndicated_id );
 			}
 				
 			$args = array( 'method' => 'DELETE', 'headers' => $this->_get_api_headers(), 'body' => http_build_query( $body ) );
 			
 			$done = wp_remote_request( $url, $args );
 			$result = @json_decode( wp_remote_retrieve_body( $done ) );
-			
-			delete_post_meta( $post_id, '_syndicated-alert-id', $syndicated_id );
 			
 			return $result;
 		}
@@ -414,8 +411,6 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 		 * Permanently delete an advisory on the main Advisories site
 		 */
 		function delete_advisory( $post_id=null ) {
-			return;
-			
 			if ( empty( $post_id ) ) {
 				$post_id = isset( $_REQUEST['post'] ) && is_numeric( $_REQUEST['post'] ) ? $_REQUEST['post'] : null;
 			}
