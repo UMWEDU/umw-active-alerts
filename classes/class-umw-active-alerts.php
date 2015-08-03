@@ -13,6 +13,7 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 		public $alerts_url = null;
 		public $db_version = '20150724110000';
 		private $oauth = array();
+		private $headers = array();
 		
 		function __construct() {
 			$this->umw_is_root();
@@ -20,12 +21,30 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			
 			add_action( 'genesis_header', array( $this, 'do_current_advisories' ), 9 );
 			$this->api_uris = apply_filters( 'umw-alerts-api-uris', array(
-				'publish' => $this->alerts_url . 'wp-json/wp/v2/advisories', 
-				'update'  => $this->alerts_url . 'wp-json/wp/v2/advisories/%1$d', 
-				'delete'  => $this->alerts_url . 'wp-json/wp/v2/advisories/%1$d', 
-				'trash'   => $this->alerts_url . 'wp-json/wp/v2/advisories/%1$d', 
-				'meta'    => $this->alerts_url . 'wp-json/wp/v2/posts/%1d/meta', 
+				'publish' => $this->alerts_url . '/wp-json/wp/v2/advisories', 
+				'update'  => $this->alerts_url . '/wp-json/wp/v2/advisories/%1$d', 
+				'delete'  => $this->alerts_url . '/wp-json/wp/v2/advisories/%1$d', 
+				'trash'   => $this->alerts_url . '/wp-json/wp/v2/advisories/%1$d', 
+				'meta'    => $this->alerts_url . '/wp-json/wp/v2/posts/%1d/meta', 
 			) );
+			
+			$this->_set_api_headers();
+		}
+		
+		/**
+		 * Set up the API request headers to be sent with any remote request
+		 */
+		private function _set_api_headers() {
+			$this->headers = array(
+				/*'context' => 'display', 
+				'pretty'  => true, */
+				'Authorization' => 'Basic ' . base64_encode( UMW_ALERTS_USER_NAME . ':' . UMW_ALERTS_USER_PWD ), 
+				/*'Content-Type' => 'application/json'*/
+			);
+		}
+		
+		private function _get_api_headers() {
+			return $this->headers;
 		}
 		
 		/**
@@ -79,6 +98,7 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 		function add_syndication_actions() {
 			add_action( 'save_post_advisory', array( $this, 'push_advisory' ), 10, 2 );
 			add_action( 'wp_trash_post', array( $this, 'trash_advisory' ) );
+			add_action( 'untrashed_post', array( $this, 'untrash_advisory' ) );
 			add_action( 'delete_post', array( $this, 'delete_advisory' ) );
 		}
 		
@@ -92,9 +112,6 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			if ( wp_is_post_revision( $post_id ) )
 				return;
 			
-			if ( empty( $_REQUEST['post_title'] ) )
-				return;
-			
 			if ( empty( $p ) )
 				$p = get_post( $post_id );
 			
@@ -103,13 +120,6 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			} else {
 				$syndicated_id = get_post_meta( $p->ID, '_syndicated-alert-id', true );
 			}
-			
-			$headers = array(
-				/*'context' => 'display', 
-				'pretty'  => true, */
-				'Authorization' => 'Basic ' . base64_encode( UMW_ALERTS_USER_NAME . ':' . UMW_ALERTS_USER_PWD ), 
-				/*'Content-Type' => 'application/json'*/
-			);
 			
 			if ( isset( $_REQUEST['author_override'] ) && is_numeric( $_REQUEST['author_override'] ) ) {
 				$author = $_REQUEST['author_override'];
@@ -121,6 +131,16 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			$author = get_user_by( 'id', $author );
 			$author = $author->display_name;
 			
+			$datefields = isset( $_REQUEST['wpcf']['_advisory_expires_time'] ) && is_array( $_REQUEST['wpcf']['_advisory_expires_time'] ) ? $_REQUEST['wpcf']['_advisory_expires_time'] : array();
+			if ( ! function_exists( 'wpcf_fields_date_value_save_filter' ) && defined( 'WPCF_EMBEDDED_INC_ABSPATH' ) ) {
+				@include_once( WPCF_EMBEDDED_INC_ABSPATH . '/fields/date/functions.php' );
+			}
+			if ( ! empty( $datefields ) && function_exists( 'wpcf_fields_date_value_save_filter' ) ) {
+				$expires = wpcf_fields_date_value_save_filter( $datefields, null, null );
+			} else {
+				$expires = null;
+			}
+			
 			$meta = array(
 				(object)array(
 					'key'   => 'wpcf-_advisory_is_active', 
@@ -128,7 +148,7 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 				), 
 				(object)array(
 					'key'   => 'wpcf-_advisory_expires_time', 
-					'value' => isset( $_REQUEST['wpcf']['_advisory_expires_time']['datepicker'] ) && is_numeric( $_REQUEST['wpcf']['_advisory_expires_time']['datepicker'] ) ? $_REQUEST['wpcf']['_advisory_expires_time']['datepicker'] : null,
+					'value' => $expires,
 				), 
 				(object)array(
 					'key'   => 'wpcf-_advisory_permalink', 
@@ -148,42 +168,42 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			);
 				
 			if ( empty( $syndicated_id ) ) {
-				$args = array( 'headers' => $headers, 'body' => http_build_query( $body ) );
 				$url = sprintf( $this->api_uris['publish'], $this->jetpack_api_domain( $this->alerts_url ) );
 				
-				$done = wp_safe_remote_post( $url, $args );
-				
-				$result = @json_decode( wp_remote_retrieve_body( $done ) );
+				$result = $this->_push_advisory_new( $body, $url );
 			} else {
-				$body['ID'] = $syndicated_id;
-				
-				$args = array( 'method' => 'PUT', 'headers' => $headers, 'body' => http_build_query( $body ) );
 				$url = sprintf( $this->api_uris['update'], intval( $syndicated_id ) );
 				
-				$done = wp_remote_request( $url, $args );
-				
-				$result = @json_decode( wp_remote_retrieve_body( $done ) );
+				$result = $this->_push_advisory_edit( $syndicated_id, $body, $url );
 			}
 			
 			if ( ! is_object( $result ) && ! is_array( $result ) ) {
-				error_log( '[Alert API Debug]: Attempted to get the result ID, but result did not appear to be an object or an array' );
+				/*error_log( '[Alert API Debug]: Attempted to get the result ID, but result did not appear to be an object or an array' );
 				print( '<pre><code>' );
 				var_dump( $result );
 				print( '</code></pre>' );
-				return wp_die( 'The result was not an array or an object' );
+				return wp_die( 'The result was not an array or an object' );*/
+				return false;
 			}
 			if ( is_object( $result ) && ! property_exists( $result, 'id' ) ) {
-				error_log( '[Alert API Debug]: Attempted to get the result ID, but that property did not exist within the result object' );
+				/*error_log( '[Alert API Debug]: Attempted to get the result ID, but that property did not exist within the result object' );
 				print( '<pre><code>' );
 				var_dump( $result );
 				print( '</code></pre>' );
-				return wp_die( 'The result was an object but the id property did not exist' );
+				return wp_die( 'The result was an object but the id property did not exist' );*/
+				return false;
 			} else if ( is_array( $result ) && ! array_key_exists( 'id', $result ) ) {
-				error_log( '[Alert API Debug]: Attempted to get the result ID, but that key did not exist within the result array' );
-				print( '<pre><code>' );
-				var_dump( $result );
-				print( '</code></pre>' );
-				return wp_die( 'The result was an array but the id key did not exist' );
+				$r = array_shift( $result );
+				if ( is_object( $r ) ) {
+					if ( property_exists( $r, 'code' ) && 'rest_post_invalid_id' == $r->code ) {
+						$url = sprintf( $this->api_uris['publish'], $this->jetpack_api_domain( $this->alerts_url ) );
+						$result = $this->_push_advisory_new( $body, $url );
+						
+						if ( ( is_array( $result ) && ! array_key_exists( 'id', $result ) ) || ( is_object( $result ) && ! property_exists( $result, 'id' ) ) ) {
+							return false;
+						}
+					}
+				}
 			}
 			
 			if ( is_array( $result ) )
@@ -193,7 +213,39 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			
 			$url = sprintf( $this->api_uris['meta'], $result_id, $result_id );
 			
-			$original = wp_remote_get( $url, array( 'headers' => $headers, 'body' => '' ) );
+			$this->_push_advisory_meta( $url, $meta );
+			
+			update_post_meta( $post_id, '_syndicated-alert-id', $result_id );
+		}
+		
+		/**
+		 * Create a new external advisory based on the data from the advisory being created
+		 */
+		private function _push_advisory_new( $body, $url, $method='POST' ) {
+			$args = array( 'headers' => $this->_get_api_headers(), 'body' => http_build_query( $body ) );
+			$done = wp_safe_remote_post( $url, $args );
+			$result = @json_decode( wp_remote_retrieve_body( $done ) );
+			
+			return $result;
+		}
+		
+		/**
+		 * Update an existing external advisory based on the new data from the advisory being edited
+		 */
+		private function _push_advisory_edit( $syndicated_id, $body, $url, $method='PUT' ) {
+			$body['ID'] = $syndicated_id;
+			$args = array( 'method' => 'PUT', 'headers' => $this->_get_api_headers(), 'body' => http_build_query( $body ) );
+			$done = wp_remote_request( $url, $args );
+			$result = @json_decode( wp_remote_retrieve_body( $done ) );
+			
+			return $result;
+		}
+		
+		/**
+		 * Add or update any post meta information needed for the syndicated advisory
+		 */
+		private function _push_advisory_meta( $url, $meta ) {
+			$original = wp_remote_get( $url, array( 'headers' => $this->_get_api_headers(), 'body' => '' ) );
 			$original = @json_decode( wp_remote_retrieve_body( $original ) );
 			
 			foreach ( $meta as $m ) {
@@ -212,16 +264,22 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 				$u = add_query_arg( array( 'key' => urlencode( $m->key ), 'value' => urlencode( $m->value ) ), $u );
 				if ( property_exists( $m, 'id' ) ) {
 					$u = add_query_arg( 'id', intval( $m->id ), $u );
+					$method = 'PUT';
+				} else {
+					$method = 'POST';
 				}
 				
-				error_log( '[Alert API Debug]: Attempting to update ' . $m->key . ' with the value ' . $m->value . ' on the post with an ID of ' . $result_id . ' by using the API URL ' . $u );
-				$args = array( 'headers' => $headers, 'body' => '' );
-				$tmp = wp_safe_remote_post( $u, $args );
-				error_log( '[Alert API Debug]: The response looked like: ' . print_r( $tmp, true ) );
+				$args = array( 'headers' => $this->_get_api_headers(), 'body' => '' );
+				error_log( '[API Alert Debug]: Attempted to modify meta for an advisory. The meta key is: ' . $m->key . ', the meta value is: ' . $m->value . ' and the URL for the request is: ' . $u );
+				if ( 'PUT' == $method ) {
+					$args['method'] = 'PUT';
+					$tmp = wp_remote_request( $u, $args );
+				} else {
+					$tmp = wp_safe_remote_post( $u, $args );
+				}
 			}
 			
-			error_log( '[Alert API Debug]: Preparing to indicate in the local DB that we syndicated the post with an ID of ' . $post_id . ' to the advisories site with an ID of ' . $result_id );
-			update_post_meta( $post_id, '_syndicated-alert-id', $result_id );
+			return;
 		}
 		
 		/**
@@ -241,15 +299,130 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 		/**
 		 * Trash an external advisory on the main Advisories site
 		 */
-		function trash_advisory( $post_id ) {
-			return;
+		function trash_advisory( $post_id=null, $force=false ) {
+			$force = true;
+			
+			if ( empty( $post_id ) ) {
+				$post_id = isset( $_REQUEST['post'] ) && is_numeric( $_REQUEST['post'] ) ? $_REQUEST['post'] : null;
+			}
+			if ( empty( $post_id ) )
+				return false;
+			
+			$syndicated_id = get_post_meta( $post_id, '_syndicated-alert-id', true );
+			if( empty( $syndicated_id ) )
+				return false;
+			
+			$url = sprintf( $this->api_uris['trash'], intval( $syndicated_id ) );
+			
+			$body = array();
+			$body['ID'] = $syndicated_id;
+			if ( true === $force ) {
+				add_query_arg( 'force', true, $url );
+				$body['force'] = true;
+			}
+				
+			$args = array( 'method' => 'DELETE', 'headers' => $this->_get_api_headers(), 'body' => http_build_query( $body ) );
+			
+			$done = wp_remote_request( $url, $args );
+			$result = @json_decode( wp_remote_retrieve_body( $done ) );
+			
+			delete_post_meta( $post_id, '_syndicated-alert-id', $syndicated_id );
+			
+			return $result;
+		}
+		
+		/**
+		 * Re-syndicate a post after it has been untrashed
+		 */
+		function untrash_advisory( $post_id=null ) {
+			if ( empty( $post_id ) ) {
+				$post_id = isset( $_REQUEST['post'] ) && is_numeric( $_REQUEST['post'] ) ? $_REQUEST['post'] : null;
+			}
+			if ( empty( $post_id ) )
+				return false;
+			
+			$p = get_post( $post_id );
+			if ( 'advisory' != $p->post_type )
+				return;
+			
+			if ( isset( $_REQUEST['author_override'] ) && is_numeric( $_REQUEST['author_override'] ) ) {
+				$author = $_REQUEST['author_override'];
+			} else if ( isset( $_REQUEST['post_author'] ) && is_numeric( $_REQUEST['post_author'] ) ) {
+				$author = $_REQUEST['post_author'];
+			} else {
+				$author = $p->post_author;
+			}
+			$author = get_user_by( 'id', $author );
+			$author = $author->display_name;
+			
+			$meta = array(
+				(object)array(
+					'key'   => 'wpcf-_advisory_is_active', 
+					'value' => get_post_meta( $post_id, 'wpcf-_advisory_is_active', true ), 
+				), 
+				(object)array(
+					'key'   => 'wpcf-_advisory_expires_time', 
+					'value' => get_post_meta( $post_id, 'wpcf-_advisory_expires_time', true ),
+				), 
+				(object)array(
+					'key'   => 'wpcf-_advisory_permalink', 
+					'value' => esc_url( get_permalink( $post_id ) ), 
+				), 
+				(object)array(
+					'key'   => 'wpcf-_advisory_author', 
+					'value' => $author, 
+				), 
+			);
+			
+			$body = array(
+				'title'   => $p->post_title, 
+				'content' => $p->post_content, 
+				'status'  => $p->post_status, 
+				'post_meta' => json_encode( $meta ), 
+			);
+				
+			$syndicated_id = get_post_meta( $post_id, '_syndicated-alert-id', true );
+			if( empty( $syndicated_id ) )
+				return false;
+			
+			$url = sprintf( $this->api_uris['update'], intval( $syndicated_id ) );
+			
+			$result = $this->_push_advisory_new( $body, $url );
+			
+			if ( ! is_object( $result ) && ! is_array( $result ) ) {
+				return false;
+			}
+			if ( is_object( $result ) && ! property_exists( $result, 'id' ) ) {
+				return false;
+			} else if ( is_array( $result ) && ! array_key_exists( 'id', $result ) ) {
+				return false;
+			}
+			
+			if ( is_array( $result ) )
+				$result_id = $result['id'];
+			else
+				$result_id = $result->id;
+			
+			$url = sprintf( $this->api_uris['meta'], $result_id, $result_id );
+			
+			$this->_push_advisory_meta( $url, $meta );
+			
+			update_post_meta( $post_id, '_syndicated-alert-id', $result_id );
 		}
 		
 		/**
 		 * Permanently delete an advisory on the main Advisories site
 		 */
-		function delete_advisory( $post_id ) {
+		function delete_advisory( $post_id=null ) {
 			return;
+			
+			if ( empty( $post_id ) ) {
+				$post_id = isset( $_REQUEST['post'] ) && is_numeric( $_REQUEST['post'] ) ? $_REQUEST['post'] : null;
+			}
+			if ( empty( $post_id ) )
+				return false;
+			
+			return $this->trash_advisory( $post_id, true );
 		}
 		
 		function _add_extra_api_post_type_arguments() {
