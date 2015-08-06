@@ -29,22 +29,16 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			) );
 			
 			$this->_set_api_headers();
+			
+			add_action( 'plugins_loaded', array( $this, 'ajax_setup' ) );
 		}
 		
-		/**
-		 * Set up the API request headers to be sent with any remote request
-		 */
-		private function _set_api_headers() {
-			$this->headers = array(
-				/*'context' => 'display', 
-				'pretty'  => true, */
-				'Authorization' => 'Basic ' . base64_encode( UMW_ALERTS_USER_NAME . ':' . UMW_ALERTS_USER_PWD ), 
-				/*'Content-Type' => 'application/json'*/
-			);
-		}
-		
-		private function _get_api_headers() {
-			return $this->headers;
+		function ajax_setup() {
+			if ( ! is_admin() ) {
+				add_action( 'wp_print_footer_scripts', array( $this, 'do_global_advisories_script' ) );
+			}
+			add_action( 'wp_ajax_check_global_advisories', array( $this, 'check_global_advisories' ) );
+			add_action( 'wp_ajax_nopriv_check_global_advisories', array( $this, 'check_global_advisories' ) );
 		}
 		
 		/**
@@ -74,15 +68,10 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 				if ( UMW_ADVISORIES_SITE == $GLOBALS['blog_id'] ) {
 					$this->is_alerts = true;
 					$this->alerts_url = esc_url( get_bloginfo( 'url' ) );
-					add_action( 'init', array( $this, '_add_extra_api_post_type_arguments' ), 12 );
-					add_filter( 'rest_api_allowed_post_types', array( $this, 'whitelist_external_advisories' ) );
-					add_filter( 'json_prepare_post', array( $this, 'add_advisory_metadata' ) );
-					add_filter( 'rest_public_meta_keys', array( $this, 'whitelist_advisory_metadata' ) );
-					add_filter( 'rest_api_allowed_public_metadata', array( $this, 'whitelist_advisory_metadata' ) );
+					$this->setup_alerts_site();
 				} else {
 					$this->is_alerts = false;
 					$this->alerts_url = esc_url( get_blog_option( UMW_ADVISORIES_SITE, 'home' ) );
-					add_action( 'init', array( $this, '_add_extra_api_post_type_arguments' ), 12 );
 					$this->add_syndication_actions();
 				}
 			} else {
@@ -93,6 +82,22 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 		}
 		
 		/**
+		 * Setup any actions/filters that need to be registered on the 
+		 * 		main Advisories site
+		 */
+		function setup_alerts_site() {
+			add_action( 'init', array( $this, '_add_extra_api_post_type_arguments' ), 12 );
+			add_filter( 'rest_api_allowed_post_types', array( $this, 'whitelist_external_advisories' ) );
+			add_filter( 'json_prepare_post', array( $this, 'add_advisory_metadata' ) );
+			add_filter( 'rest_public_meta_keys', array( $this, 'whitelist_advisory_metadata' ) );
+			add_filter( 'rest_api_allowed_public_metadata', array( $this, 'whitelist_advisory_metadata' ) );
+			// We need to fix some oddities in the way the API behaves
+			add_action( 'save_post_external-advisory', array( $this, 'fix_api_formatting' ), 10, 2 );
+			add_action( 'wp_trash_post', array( $this, 'really_delete_syndicated_advisory' ) );
+			add_action( 'init', array( $this, 'register_advisory_feed' ) );
+		}
+		
+		/**
 		 * Adds any syndication actions that are necessary
 		 */
 		function add_syndication_actions() {
@@ -100,6 +105,22 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			add_action( 'wp_trash_post', array( $this, 'trash_advisory' ) );
 			add_action( 'untrashed_post', array( $this, 'untrash_advisory' ) );
 			add_action( 'delete_post', array( $this, 'delete_advisory' ) );
+		}
+		
+		/**
+		 * Set up the API request headers to be sent with any remote request
+		 */
+		private function _set_api_headers() {
+			$this->headers = array(
+				/*'context' => 'display', 
+				'pretty'  => true, */
+				'Authorization' => 'Basic ' . base64_encode( UMW_ALERTS_USER_NAME . ':' . UMW_ALERTS_USER_PWD ), 
+				/*'Content-Type' => 'application/json'*/
+			);
+		}
+		
+		private function _get_api_headers() {
+			return $this->headers;
 		}
 		
 		/**
@@ -283,6 +304,40 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 		}
 		
 		/**
+		 * If a syndicated post is pulled into the Advisories site with the API, 
+		 * 		we may need to fix some of the formatting
+		 */
+		function fix_api_formatting( $post_id=null, $p=null ) {
+			if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
+				return;
+			if ( wp_is_post_revision( $post_id ) )
+				return;
+			
+			if ( empty( $p ) )
+				$p = get_post( $post_id );
+			
+			remove_action( 'save_post_external-advisory', array( $this, 'fix_api_formatting' ), 10, 2 );
+			
+			wp_update_post( array( 'ID' => $p->ID, 'post_title' => stripslashes( $p->post_title ), 'post_content' => stripslashes( $p->post_content ) ) );
+			
+			add_action( 'save_post_external-advisory', array( $this, 'fix_api_formatting' ), 10, 2 );
+		}
+		
+		/**
+		 * Since there is currently no process to permanently delete a post with the API, 
+		 * 		let's do it a different way
+		 */
+		function really_delete_syndicated_advisory( $post_id ) {
+			$p = get_post( $post_id );
+			if ( 'external-advisory' != $p->post_type )
+				return;
+			
+			remove_action( 'wp_trash_post', array( $this, 'really_delete_syndicated_advisory' ) );
+			wp_delete_post( $post_id, true );
+			add_action( 'wp_trash_post', array( $this, 'really_delete_syndicated_advisory' ) );
+		}
+		
+		/**
 		 * Authorize the forthcoming API request
 		 */
 		function jetpack_auth() {
@@ -300,6 +355,8 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 		 * Trash an external advisory on the main Advisories site
 		 */
 		function trash_advisory( $post_id=null, $force=false ) {
+			$force = true;
+			
 			if ( empty( $post_id ) ) {
 				$post_id = isset( $_REQUEST['post'] ) && is_numeric( $_REQUEST['post'] ) ? $_REQUEST['post'] : null;
 			}
@@ -501,6 +558,186 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 		
 		function jetpack_api_domain( $url ) {
 			return urlencode( str_ireplace( array( 'https://', 'http://' ), array( '', '' ), untrailingslashit( $url ) ) );
+		}
+		
+		/**
+		 * Register a JSON feed for the global advisories
+		 */
+		function register_advisory_feed() {
+			add_feed( 'global-advisories.json', array( $this, 'do_advisory_feed' ) );
+		}
+		
+		/**
+		 * Output a JSON feed with the current, active global advisories
+		 */
+		function do_advisory_feed() {
+			$ad = get_posts( array(
+				'post_type'   => 'advisory', 
+				'post_status' => 'publish', 
+				'orderby'     => 'date', 
+				'order'       => 'desc', 
+				'posts_per_page' => 1, 
+				'meta_query'  => array(
+					'relation' => 'AND', 
+					array( 
+						'key'   => 'wpcf-_advisory_is_active', 
+						'value' => 1, 
+						'compare' => 'EXISTS', 
+					), 
+					array( 
+						'key'   => 'wpcf-_advisory_expires_time', 
+						'value' => current_time( 'timestamp' ), 
+						'compare' => '>', 
+						'type'  => 'NUMERIC'
+					), 
+				), 
+			) );
+			
+			$em = get_posts( array( 
+				'post_type'   => 'alert', 
+				'post_status' => 'publish', 
+				'orderby'     => 'date', 
+				'order'       => 'desc', 
+				'posts_per_page' => 1, 
+				'meta_query'  => array(
+					'relation' => 'AND', 
+					array( 
+						'key'   => 'wpcf-_advisory_is_active', 
+						'value' => 1, 
+						'compare' => 'EXISTS', 
+					), 
+					array( 
+						'key'   => 'wpcf-_advisory_expires_time', 
+						'value' => current_time( 'timestamp' ), 
+						'compare' => '>', 
+						'type'  => 'NUMERIC'
+					), 
+				), 
+			) );
+			
+			$alerts = array( 'time' => current_time( 'timestamp' ) );
+			if ( ! empty( $ad ) ) {
+				$p = array_shift( $ad );
+				$author = get_user_by( 'id', $p->post_author );
+				$author = $author->display_name;
+				$alerts['advisory'] = array( 
+					'title'   => apply_filters( 'the_title', $p->post_title ), 
+					'content' => apply_filters( 'the_content', $p->post_content ), 
+					'excerpt' => apply_filters( 'the_excerpt', $p->post_excerpt ), 
+					'author'  => $author, 
+					'date'    => get_the_date( '', $p->ID ), 
+					'url'     => get_permalink( $p->ID ), 
+				);
+			}
+			if ( ! empty( $em ) ) {
+				$p = array_shift( $em );
+				$author = get_user_by( 'id', $p->post_author );
+				$author = $author->display_name;
+				$alerts['alert'] = array(
+					'title'   => apply_filters( 'the_title', $p->post_title ), 
+					'content' => apply_filters( 'the_content', $p->post_content ), 
+					'excerpt' => apply_filters( 'the_excerpt', $p->post_excerpt ), 
+					'author'  => $author, 
+					'date'    => get_the_date( '', $p->ID ), 
+					'url'     => get_permalink( $p->ID ), 
+				);
+			}
+			
+			echo json_encode( $alerts );
+			die();
+		}
+		
+		/**
+		 * Add global advisories to the page if there are active ones
+		 */
+		function check_global_advisories() {
+			if ( ! check_ajax_referer( 'umw-active-alerts-ajax', 'umwalerts_nonce' ) && ! current_user_can( 'delete_users' ) )
+				die( 'No nonce' );
+			
+			$feed = esc_url( trailingslashit( $this->alerts_url ) . 'feed/global-advisories.json' );
+			
+			$request = wp_remote_get( $feed );
+			if ( ! is_wp_error( $request ) )
+				$response = @json_decode( wp_remote_retrieve_body( $request ) );
+			
+			if ( ! isset( $_REQUEST['is_root'] ) || 1 != intval( $_REQUEST['is_root'] ) )
+				unset( $response['advisory'] );
+			
+			echo json_encode( $response );
+			
+			wp_die();
+		}
+		
+		/**
+		 * Output the JavaScript that handles the global advisories
+		 */
+		function do_global_advisories_script() {
+?>
+<script>
+var UMWAlerts = UMWAlerts || {
+	'av' : new Date().getTime(), 
+	'do_ajax' : function() {
+		jQuery.getJSON( '<?php echo admin_url( 'admin-ajax.php' ) ?>', {
+			'action' : 'check_global_advisories', 
+			'v' : this.av, 
+			'is_root' : <?php echo $this->is_root ? 1 : 0 ?>, 
+			'umwalerts_nonce' : '<?php echo wp_create_nonce( 'umw-active-alerts-ajax' ) ?>'
+		}, function(e) {
+			if ( 'alert' in e ) {
+				UMWAlerts.doActiveAlert( e.alert );
+			}
+			if ( 'advisory' in e ) {
+				// Only output on root site home page
+				UMWAlerts.doActiveAdvisory( e.advisory );
+			}
+		} );
+	}, 
+	'doActiveAlert' : function( e ) {
+		var t = '' + 
+'<aside class="emergency-alert">' + 
+'	<div class="wrap">' + 
+'		<article class="alert">' + 
+'			<header class="alert-heading">' + 
+'				<h2><a href="' + e.url + '" title="Read the details of ' + e.title + '">' + e.title + '</a></h2>' + 
+'			</header>' + 
+'			<div class="alert-content">' +
+'				' + e.content + '' + 
+'			</div>' + 
+'			<footer class="alert-meta">' + 
+'				Posted by <span class="alert-author">' + e.author + '</span> on <span class="alert-time">' + e.date + '</span>' + 
+'			</footer>' + 
+'		</article>' + 
+'	</div>' + 
+'</aside>';
+		jQuery( t ).prependTo( 'body' );
+		return;
+	}, 
+	'doActiveAdvisory' : function( e ) {
+		var t = '' + 
+'<aside class="campus-advisory">' + 
+'	<div class="wrap">' + 
+'		<article class="alert">' + 
+'			<header class="alert-heading">' + 
+'				<h2><a href="' + e.url + '" title="Read the details of ' + e.title + '">' + e.title + '</a></h2>' + 
+'			</header>' + 
+'			<div class="alert-content">' +
+'				' + e.content + '' + 
+'			</div>' + 
+'			<footer class="alert-meta">' + 
+'				Posted by <span class="alert-author">' + e.author + '</span> on <span class="alert-time">' + e.date + '</span>' + 
+'			</footer>' + 
+'		</article>' + 
+'	</div>' + 
+'</aside>';
+		jQuery( t ).insertAfter( jQuery( '.home-top .flexslider' ) );
+	}
+};
+
+jQuery( function() {
+	UMWAlerts.do_ajax();
+} );
+</script>
+<?php
 		}
 		
 		/**
