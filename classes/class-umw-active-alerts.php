@@ -35,10 +35,14 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 		
 		function ajax_setup() {
 			if ( ! is_admin() ) {
-				add_action( 'wp_print_footer_scripts', array( $this, 'do_global_advisories_script' ) );
+				add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 			}
 			add_action( 'wp_ajax_check_global_advisories', array( $this, 'check_global_advisories' ) );
 			add_action( 'wp_ajax_nopriv_check_global_advisories', array( $this, 'check_global_advisories' ) );
+		}
+		
+		function enqueue_scripts() {
+			add_action( 'wp_print_footer_scripts', array( $this, 'do_global_advisories_script' ) );
 		}
 		
 		/**
@@ -551,6 +555,8 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 		}
 		
 		function do_current_advisories() {
+			return;
+			
 			$tmp = @render_view( array( 'title' => 'Current Advisories' ) );
 			if ( ! empty( $tmp ) )
 				echo $tmp;
@@ -660,8 +666,12 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			if ( ! is_wp_error( $request ) )
 				$response = @json_decode( wp_remote_retrieve_body( $request ) );
 			
-			if ( ! isset( $_REQUEST['is_root'] ) || 1 != intval( $_REQUEST['is_root'] ) )
-				unset( $response['advisory'] );
+			if ( ! isset( $_REQUEST['is_root'] ) || 1 != intval( $_REQUEST['is_root'] ) ) {
+				if ( is_array( $response ) )
+					unset( $response['advisory'] );
+				else if ( is_object( $response ) )
+					unset( $response->advisory );
+			}
 			
 			echo json_encode( $response );
 			
@@ -737,6 +747,73 @@ jQuery( function() {
 	UMWAlerts.do_ajax();
 } );
 </script>
+<style>
+aside.campus-advisory {
+	background: #FFD6B2;
+}
+
+aside.emergency-alert {
+	background: #b71237;
+}
+
+aside.campus-advisory, 
+aside.emergency-alert {
+	width: 100%;
+	max-width: 100%;
+	margin: 0 auto;
+	padding: 0;
+	font-family: MuseoSans, 'museo-sans', Arial, Verdana, sans-serif;
+}
+
+.campus-advisory > .wrap {
+	color: #002b5a;
+}
+
+.emergency-alert > .wrap {
+	color: #fff;
+}
+
+.campus-advisory > .wrap, 
+.emergency-alert > .wrap {
+	box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	padding: 16px;
+	background: none;
+}
+
+.alert h2, 
+.alert h2 a {
+	font-size: 1.5rem;
+	font-family: MuseoSlab, MuseoSlab700, 'museo-slab', Times, serif;
+	font-weight: 700;
+	text-transform: uppercase;
+}
+
+.alert .alert-meta {
+	font-style: italic;
+	font-size: .9em;
+}
+
+.emergency-alert a {
+	color: #fff;
+}
+
+.campus-advisory a {
+	color: #002b5a;
+}
+
+.emergency-alert a:hover, 
+.emergency-alert a:focus {
+	color: #e2e2e2;
+	text-decoration: underline;
+}
+
+.campus-advisory a:hover, 
+.campus-advisory a:focus {
+	color: #3a5b7d;
+	text-decoration: underline;
+}
+</style>
 <?php
 		}
 		
