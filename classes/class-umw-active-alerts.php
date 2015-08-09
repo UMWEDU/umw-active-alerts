@@ -39,10 +39,14 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			}
 			add_action( 'wp_ajax_check_global_advisories', array( $this, 'check_global_advisories' ) );
 			add_action( 'wp_ajax_nopriv_check_global_advisories', array( $this, 'check_global_advisories' ) );
+			add_action( 'wp_ajax_check_local_advisories', array( $this, 'check_local_advisories' ) );
+			add_action( 'wp_ajax_nopriv_check_global_advisories', array( $this, 'check_local_advisories' ) );
 		}
 		
 		function enqueue_scripts() {
 			add_action( 'wp_print_footer_scripts', array( $this, 'do_global_advisories_script' ) );
+			if ( post_type_exists( 'advisory' ) )
+				add_action( 'wp_print_footer_scripts', array( $this, 'do_local_advisories_script' ) );
 		}
 		
 		/**
@@ -584,12 +588,6 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 				'order'       => 'desc', 
 				'posts_per_page' => 1, 
 				'meta_query'  => array(
-					'relation' => 'AND', 
-					array( 
-						'key'   => 'wpcf-_advisory_is_active', 
-						'value' => 1, 
-						'compare' => 'EXISTS', 
-					), 
 					array( 
 						'key'   => 'wpcf-_advisory_expires_time', 
 						'value' => current_time( 'timestamp' ), 
@@ -606,12 +604,6 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 				'order'       => 'desc', 
 				'posts_per_page' => 1, 
 				'meta_query'  => array(
-					'relation' => 'AND', 
-					array( 
-						'key'   => 'wpcf-_advisory_is_active', 
-						'value' => 1, 
-						'compare' => 'EXISTS', 
-					), 
 					array( 
 						'key'   => 'wpcf-_advisory_expires_time', 
 						'value' => current_time( 'timestamp' ), 
@@ -814,6 +806,57 @@ aside.emergency-alert {
 	text-decoration: underline;
 }
 </style>
+<?php
+		}
+		
+		/**
+		 * Checks for the existence of an active local advisory
+		 */
+		function do_local_advisories_script() {
+?>
+<script>
+var UMWLocalAlerts = UMWLocalAlerts || {
+	'av' : new Date().getTime(), 
+	'do_ajax' : function() {
+		jQuery.getJSON( '<?php echo admin_url( 'admin-ajax.php' ) ?>', {
+			'action' : 'check_local_advisories', 
+			'v' : this.av, 
+			'is_root' : <?php echo $this->is_root ? 1 : 0 ?>, 
+			'umwalerts_nonce' : '<?php echo wp_create_nonce( 'umw-active-alerts-ajax' ) ?>'
+		}, function(e) {
+			if ( 'local' in e ) {
+				UMWLocalAlerts.doLocalAlert( e.local );
+			}
+		} );
+	}, 
+	'doLocalAlert' : function( e ) {
+		var t = '' + 
+'<aside class="local-advisory">' + 
+'	<div class="wrap">' + 
+'		<article class="alert">' + 
+'			<header class="alert-heading">' + 
+'				<h2><a href="' + e.url + '" title="Read the details of ' + e.title + '">' + e.title + '</a></h2>' + 
+'			</header>' + 
+'			<div class="alert-content">' +
+'				' + e.content + '' + 
+'			</div>' + 
+'			<footer class="alert-meta">' + 
+'				Posted by <span class="alert-author">' + e.author + '</span> on <span class="alert-time">' + e.date + '</span>' + 
+'			</footer>' + 
+'		</article>' + 
+'	</div>' + 
+'</aside>';
+		if ( document.querySelectorAll( '.content' ).length >= 1 ) {
+			jQuery( t ).prependTo( '.content' );
+		} else if ( document.querySelectorAll( '#content' ).length >= 1 ) {
+			jQuery( t ).prependTo( '#content' );
+		}
+	}
+};
+jQuery( function() {
+	UMWLocalAlerts.do_ajax();
+} );
+</script>
 <?php
 		}
 		
