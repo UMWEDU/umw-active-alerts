@@ -789,6 +789,10 @@ aside.emergency-alert {
 	background: #b71237;
 }
 
+aside.local-advisory {
+	background: #C4E9F1;
+}
+
 aside.campus-advisory, 
 aside.emergency-alert {
 	width: 100%;
@@ -804,6 +808,12 @@ aside.emergency-alert {
 
 .emergency-alert > .wrap {
 	color: #fff;
+}
+
+.local-advisory > .wrap {
+	color: #002b5a;
+	padding: 8px 16px;
+	padding: .5rem 1rem;
 }
 
 .campus-advisory > .wrap, 
@@ -831,7 +841,8 @@ aside.emergency-alert {
 	color: #fff;
 }
 
-.campus-advisory a {
+.campus-advisory a, 
+.local-advisory a {
 	color: #002b5a;
 }
 
@@ -842,7 +853,9 @@ aside.emergency-alert {
 }
 
 .campus-advisory a:hover, 
-.campus-advisory a:focus {
+.campus-advisory a:focus, 
+.local-advisory a:hover, 
+.local-advisory a:focus {
 	color: #3a5b7d;
 	text-decoration: underline;
 }
