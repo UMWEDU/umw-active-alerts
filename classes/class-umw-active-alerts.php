@@ -671,6 +671,33 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 		}
 		
 		/**
+		 * Check for an active local advisory
+		 */
+		function check_local_advisories() {
+			if ( ! check_ajax_referer( 'umw-active-alerts-ajax', 'umwalerts_nonce' ) && ! current_user_can( 'delete_users' ) )
+				die( 'No nonce' );
+			
+			$q = new WP_Query( array(
+				'post_type' => 'advisory', 
+				'post_status' => 'publish', 
+				'posts_per_page' => 1, 
+				'meta_query' => array(
+					array( 
+						'meta_key'   => 'wpcf-_advisory_expires_time', 
+						'meta_value' => current_time( 'timestamp' ), 
+						'compare'    => '>='
+					)
+				), 
+			) );
+			
+			global $post;
+			if ( $q->have_posts() ) : while ( $q->have_posts() ) : $q->the_post();
+				setup_postdata();
+			endwhile; endif;
+			wp_reset_postdata();
+		}
+		
+		/**
 		 * Output the JavaScript that handles the global advisories
 		 */
 		function do_global_advisories_script() {
