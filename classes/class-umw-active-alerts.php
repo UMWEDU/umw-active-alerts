@@ -677,24 +677,38 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			if ( ! check_ajax_referer( 'umw-active-alerts-ajax', 'umwalerts_nonce' ) && ! current_user_can( 'delete_users' ) )
 				die( 'No nonce' );
 			
-			$q = new WP_Query( array(
-				'post_type' => 'advisory', 
+			$ad = get_posts( array( 
+				'post_type'   => 'advisory', 
 				'post_status' => 'publish', 
+				'orderby'     => 'date', 
+				'order'       => 'desc', 
 				'posts_per_page' => 1, 
-				'meta_query' => array(
+				'meta_query'  => array(
 					array( 
-						'meta_key'   => 'wpcf-_advisory_expires_time', 
-						'meta_value' => current_time( 'timestamp' ), 
-						'compare'    => '>='
-					)
+						'key'   => 'wpcf-_advisory_expires_time', 
+						'value' => current_time( 'timestamp' ), 
+						'compare' => '>', 
+						'type'  => 'NUMERIC'
+					), 
 				), 
 			) );
+			$alerts = array();
+			if ( ! empty( $ad ) ) {
+				$p = array_shift( $ad );
+				$author = get_user_by( 'id', $p->post_author );
+				$author = $author->display_name;
+				$alerts['local'] = array(
+					'title'   => apply_filters( 'the_title', $p->post_title ), 
+					'content' => apply_filters( 'the_content', $p->post_content ), 
+					'excerpt' => apply_filters( 'the_excerpt', $p->post_excerpt ), 
+					'author'  => $author, 
+					'date'    => get_the_date( '', $p->ID ), 
+					'url'     => get_permalink( $p->ID ), 
+				);
+			}
 			
-			global $post;
-			if ( $q->have_posts() ) : while ( $q->have_posts() ) : $q->the_post();
-				setup_postdata();
-			endwhile; endif;
-			wp_reset_postdata();
+			echo json_encode( $alerts );
+			wp_die();
 		}
 		
 		/**
