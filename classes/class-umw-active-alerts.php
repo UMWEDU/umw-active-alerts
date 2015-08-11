@@ -19,6 +19,9 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			$this->umw_is_root();
 			$this->umw_is_advisories();
 			
+			if ( isset( $_SERVER['PHP_AUTH_USER'] ) && ! defined( 'WPCAS_BYPASS' ) )
+				define( 'WPCAS_BYPASS', true );
+			
 			add_action( 'genesis_header', array( $this, 'do_current_advisories' ), 9 );
 			$this->api_uris = apply_filters( 'umw-alerts-api-uris', array(
 				'publish' => $this->alerts_url . '/wp-json/wp/v2/advisories', 
@@ -103,6 +106,12 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			add_action( 'save_post_external-advisory', array( $this, 'fix_api_formatting' ), 10, 2 );
 			add_action( 'wp_trash_post', array( $this, 'really_delete_syndicated_advisory' ) );
 			add_action( 'init', array( $this, 'register_advisory_feed' ) );
+			add_action( 'rest_api_init', array( $this, 'bypass_cas' ) );
+		}
+		
+		function bypass_cas() {
+			if ( ! defined( 'WPCAS_BYPASS' ) )
+				define( 'WPCAS_BYPASS', true );
 		}
 		
 		/**
@@ -172,10 +181,6 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			
 			$meta = array(
 				(object)array(
-					'key'   => 'wpcf-_advisory_is_active', 
-					'value' => isset( $_REQUEST['wpcf']['_advisory_is_active'] ) && in_array( $_REQUEST['wpcf']['_advisory_is_active'], array( 1, '1', 'true', true ), true ) ? 1 : 0, 
-				), 
-				(object)array(
 					'key'   => 'wpcf-_advisory_expires_time', 
 					'value' => $expires,
 				), 
@@ -207,22 +212,30 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			}
 			
 			if ( ! is_object( $result ) && ! is_array( $result ) ) {
-				/*error_log( '[Alert API Debug]: Attempted to get the result ID, but result did not appear to be an object or an array' );
-				print( '<pre><code>' );
-				var_dump( $result );
-				print( '</code></pre>' );
-				return wp_die( 'The result was not an array or an object' );*/
+				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+					error_log( '[Alert API Debug]: Attempted to get the result ID, but result did not appear to be an object or an array' );
+					error_log( '[Alert API Debug]: ' . print_r( $result, true ) );
+					/*print( '<pre><code>' );
+					var_dump( $result );
+					print( '</code></pre>' );
+					return wp_die( 'The result was not an array or an object' );*/
+				}
 				return false;
 			}
 			if ( is_object( $result ) && ! property_exists( $result, 'id' ) ) {
-				/*error_log( '[Alert API Debug]: Attempted to get the result ID, but that property did not exist within the result object' );
-				print( '<pre><code>' );
-				var_dump( $result );
-				print( '</code></pre>' );
-				return wp_die( 'The result was an object but the id property did not exist' );*/
+				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+					error_log( '[Alert API Debug]: Attempted to get the result ID, but that property did not exist within the result object' );
+					/*print( '<pre><code>' );
+					var_dump( $result );
+					print( '</code></pre>' );
+					return wp_die( 'The result was an object but the id property did not exist' );*/
+				}
 				return false;
 			} else if ( is_array( $result ) && ! array_key_exists( 'id', $result ) ) {
 				$r = array_shift( $result );
+				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+					error_log( '[Alert API Debug]: Successfully pushed the advisory with a result ID of ' . $r->id );
+				}
 				if ( is_object( $r ) ) {
 					if ( property_exists( $r, 'code' ) && 'rest_post_invalid_id' == $r->code ) {
 						$url = sprintf( $this->api_uris['publish'], $this->jetpack_api_domain( $this->alerts_url ) );
@@ -243,6 +256,9 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			$url = sprintf( $this->api_uris['meta'], $result_id, $result_id );
 			
 			$this->_push_advisory_meta( $url, $meta );
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( '[Alert API Debug]: Just pushed the meta data for the post with a result ID of ' . $result_id );
+			}
 			
 			update_post_meta( $post_id, '_syndicated-alert-id', $result_id );
 		}
@@ -253,6 +269,13 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 		private function _push_advisory_new( $body, $url, $method='POST' ) {
 			$args = array( 'headers' => $this->_get_api_headers(), 'body' => http_build_query( $body ) );
 			$done = wp_safe_remote_post( $url, $args );
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( '[Alert API Debug]: ' . print_r( $done, true ) );
+				/*print( '<pre><code>' );
+				var_dump( $done );
+				print( '</code></pre>' );
+				wp_die( 'Hold it right there' );*/
+			}
 			$result = @json_decode( wp_remote_retrieve_body( $done ) );
 			
 			return $result;
@@ -265,6 +288,13 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			$body['ID'] = $syndicated_id;
 			$args = array( 'method' => 'PUT', 'headers' => $this->_get_api_headers(), 'body' => http_build_query( $body ) );
 			$done = wp_remote_request( $url, $args );
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( '[Alert API Debug]: ' . print_r( $done, true ) );
+				/*print( '<pre><code>' );
+				var_dump( $done );
+				print( '</code></pre>' );
+				wp_die( 'Hold it right there' );*/
+			}
 			$result = @json_decode( wp_remote_retrieve_body( $done ) );
 			
 			return $result;
@@ -350,7 +380,7 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 		 */
 		function jetpack_auth() {
 			$auth = wp_safe_remote_post( esc_url( $this->api_uris['auth'] ), array( 'body' => http_build_query( $this->oauth ) ) );
-			if ( is_wp_error( $auth ) ) {
+			if ( is_wp_error( $auth ) && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 				wp_die( 'Errored out' );
 			}
 			$secret = json_decode( wp_remote_retrieve_body( $auth ) );
@@ -419,10 +449,6 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			
 			$meta = array(
 				(object)array(
-					'key'   => 'wpcf-_advisory_is_active', 
-					'value' => get_post_meta( $post_id, 'wpcf-_advisory_is_active', true ), 
-				), 
-				(object)array(
 					'key'   => 'wpcf-_advisory_expires_time', 
 					'value' => get_post_meta( $post_id, 'wpcf-_advisory_expires_time', true ),
 				), 
@@ -487,7 +513,6 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 		
 		function _add_extra_api_post_type_arguments() {
 			global $wp_post_types;
-			
 			if ( ! array_key_exists( 'external-advisory', $wp_post_types ) )
 				return;
 			
@@ -512,10 +537,6 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			
 			$meta = array();
 			
-			$active = get_post_meta( $post['ID'], 'wpcf-_advisory_is_active', true );
-			if ( ! empty( $active ) && in_array( $active, array( 1, '1', 'true', true ), true ) ) {
-				$meta['wpcf-_advisory_is_active'] = 1;
-			}
 			$expires = get_post_meta( $post['ID'], 'wpcf-_advisory_expires_time', true );
 			if ( ! empty( $expires ) && is_numeric( $expires ) ) {
 				$meta['wpcf-_advisory_expires'] = $expires;
@@ -550,7 +571,6 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 		}
 		
 		function whitelist_advisory_metadata( $keys=array() ) {
-			$keys[] = 'wpcf-_advisory_is_active';
 			$keys[] = 'wpcf-_advisory_expires_time';
 			$keys[] = 'wpcf-_advisory_permalink';
 			$keys[] = 'wpcf-_advisory_author';
@@ -618,26 +638,32 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 				$p = array_shift( $ad );
 				$author = get_user_by( 'id', $p->post_author );
 				$author = $author->display_name;
+				$url = get_post_meta( $p->ID, 'wpcf-_advisory_permalink', true );
+				if ( empty( $url ) || ! esc_url( $url ) )
+					$url = get_permalink( $p->ID );
 				$alerts['advisory'] = array( 
 					'title'   => apply_filters( 'the_title', $p->post_title ), 
 					'content' => apply_filters( 'the_content', $p->post_content ), 
 					'excerpt' => apply_filters( 'the_excerpt', $p->post_excerpt ), 
 					'author'  => $author, 
 					'date'    => get_the_date( '', $p->ID ), 
-					'url'     => get_permalink( $p->ID ), 
+					'url'     => esc_url( $url ), 
 				);
 			}
 			if ( ! empty( $em ) ) {
 				$p = array_shift( $em );
 				$author = get_user_by( 'id', $p->post_author );
 				$author = $author->display_name;
+				$url = get_post_meta( $p->ID, 'wpcf-_advisory_permalink', true );
+				if ( empty( $url ) || ! esc_url( $url ) )
+					$url = get_permalink( $p->ID );
 				$alerts['alert'] = array(
 					'title'   => apply_filters( 'the_title', $p->post_title ), 
 					'content' => apply_filters( 'the_content', $p->post_content ), 
 					'excerpt' => apply_filters( 'the_excerpt', $p->post_excerpt ), 
 					'author'  => $author, 
 					'date'    => get_the_date( '', $p->ID ), 
-					'url'     => get_permalink( $p->ID ), 
+					'url'     => esc_url( $url ), 
 				);
 			}
 			
@@ -658,12 +684,12 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			if ( ! is_wp_error( $request ) )
 				$response = @json_decode( wp_remote_retrieve_body( $request ) );
 			
-			if ( ! isset( $_REQUEST['is_root'] ) || 1 != intval( $_REQUEST['is_root'] ) ) {
+			/*if ( ! isset( $_REQUEST['is_root'] ) || 1 != intval( $_REQUEST['is_root'] ) ) {
 				if ( is_array( $response ) )
 					unset( $response['advisory'] );
 				else if ( is_object( $response ) )
 					unset( $response->advisory );
-			}
+			}*/
 			
 			echo json_encode( $response );
 			
@@ -697,13 +723,17 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 				$p = array_shift( $ad );
 				$author = get_user_by( 'id', $p->post_author );
 				$author = $author->display_name;
+				$url = get_post_meta( $p->ID, 'wpcf-_advisory_permalink', true );
+				if ( empty( $url ) || ! esc_url( $url ) )
+					$url = get_permalink( $p->ID );
 				$alerts['local'] = array(
 					'title'   => apply_filters( 'the_title', $p->post_title ), 
 					'content' => apply_filters( 'the_content', $p->post_content ), 
 					'excerpt' => apply_filters( 'the_excerpt', $p->post_excerpt ), 
 					'author'  => $author, 
 					'date'    => get_the_date( '', $p->ID ), 
-					'url'     => get_permalink( $p->ID ), 
+					'url'     => esc_url( $url ), 
+					'class'   => $this->is_alerts ? 'campus-advisory' : 'local-advisory', 
 				);
 			}
 			
@@ -743,9 +773,9 @@ var UMWAlerts = UMWAlerts || {
 '			<header class="alert-heading">' + 
 '				<h2><a href="' + e.url + '" title="Read the details of ' + e.title + '">' + e.title + '</a></h2>' + 
 '			</header>' + 
-'			<div class="alert-content">' +
+/*'			<div class="alert-content">' +
 '				' + e.content + '' + 
-'			</div>' + 
+'			</div>' + */
 '			<footer class="alert-meta">' + 
 '				Posted by <span class="alert-author">' + e.author + '</span> on <span class="alert-time">' + e.date + '</span>' + 
 '			</footer>' + 
@@ -763,38 +793,51 @@ var UMWAlerts = UMWAlerts || {
 '			<header class="alert-heading">' + 
 '				<h2><a href="' + e.url + '" title="Read the details of ' + e.title + '">' + e.title + '</a></h2>' + 
 '			</header>' + 
-'			<div class="alert-content">' +
+/*'			<div class="alert-content">' +
 '				' + e.content + '' + 
-'			</div>' + 
+'			</div>' + */
 '			<footer class="alert-meta">' + 
 '				Posted by <span class="alert-author">' + e.author + '</span> on <span class="alert-time">' + e.date + '</span>' + 
 '			</footer>' + 
 '		</article>' + 
 '	</div>' + 
 '</aside>';
-		jQuery( t ).insertAfter( jQuery( '.home-top .flexslider' ) );
+		/*if ( document.querySelectorAll( '.home-top .flexslider' ).length >= 1 ) {
+			jQuery( t ).insertBefore( jQuery( '.home-top .flexslider' ) );
+		} else */if ( document.querySelectorAll( '.site-header' ).length >= 1 ) {
+			jQuery( t ).insertAfter( jQuery( '.site-header' ) );
+		} else if ( document.querySelectorAll( '.umw-header-bar' ).length >= 1 ) {
+			jQuery( t ).insertAfter( jQuery( '.umw-header-bar' ) );
+		}
 	}
 };
 
 jQuery( function() {
+	if ( jQuery( 'body' ).hasClass( 'site-advisories' ) )
+		return;
 	UMWAlerts.do_ajax();
 } );
 </script>
 <style>
-aside.campus-advisory {
-	background: #FFD6B2;
+aside.campus-advisory, 
+.previous-advisory {
+	background: #ffe299;
 }
 
-aside.emergency-alert {
+aside.emergency-alert, 
+.previous-alert {
 	background: #b71237;
 }
 
-aside.local-advisory {
+aside.local-advisory, 
+.previous-external-advisory {
 	background: #C4E9F1;
 }
 
 aside.campus-advisory, 
-aside.emergency-alert {
+aside.emergency-alert, 
+.previous-advisory, 
+.previous-alert {
 	width: 100%;
 	max-width: 100%;
 	margin: 0 auto;
@@ -802,22 +845,33 @@ aside.emergency-alert {
 	font-family: MuseoSans, 'museo-sans', Arial, Verdana, sans-serif;
 }
 
-.campus-advisory > .wrap {
+.campus-advisory > .wrap, 
+.previous-advisory > .wrap {
 	color: #002b5a;
 }
 
-.emergency-alert > .wrap {
+.emergency-alert > .wrap, 
+.previous-alert > .wrap {
 	color: #fff;
 }
 
-.local-advisory > .wrap {
+.local-advisory > .wrap, 
+.outreach-pro-home .site-inner .local-advisory > .wrap, 
+.previous-external-advisory > .wrap, 
+.outreach-pro-home .site-inner .previous-external-advisory > .wrap {
 	color: #002b5a;
 	padding: 8px 16px;
 	padding: .5rem 1rem;
 }
 
 .campus-advisory > .wrap, 
-.emergency-alert > .wrap {
+.emergency-alert > .wrap, 
+.outreach-pro-home .site-inner .campus-advisory > .wrap, 
+.outreach-pro-home .site-inner .emergency-alert > .wrap, 
+.previous-advisory > .wrap, 
+.previous-alert > .wrap, 
+.outreach-pro-home .site-inner .previous-advisory > .wrap, 
+.outreach-pro-home .site-inner .previous-alert > .wrap {
 	box-sizing: border-box;
 	-moz-box-sizing: border-box;
 	padding: 16px;
@@ -837,17 +891,25 @@ aside.emergency-alert {
 	font-size: .9em;
 }
 
-.emergency-alert a {
+.emergency-alert a, 
+.sidebar .widget .emergecy-alert a, 
+div.entry-content .previous-alert a {
 	color: #fff;
 }
 
 .campus-advisory a, 
-.local-advisory a {
+.local-advisory a, 
+.sidebar .widget .campus-advisory a, 
+.sidebar .widget .local-advisory a, 
+div.entry-content .previous-advisory a, 
+div.entry-content .previous-external-advisory a {
 	color: #002b5a;
 }
 
 .emergency-alert a:hover, 
-.emergency-alert a:focus {
+.emergency-alert a:focus, 
+div.entry-content .previous-alert a:hover, 
+div.entry-content .previous-alert a:focus {
 	color: #e2e2e2;
 	text-decoration: underline;
 }
@@ -855,9 +917,31 @@ aside.emergency-alert {
 .campus-advisory a:hover, 
 .campus-advisory a:focus, 
 .local-advisory a:hover, 
-.local-advisory a:focus {
+.local-advisory a:focus, 
+div.entry-content .previous-advisory a:hover, 
+div.entry-content .previous-advisory a:focus, 
+div.entry-content .previous-external-advisory a:hover, 
+div.entry-content .previous-external-advisory a:focus {
 	color: #3a5b7d;
 	text-decoration: underline;
+}
+
+.previous-advisory, 
+.previous-alert, 
+.previous-external-advisory {
+	margin-bottom: 1rem;
+	margin-bottom: 16px;
+}
+
+body > .emergency-alert .alert-content, 
+.site-container > .campus-advisory .alert-content {
+	width: 0;
+	height: 0;
+	line-height: 0;
+	font-size: 0;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
 }
 </style>
 <?php
@@ -885,7 +969,7 @@ var UMWLocalAlerts = UMWLocalAlerts || {
 	}, 
 	'doLocalAlert' : function( e ) {
 		var t = '' + 
-'<aside class="local-advisory">' + 
+'<aside class="' + e.class + '">' + 
 '	<div class="wrap">' + 
 '		<article class="alert">' + 
 '			<header class="alert-heading">' + 
@@ -908,6 +992,8 @@ var UMWLocalAlerts = UMWLocalAlerts || {
 	}
 };
 jQuery( function() {
+	if ( jQuery( 'body' ).hasClass( 'site-advisories' ) )
+		return;
 	UMWLocalAlerts.do_ajax();
 } );
 </script>
