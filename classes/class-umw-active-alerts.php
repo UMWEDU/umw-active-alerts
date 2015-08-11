@@ -39,6 +39,7 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 		function ajax_setup() {
 			if ( ! is_admin() ) {
 				add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+				add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_styles' ) );
 			}
 			add_action( 'wp_ajax_check_global_advisories', array( $this, 'check_global_advisories' ) );
 			add_action( 'wp_ajax_nopriv_check_global_advisories', array( $this, 'check_global_advisories' ) );
@@ -50,6 +51,10 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			add_action( 'wp_print_footer_scripts', array( $this, 'do_global_advisories_script' ) );
 			if ( post_type_exists( 'advisory' ) )
 				add_action( 'wp_print_footer_scripts', array( $this, 'do_local_advisories_script' ) );
+		}
+		
+		function enqueue_styles() {
+			wp_enqueue_style( 'umw-active-alerts', plugins_url( '/styles/umw-active-alerts.css', dirname( __FILE__ ) ), array(), $this->version, 'all' );
 		}
 		
 		/**
@@ -748,11 +753,12 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 ?>
 <script>
 var UMWAlerts = UMWAlerts || {
+	'ajaxurl' : '<?php echo admin_url( 'admin-ajax.php' ) ?>', 
 	'av' : new Date().getTime(), 
 	'do_ajax' : function() {
-		jQuery.getJSON( '<?php echo admin_url( 'admin-ajax.php' ) ?>', {
+		jQuery.getJSON( UMWAlerts.ajaxurl, {
 			'action' : 'check_global_advisories', 
-			'v' : this.av, 
+			'v' : UMWAlerts.av, 
 			'is_root' : <?php echo $this->is_root ? 1 : 0 ?>, 
 			'umwalerts_nonce' : '<?php echo wp_create_nonce( 'umw-active-alerts-ajax' ) ?>'
 		}, function(e) {
@@ -767,40 +773,14 @@ var UMWAlerts = UMWAlerts || {
 	}, 
 	'doActiveAlert' : function( e ) {
 		var t = '' + 
-'<aside class="emergency-alert">' + 
-'	<div class="wrap">' + 
-'		<article class="alert">' + 
-'			<header class="alert-heading">' + 
-'				<h2><a href="' + e.url + '" title="Read the details of ' + e.title + '">' + e.title + '</a></h2>' + 
-'			</header>' + 
-/*'			<div class="alert-content">' +
-'				' + e.content + '' + 
-'			</div>' + */
-'			<footer class="alert-meta">' + 
-'				Posted by <span class="alert-author">' + e.author + '</span> on <span class="alert-time">' + e.date + '</span>' + 
-'			</footer>' + 
-'		</article>' + 
-'	</div>' + 
+'<aside class="emergency-alert">' + UMWAlerts.alertBody( e ) + 
 '</aside>';
 		jQuery( t ).prependTo( 'body' );
 		return;
 	}, 
 	'doActiveAdvisory' : function( e ) {
 		var t = '' + 
-'<aside class="campus-advisory">' + 
-'	<div class="wrap">' + 
-'		<article class="alert">' + 
-'			<header class="alert-heading">' + 
-'				<h2><a href="' + e.url + '" title="Read the details of ' + e.title + '">' + e.title + '</a></h2>' + 
-'			</header>' + 
-/*'			<div class="alert-content">' +
-'				' + e.content + '' + 
-'			</div>' + */
-'			<footer class="alert-meta">' + 
-'				Posted by <span class="alert-author">' + e.author + '</span> on <span class="alert-time">' + e.date + '</span>' + 
-'			</footer>' + 
-'		</article>' + 
-'	</div>' + 
+'<aside class="campus-advisory">' + UMWAlerts.alertBody( e ) + 
 '</aside>';
 		/*if ( document.querySelectorAll( '.home-top .flexslider' ).length >= 1 ) {
 			jQuery( t ).insertBefore( jQuery( '.home-top .flexslider' ) );
@@ -809,6 +789,13 @@ var UMWAlerts = UMWAlerts || {
 		} else if ( document.querySelectorAll( '.umw-header-bar' ).length >= 1 ) {
 			jQuery( t ).insertAfter( jQuery( '.umw-header-bar' ) );
 		}
+	}, 
+	'alertBody' : function( e ) {
+		return '<div class="wrap"><article class="alert"><header class="alert-heading"><h2><a href="' + e.url + '" title="Read the details of ' + e.title + '">' + e.title + '</a></h2></header>' + 
+/*'			<div class="alert-content">' +
+'				' + e.content + '' + 
+'			</div>' + */
+'			<footer class="alert-meta">Posted by <span class="alert-author">' + e.author + '</span> on <span class="alert-time">' + e.date + '</span></footer></article></div>';
 	}
 };
 
@@ -818,132 +805,6 @@ jQuery( function() {
 	UMWAlerts.do_ajax();
 } );
 </script>
-<style>
-aside.campus-advisory, 
-.previous-advisory {
-	background: #ffe299;
-}
-
-aside.emergency-alert, 
-.previous-alert {
-	background: #b71237;
-}
-
-aside.local-advisory, 
-.previous-external-advisory {
-	background: #C4E9F1;
-}
-
-aside.campus-advisory, 
-aside.emergency-alert, 
-.previous-advisory, 
-.previous-alert {
-	width: 100%;
-	max-width: 100%;
-	margin: 0 auto;
-	padding: 0;
-	font-family: MuseoSans, 'museo-sans', Arial, Verdana, sans-serif;
-}
-
-.campus-advisory > .wrap, 
-.previous-advisory > .wrap {
-	color: #002b5a;
-}
-
-.emergency-alert > .wrap, 
-.previous-alert > .wrap {
-	color: #fff;
-}
-
-.local-advisory > .wrap, 
-.outreach-pro-home .site-inner .local-advisory > .wrap, 
-.previous-external-advisory > .wrap, 
-.outreach-pro-home .site-inner .previous-external-advisory > .wrap {
-	color: #002b5a;
-	padding: 8px 16px;
-	padding: .5rem 1rem;
-}
-
-.campus-advisory > .wrap, 
-.emergency-alert > .wrap, 
-.outreach-pro-home .site-inner .campus-advisory > .wrap, 
-.outreach-pro-home .site-inner .emergency-alert > .wrap, 
-.previous-advisory > .wrap, 
-.previous-alert > .wrap, 
-.outreach-pro-home .site-inner .previous-advisory > .wrap, 
-.outreach-pro-home .site-inner .previous-alert > .wrap {
-	box-sizing: border-box;
-	-moz-box-sizing: border-box;
-	padding: 16px;
-	background: none;
-}
-
-.alert h2, 
-.alert h2 a {
-	font-size: 1.5rem;
-	font-family: MuseoSlab, MuseoSlab700, 'museo-slab', Times, serif;
-	font-weight: 700;
-	text-transform: uppercase;
-}
-
-.alert .alert-meta {
-	font-style: italic;
-	font-size: .9em;
-}
-
-.emergency-alert a, 
-.sidebar .widget .emergecy-alert a, 
-div.entry-content .previous-alert a {
-	color: #fff;
-}
-
-.campus-advisory a, 
-.local-advisory a, 
-.sidebar .widget .campus-advisory a, 
-.sidebar .widget .local-advisory a, 
-div.entry-content .previous-advisory a, 
-div.entry-content .previous-external-advisory a {
-	color: #002b5a;
-}
-
-.emergency-alert a:hover, 
-.emergency-alert a:focus, 
-div.entry-content .previous-alert a:hover, 
-div.entry-content .previous-alert a:focus {
-	color: #e2e2e2;
-	text-decoration: underline;
-}
-
-.campus-advisory a:hover, 
-.campus-advisory a:focus, 
-.local-advisory a:hover, 
-.local-advisory a:focus, 
-div.entry-content .previous-advisory a:hover, 
-div.entry-content .previous-advisory a:focus, 
-div.entry-content .previous-external-advisory a:hover, 
-div.entry-content .previous-external-advisory a:focus {
-	color: #3a5b7d;
-	text-decoration: underline;
-}
-
-.previous-advisory, 
-.previous-alert, 
-.previous-external-advisory {
-	margin-bottom: 1rem;
-	margin-bottom: 16px;
-}
-
-body > .emergency-alert .alert-content, 
-.site-container > .campus-advisory .alert-content {
-	width: 0;
-	height: 0;
-	line-height: 0;
-	font-size: 0;
-	margin: 0;
-	padding: 0;
-	overflow: hidden;
-}
-</style>
 <?php
 		}
 		
