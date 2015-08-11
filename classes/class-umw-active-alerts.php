@@ -48,7 +48,9 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 		}
 		
 		function enqueue_scripts() {
-			add_action( 'wp_print_footer_scripts', array( $this, 'do_global_advisories_script' ) );
+			wp_register_script( 'umw-active-alerts', plugins_url( '/scripts/umw-active-alerts.js', dirname( __FILE__ ) ), array( 'jquery' ), $this->version, true );
+			$this->do_global_advisories_script();
+			wp_enqueue_script( 'umw-active-alerts' );
 			if ( post_type_exists( 'advisory' ) )
 				add_action( 'wp_print_footer_scripts', array( $this, 'do_local_advisories_script' ) );
 		}
@@ -750,115 +752,23 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 		 * Output the JavaScript that handles the global advisories
 		 */
 		function do_global_advisories_script() {
-?>
-<script>
-var UMWAlerts = UMWAlerts || {
-	'ajaxurl' : '<?php echo admin_url( 'admin-ajax.php' ) ?>', 
-	'av' : new Date().getTime(), 
-	'do_ajax' : function() {
-		jQuery.getJSON( UMWAlerts.ajaxurl, {
-			'action' : 'check_global_advisories', 
-			'v' : UMWAlerts.av, 
-			'is_root' : <?php echo $this->is_root ? 1 : 0 ?>, 
-			'umwalerts_nonce' : '<?php echo wp_create_nonce( 'umw-active-alerts-ajax' ) ?>'
-		}, function(e) {
-			if ( 'alert' in e ) {
-				UMWAlerts.doActiveAlert( e.alert );
-			}
-			if ( 'advisory' in e ) {
-				// Only output on root site home page
-				UMWAlerts.doActiveAdvisory( e.advisory );
-			}
-		} );
-	}, 
-	'doActiveAlert' : function( e ) {
-		var t = '' + 
-'<aside class="emergency-alert">' + UMWAlerts.alertBody( e ) + 
-'</aside>';
-		jQuery( t ).prependTo( 'body' );
-		return;
-	}, 
-	'doActiveAdvisory' : function( e ) {
-		var t = '' + 
-'<aside class="campus-advisory">' + UMWAlerts.alertBody( e ) + 
-'</aside>';
-		/*if ( document.querySelectorAll( '.home-top .flexslider' ).length >= 1 ) {
-			jQuery( t ).insertBefore( jQuery( '.home-top .flexslider' ) );
-		} else */if ( document.querySelectorAll( '.site-header' ).length >= 1 ) {
-			jQuery( t ).insertAfter( jQuery( '.site-header' ) );
-		} else if ( document.querySelectorAll( '.umw-header-bar' ).length >= 1 ) {
-			jQuery( t ).insertAfter( jQuery( '.umw-header-bar' ) );
-		}
-	}, 
-	'alertBody' : function( e ) {
-		return '<div class="wrap"><article class="alert"><header class="alert-heading"><h2><a href="' + e.url + '" title="Read the details of ' + e.title + '">' + e.title + '</a></h2></header>' + 
-/*'			<div class="alert-content">' +
-'				' + e.content + '' + 
-'			</div>' + */
-'			<footer class="alert-meta">Posted by <span class="alert-author">' + e.author + '</span> on <span class="alert-time">' + e.date + '</span></footer></article></div>';
-	}
-};
-
-jQuery( function() {
-	if ( jQuery( 'body' ).hasClass( 'site-advisories' ) )
-		return;
-	UMWAlerts.do_ajax();
-} );
-</script>
-<?php
+			$data = array(
+				'ajaxurl' => admin_url( 'admin-ajax.php' ), 
+				'is_root' => $this->is_root ? 1 : 0, 
+				'is_alerts' => $this->is_alerts ? 1 : 0, 
+				'nonce'   => wp_create_nonce( 'umw-active-alerts-ajax' ), 
+				'localized' => true, 
+				'dolocals' => post_type_exists( 'advisory' ), 
+			);
+			
+			wp_localize_script( 'umw-active-alerts', 'UMWAlertsData', $data );
 		}
 		
 		/**
 		 * Checks for the existence of an active local advisory
 		 */
 		function do_local_advisories_script() {
-?>
-<script>
-var UMWLocalAlerts = UMWLocalAlerts || {
-	'av' : new Date().getTime(), 
-	'do_ajax' : function() {
-		jQuery.getJSON( '<?php echo admin_url( 'admin-ajax.php' ) ?>', {
-			'action' : 'check_local_advisories', 
-			'v' : this.av, 
-			'is_root' : <?php echo $this->is_root ? 1 : 0 ?>, 
-			'umwalerts_nonce' : '<?php echo wp_create_nonce( 'umw-active-alerts-ajax' ) ?>'
-		}, function(e) {
-			if ( 'local' in e ) {
-				UMWLocalAlerts.doLocalAlert( e.local );
-			}
-		} );
-	}, 
-	'doLocalAlert' : function( e ) {
-		var t = '' + 
-'<aside class="' + e.class + '">' + 
-'	<div class="wrap">' + 
-'		<article class="alert">' + 
-'			<header class="alert-heading">' + 
-'				<h2><a href="' + e.url + '" title="Read the details of ' + e.title + '">' + e.title + '</a></h2>' + 
-'			</header>' + 
-'			<div class="alert-content">' +
-'				' + e.content + '' + 
-'			</div>' + 
-'			<footer class="alert-meta">' + 
-'				Posted by <span class="alert-author">' + e.author + '</span> on <span class="alert-time">' + e.date + '</span>' + 
-'			</footer>' + 
-'		</article>' + 
-'	</div>' + 
-'</aside>';
-		if ( document.querySelectorAll( '.content' ).length >= 1 ) {
-			jQuery( t ).prependTo( '.content' );
-		} else if ( document.querySelectorAll( '#content' ).length >= 1 ) {
-			jQuery( t ).prependTo( '#content' );
-		}
-	}
-};
-jQuery( function() {
-	if ( jQuery( 'body' ).hasClass( 'site-advisories' ) )
-		return;
-	UMWLocalAlerts.do_ajax();
-} );
-</script>
-<?php
+			return;
 		}
 		
 		/**
