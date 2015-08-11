@@ -336,7 +336,9 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 				}
 				
 				$args = array( 'headers' => $this->_get_api_headers(), 'body' => '' );
-				error_log( '[API Alert Debug]: Attempted to modify meta for an advisory. The meta key is: ' . $m->key . ', the meta value is: ' . $m->value . ' and the URL for the request is: ' . $u );
+				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+					error_log( '[API Alert Debug]: Attempted to modify meta for an advisory. The meta key is: ' . $m->key . ', the meta value is: ' . $m->value . ' and the URL for the request is: ' . $u );
+				}
 				if ( 'PUT' == $method ) {
 					$args['method'] = 'PUT';
 					$tmp = wp_remote_request( $u, $args );
@@ -373,6 +375,12 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 		 * 		let's do it a different way
 		 */
 		function really_delete_syndicated_advisory( $post_id ) {
+			if ( wp_is_post_revision( $post_id ) )
+				$post_id = wp_is_post_revision( $post_id );
+			
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( '[Alerts API Debug]: We should be permanently deleting the external advisory with an ID of ' . $post_id );
+			}
 			$p = get_post( $post_id );
 			if ( 'external-advisory' != $p->post_type )
 				return;
@@ -409,9 +417,14 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 				return false;
 			
 			$syndicated_id = get_post_meta( $post_id, '_syndicated-alert-id', true );
-			if( empty( $syndicated_id ) )
+			if( empty( $syndicated_id ) ) {
+				error_log( '[Alert API Debug]: We could not find a syndicated ID for this advisory' );
 				return false;
+			}
 			
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( '[Alert API Debug]: We are attempting to trash the syndicated post with an ID of ' . $syndicated_id );
+			}
 			$url = sprintf( $this->api_uris['trash'], intval( $syndicated_id ) );
 			
 			$body = array();
@@ -419,12 +432,18 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			if ( true === $force ) {
 				add_query_arg( 'force', 'true', $url );
 				$body['force'] = true;
+				remove_action( 'save_post_advisory', array( $this, 'push_advisory' ), 10, 2 );
 				delete_post_meta( $post_id, '_syndicated-alert-id', $syndicated_id );
+				add_action( 'save_post_advisory', array( $this, 'push_advisory' ), 10, 2 );
 			}
 				
 			$args = array( 'method' => 'DELETE', 'headers' => $this->_get_api_headers(), 'body' => http_build_query( $body ) );
 			
 			$done = wp_remote_request( $url, $args );
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( '[Alert API Debug]: Trashed post with an ID of ' . $syndicated_id . ' by using URL ' . $url );
+				error_log( '[Alert API Debug]: Trash result: ' . print_r( $done, true ) );
+			}
 			$result = @json_decode( wp_remote_retrieve_body( $done ) );
 			
 			return $result;
