@@ -129,6 +129,15 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			add_action( 'wp_trash_post', array( $this, 'trash_advisory' ) );
 			add_action( 'untrashed_post', array( $this, 'untrash_advisory' ) );
 			add_action( 'delete_post', array( $this, 'delete_advisory' ) );
+			
+			$this->register_post_types();
+		}
+		
+		/**
+		 * Register the Advisory post type
+		 */
+		function register_post_types() {
+			require_once( plugin_dir_path( __FILE__ ) . '/embedded-alerts/types.php' );
 		}
 		
 		/**
