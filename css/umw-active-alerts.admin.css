@@ -1,9 +1,0 @@
-#adminmenu #menu-posts-advisory div.wp-menu-image {
-	background: url( 'images/post-type-icon.png?v=0.2a' ) no-repeat left -28px;
-}
-
-#adminmenu #menu-posts-advisory:hover div.wp-menu-image, 
-#adminmenu #menu-posts-advisory.wp-has-current-submenu div.wp-menu-image, 
-#adminmenu #menu-posts-advisory.current div.wp-menu-image {
-	background-position: left top;
-}
