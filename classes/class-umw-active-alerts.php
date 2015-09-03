@@ -44,7 +44,7 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			add_action( 'wp_ajax_check_global_advisories', array( $this, 'check_global_advisories' ) );
 			add_action( 'wp_ajax_nopriv_check_global_advisories', array( $this, 'check_global_advisories' ) );
 			add_action( 'wp_ajax_check_local_advisories', array( $this, 'check_local_advisories' ) );
-			add_action( 'wp_ajax_nopriv_check_global_advisories', array( $this, 'check_local_advisories' ) );
+			add_action( 'wp_ajax_nopriv_check_local_advisories', array( $this, 'check_local_advisories' ) );
 		}
 		
 		function enqueue_scripts() {
