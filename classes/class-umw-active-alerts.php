@@ -6,7 +6,7 @@
  */
 if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 	class UMW_Active_Alerts {
-		public $version = '1.0';
+		public $version = '1.0.2';
 		public $is_root = false;
 		public $root_url = null;
 		public $is_alerts = false;
@@ -781,7 +781,7 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 		 */
 		function do_global_advisories_script() {
 			$data = array(
-				'ajaxurl' => admin_url( 'admin-ajax.php' ), 
+				'ajaxurl' => str_replace( array( 'http://', 'https://' ), array( '//', '//' ), admin_url( 'admin-ajax.php' ) ), 
 				'is_root' => $this->is_root ? 1 : 0, 
 				'is_alerts' => $this->is_alerts ? 1 : 0, 
 				'nonce'   => wp_create_nonce( 'umw-active-alerts-ajax' ), 

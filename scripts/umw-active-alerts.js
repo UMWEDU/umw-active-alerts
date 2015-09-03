@@ -14,6 +14,9 @@ if ( UMWAlertsData.localized ) {
 				'is_alerts' : UMWAlertsData.is_alerts, 
 				'umwalerts_nonce' : UMWAlertsData.nonce
 			}, function(e) {
+				if ( typeof( console ) !== 'undefined' ) {
+					console.log( e );
+				}
 				if ( 'alert' in e ) {
 					UMWAlerts.doActiveAlert( e.alert );
 				}
@@ -57,6 +60,9 @@ if ( UMWAlertsData.localized ) {
 				'is_alerts' : UMWAlertsData.is_alerts, 
 				'umwalerts_nonce' : UMWAlertsData.nonce
 			}, function(e) {
+				if ( typeof( console ) !== 'undefined' ) {
+					console.log( e );
+				}
 				if ( 'local' in e ) {
 					UMWLocalAlerts.doLocalAlert( e.local );
 				}

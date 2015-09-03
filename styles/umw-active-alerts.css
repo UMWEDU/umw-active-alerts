@@ -4,6 +4,20 @@
  * @version 1.0
  */
 aside.campus-advisory, 
+.previous-advisory, 
+aside.emergency-alert, 
+aside.local-advisory, 
+.previous-external-advisory, 
+aside.campus-advisory *, 
+.previous-advisory *, 
+aside.emergency-alert *, 
+aside.local-advisory *, 
+.previous-external-advisory * {
+	box-sizing: border-box;
+	-moz-box-sizing: border-box;
+}
+
+aside.campus-advisory, 
 .previous-advisory {
 	background: #ffe299;
 }
@@ -31,11 +45,16 @@ aside.emergency-alert,
 
 .campus-advisory > .wrap, 
 .previous-advisory > .wrap {
+	width: 100%;
+	max-width: 100%;
 	color: #002b5a;
 }
 
 .emergency-alert > .wrap, 
 .previous-alert > .wrap {
+	width: 100%;
+	max-width: 100%;
+	background: none;
 	color: #fff;
 }
 
@@ -43,6 +62,9 @@ aside.emergency-alert,
 .outreach-pro-home .site-inner .local-advisory > .wrap, 
 .previous-external-advisory > .wrap, 
 .outreach-pro-home .site-inner .previous-external-advisory > .wrap {
+	width: 100%;
+	max-width: 100%;
+	background: none;
 	color: #002b5a;
 	padding: 8px 16px;
 	padding: .5rem 1rem;
