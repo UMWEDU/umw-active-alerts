@@ -81,6 +81,10 @@ if ( UMWAlertsData.localized ) {
 
 jQuery( function() {
 	if ( UMWAlertsData.localized == false || jQuery( 'body' ).hasClass( 'site-advisories' ) ) {
+		if ( typeof( console ) !== 'undefined' ) {
+			console.log( 'UMWAlertsData Object:' );
+			console.log( UMWAlertsData );
+		}
 		return;
 	}
 	

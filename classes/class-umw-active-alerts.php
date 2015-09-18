@@ -2,11 +2,11 @@
 /**
  * Define the UMW_Active_Alerts class
  * @package umw-active-alerts
- * @version 1.0
+ * @version 1.1
  */
 if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 	class UMW_Active_Alerts {
-		public $version = '1.0.2';
+		public $version = '1.1';
 		public $is_root = false;
 		public $root_url = null;
 		public $is_alerts = false;
@@ -34,6 +34,7 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			$this->_set_api_headers();
 			
 			add_action( 'plugins_loaded', array( $this, 'ajax_setup' ) );
+			add_filter( 'wpcf_fields_slug__advisory_expires_time_value_get', array( $this, 'auto_fill_expiry_date' ), 10, 2 );
 		}
 		
 		function ajax_setup() {
@@ -114,6 +115,17 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			add_action( 'wp_trash_post', array( $this, 'really_delete_syndicated_advisory' ) );
 			add_action( 'init', array( $this, 'register_advisory_feed' ) );
 			add_action( 'rest_api_init', array( $this, 'bypass_cas' ) );
+		}
+		
+		function auto_fill_expiry_date( $meta, $obj ) {
+			$tz = get_option( 'timezone_string', false );
+			if ( false !== $tz ) {
+				date_default_timezone_set( $tz );
+			}
+			if ( empty( $meta ) ) {
+				$meta = strtotime( '+1 day' );
+			}
+			return $meta;
 		}
 		
 		function bypass_cas() {
