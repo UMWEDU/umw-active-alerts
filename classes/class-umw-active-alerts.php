@@ -112,7 +112,7 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			add_filter( 'rest_api_allowed_public_metadata', array( $this, 'whitelist_advisory_metadata' ) );
 			// We need to fix some oddities in the way the API behaves
 			add_action( 'save_post_external-advisory', array( $this, 'fix_api_formatting' ), 10, 2 );
-			add_action( 'wp_trash_post', array( $this, 'really_delete_syndicated_advisory' ) );
+			/*add_action( 'wp_trash_post', array( $this, 'really_delete_syndicated_advisory' ) );*/
 			add_action( 'init', array( $this, 'register_advisory_feed' ) );
 			add_action( 'rest_api_init', array( $this, 'bypass_cas' ) );
 		}
@@ -785,6 +785,8 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			if ( ! check_ajax_referer( 'umw-active-alerts-ajax', 'umwalerts_nonce' ) && ! current_user_can( 'delete_users' ) )
 				die( 'No nonce' );
 			
+			$ref = $_SERVER['HTTP_REFERER'];
+			
 			$ad = get_posts( array( 
 				'post_type'   => 'advisory', 
 				'post_status' => 'publish', 
@@ -806,10 +808,17 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 				$author = get_user_by( 'id', $p->post_author );
 				$author = $author->display_name;
 				$url = get_post_meta( $p->ID, 'wpcf-_advisory_permalink', true );
+				
 				if ( empty( $url ) || ! esc_url( $url ) )
 					$url = get_permalink( $p->ID );
+				
+				if ( str_replace( array( 'http://', 'https://' ), array( '', '' ), $ref ) == str_replace( array( 'http://', 'https://' ), array( '', '' ), $url ) ) {
+					echo '';
+					wp_die();
+				}
+				
 				$alerts['local'] = array(
-					'title'   => apply_filters( 'the_title', $p->post_title ), 
+					'title'   => apply_filters( 'the_title', $p->post_title ) . sprintf( '<!-- Original Referer: %s -->', $ref ), 
 					'content' => apply_filters( 'the_content', $p->post_content ), 
 					'excerpt' => apply_filters( 'the_excerpt', $p->post_excerpt ), 
 					'author'  => $author, 
