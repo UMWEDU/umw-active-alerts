@@ -2,11 +2,11 @@
 /**
  * Define the UMW_Active_Alerts class
  * @package umw-active-alerts
- * @version 1.1
+ * @version 1.2
  */
 if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 	class UMW_Active_Alerts {
-		public $version = '1.1';
+		public $version = '1.2';
 		public $is_root = false;
 		public $root_url = null;
 		public $is_alerts = false;
