@@ -14,6 +14,7 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 		public $db_version = '20150724110000';
 		private $oauth = array();
 		private $headers = array();
+		private $syndicated_id = 0;
 		
 		function __construct() {
 			$this->umw_is_root();
@@ -140,9 +141,19 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			add_action( 'save_post_advisory', array( $this, 'push_advisory' ), 10, 2 );
 			add_action( 'wp_trash_post', array( $this, 'trash_advisory' ) );
 			add_action( 'untrashed_post', array( $this, 'untrash_advisory' ) );
-			add_action( 'delete_post', array( $this, 'delete_advisory' ) );
+			add_action( 'before_delete_post', array( $this, 'set_syndicated_id' ) );
+			add_action( 'deleted_post', array( $this, 'delete_advisory' ) );
 			
 			$this->register_post_types();
+		}
+		
+		function set_syndicated_id( $postid ) {
+			if ( empty( $postid ) )
+				return;
+			
+			$tmp = get_post_meta( $postid, '_syndicated-alert-id', true );
+			if ( ! empty( $tmp ) )
+				$this->syndicated_id = $tmp;
 		}
 		
 		/**
@@ -461,15 +472,17 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 		 * Trash an external advisory on the main Advisories site
 		 */
 		function trash_advisory( $post_id=null, $force=false ) {
-			$force = true;
-			
 			if ( empty( $post_id ) ) {
 				$post_id = isset( $_REQUEST['post'] ) && is_numeric( $_REQUEST['post'] ) ? $_REQUEST['post'] : null;
 			}
 			if ( empty( $post_id ) )
 				return false;
 			
-			$syndicated_id = get_post_meta( $post_id, '_syndicated-alert-id', true );
+			if ( ! empty( $this->syndicated_id ) )
+				$syndicated_id = $this->syndicated_id;
+			else
+				$syndicated_id = get_post_meta( $post_id, '_syndicated-alert-id', true );
+			
 			if( empty( $syndicated_id ) ) {
 				error_log( '[Alert API Debug]: We could not find a syndicated ID for this advisory' );
 				return false;
@@ -481,15 +494,12 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			$url = sprintf( $this->api_uris['trash'], intval( $syndicated_id ) );
 			
 			$body = array();
-			/*$body['ID'] = $syndicated_id;*/
 			if ( true === $force ) {
-				add_query_arg( 'force', 'true', $url );
-				$body['force'] = 1;
-				remove_action( 'save_post_advisory', array( $this, 'push_advisory' ), 10, 2 );
-				delete_post_meta( $post_id, '_syndicated-alert-id', $syndicated_id );
-				/*add_action( 'save_post_advisory', array( $this, 'push_advisory' ), 10, 2 );*/
+				$url = add_query_arg( 'force', 'true', $url );
 			}
 				
+			remove_action( 'save_post_advisory', array( $this, 'push_advisory' ), 10, 2 );
+			
 			$args = array( 'method' => 'DELETE', 'headers' => $this->_get_api_headers(), 'body' => http_build_query( $body ) );
 			
 			$done = wp_remote_request( $url, $args );
