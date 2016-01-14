@@ -818,7 +818,7 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 				}
 				
 				$alerts['local'] = array(
-					'title'   => apply_filters( 'the_title', $p->post_title ) . sprintf( '<!-- Original Referer: %s -->', $ref ), 
+					'title'   => apply_filters( 'the_title', $p->post_title ), 
 					'content' => apply_filters( 'the_content', $p->post_content ), 
 					'excerpt' => apply_filters( 'the_excerpt', $p->post_excerpt ), 
 					'author'  => $author, 
