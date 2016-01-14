@@ -197,15 +197,25 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			$author = get_user_by( 'id', $author );
 			$author = $author->display_name;
 			
+			$srcexpires = 0;
+			
 			$datefields = isset( $_REQUEST['wpcf']['_advisory_expires_time'] ) && is_array( $_REQUEST['wpcf']['_advisory_expires_time'] ) ? $_REQUEST['wpcf']['_advisory_expires_time'] : array();
 			if ( ! function_exists( 'wpcf_fields_date_value_save_filter' ) && defined( 'WPCF_EMBEDDED_INC_ABSPATH' ) ) {
 				@include_once( WPCF_EMBEDDED_INC_ABSPATH . '/fields/date/functions.php' );
 			}
 			if ( ! empty( $datefields ) && function_exists( 'wpcf_fields_date_value_save_filter' ) ) {
-				$expires = wpcf_fields_date_value_save_filter( $datefields, null, null );
+				$srcexpires = wpcf_fields_date_value_save_filter( $datefields, null, null );
+				$expires = $this->fix_expiry_time( $srcexpires );
 			} else {
 				$expires = null;
 			}
+			
+			/*print( '<pre><code>' );
+			printf( 'Started out with %d as the timestamp', $srcexpires );
+			print( "\n\n" );
+			printf( 'Updated to %d as the new timestamp', $expires );
+			print( '</code></pre>' );
+			wp_die( 'Check the timestamps' );*/
 			
 			$meta = array(
 				(object)array(
@@ -228,7 +238,7 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 				'status'  => $p->post_status, 
 				'post_meta' => json_encode( $meta ), 
 			);
-				
+			
 			if ( empty( $syndicated_id ) ) {
 				$url = sprintf( $this->api_uris['publish'], $this->jetpack_api_domain( $this->alerts_url ) );
 				
@@ -243,20 +253,12 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 					error_log( '[Alert API Debug]: Attempted to get the result ID, but result did not appear to be an object or an array' );
 					error_log( '[Alert API Debug]: ' . print_r( $result, true ) );
-					/*print( '<pre><code>' );
-					var_dump( $result );
-					print( '</code></pre>' );
-					return wp_die( 'The result was not an array or an object' );*/
 				}
 				return false;
 			}
 			if ( is_object( $result ) && ! property_exists( $result, 'id' ) ) {
 				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 					error_log( '[Alert API Debug]: Attempted to get the result ID, but that property did not exist within the result object' );
-					/*print( '<pre><code>' );
-					var_dump( $result );
-					print( '</code></pre>' );
-					return wp_die( 'The result was an object but the id property did not exist' );*/
 				}
 				return false;
 			} else if ( is_array( $result ) && ! array_key_exists( 'id', $result ) ) {
@@ -289,6 +291,36 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			}
 			
 			update_post_meta( $post_id, '_syndicated-alert-id', $result_id );
+		}
+		
+		/**
+		 * Fix the timezone offset between the original timestamp & the syndicated timestamp
+		 */
+		function fix_expiry_time( $time ) {
+			$offset = get_option( 'timezone_string', 0 );
+			/*print( '<pre><code>' );
+			var_dump( $offset );
+			print( '</code></pre>' );*/
+			
+			if ( empty( $offset ) || 'UTC' == $offset ) {
+				/*print( '<pre><code>' );
+				print( 'Offset seems to be 0' );
+				print( '</code></pre>' );*/
+				
+				return $time;
+			}
+			
+			/*print( '<pre><code>' );
+			print( 'Preparing to check the offset' );
+			print( '</code></pre>' );*/
+			
+			$origin_dtz = new DateTimeZone( 'UTC' );
+			$remote_dtz = new DateTimeZone( $offset );
+			$origin_dt = new DateTime( "now", $origin_dtz );
+			$remote_dt = new DateTime( "now", $remote_dtz );
+			$offset = $origin_dtz->getOffset($origin_dt) - $remote_dtz->getOffset($remote_dt);
+			
+			return ( $time + $offset );
 		}
 		
 		/**
@@ -449,13 +481,13 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			$url = sprintf( $this->api_uris['trash'], intval( $syndicated_id ) );
 			
 			$body = array();
-			$body['ID'] = $syndicated_id;
+			/*$body['ID'] = $syndicated_id;*/
 			if ( true === $force ) {
 				add_query_arg( 'force', 'true', $url );
-				$body['force'] = true;
+				$body['force'] = 1;
 				remove_action( 'save_post_advisory', array( $this, 'push_advisory' ), 10, 2 );
 				delete_post_meta( $post_id, '_syndicated-alert-id', $syndicated_id );
-				add_action( 'save_post_advisory', array( $this, 'push_advisory' ), 10, 2 );
+				/*add_action( 'save_post_advisory', array( $this, 'push_advisory' ), 10, 2 );*/
 			}
 				
 			$args = array( 'method' => 'DELETE', 'headers' => $this->_get_api_headers(), 'body' => http_build_query( $body ) );
@@ -517,12 +549,15 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 			);
 				
 			$syndicated_id = get_post_meta( $post_id, '_syndicated-alert-id', true );
-			if( empty( $syndicated_id ) )
-				return false;
-			
-			$url = sprintf( $this->api_uris['update'], intval( $syndicated_id ) );
-			
-			$result = $this->_push_advisory_new( $body, $url );
+			if ( empty( $syndicated_id ) ) {
+				$url = sprintf( $this->api_uris['publish'], $this->jetpack_api_domain( $this->alerts_url ) );
+				
+				$result = $this->_push_advisory_new( $body, $url );
+			} else {
+				$url = sprintf( $this->api_uris['update'], intval( $syndicated_id ) );
+				
+				$result = $this->_push_advisory_edit( $syndicated_id, $body, $url );
+			}
 			
 			if ( ! is_object( $result ) && ! is_array( $result ) ) {
 				return false;
