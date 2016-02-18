@@ -1,7 +1,4 @@
 <?php
-add_filter( 'wpcf_relationship_meta_form',
-        'wpcf_filds_checkboxes_relationship_form_filter' );
-
 /**
  * Register data (called automatically).
  * 
@@ -12,10 +9,12 @@ function wpcf_fields_checkboxes() {
         'id' => 'wpcf-checkboxes',
         'title' => __( 'Checkboxes', 'wpcf' ),
         'description' => __( 'Checkboxes', 'wpcf' ),
-//        'validate' => array('required'),
         'meta_key_type' => 'BINARY',
+        'types-field-image' => 'checkboxes',
     );
 }
+
+add_filter( 'wpcf_relationship_meta_form', 'wpcf_filds_checkboxes_relationship_form_filter' );
 
 // Add filter when using wpv_condition()
 add_filter( 'wpv_condition', 'wpcf_fields_checkboxes_wpv_conditional_trigger' );
@@ -26,6 +25,8 @@ add_filter( 'wpv_condition_end',
  * Form data for post edit page.
  * 
  * @param type $field 
+ *
+ * @deprecated seems
  */
 function wpcf_fields_checkboxes_meta_box_form( $field, $field_object ) {
     $options = array();
@@ -88,17 +89,20 @@ function wpcf_fields_checkboxes_editor_callback( $field, $settings ) {
  */
 function wpcf_fields_checkboxes_editor_submit( $data, $field, $context ) {
     $add = '';
-    $types_attr = $context == 'usermeta' ? 'usermeta' : 'field';
     $shortcode = '';
     if ( $context == 'usermeta' ) {
         $add .= wpcf_get_usermeta_form_addon_submit();
-    }
+    } elseif ( $context == 'termmeta' ) {
+        $add .= wpcf_get_termmeta_form_addon_submit();
+	}
     if ( !empty( $data['options'] ) ) {
         if ( $data['display'] == 'display_all' ) {
             $separator = !empty( $data['cbs_separator'] ) ? $data['cbs_separator'] : '';
             $_add = $add . ' separator="' . $separator . '"';
             if ( $context == 'usermeta' ) {
                 $shortcode .= wpcf_usermeta_get_shortcode( $field, $_add );
+			} elseif ( $context == 'termmeta' ) {
+				$shortcode = wpcf_termmeta_get_shortcode( $field, $add );
             } else {
                 $shortcode .= wpcf_fields_get_shortcode( $field, $_add );
             }
@@ -114,6 +118,11 @@ function wpcf_fields_checkboxes_editor_submit( $data, $field, $context ) {
                                 $checked_add, $option['selected'] );
                         $shortcode_unchecked = wpcf_usermeta_get_shortcode( $field,
                                 $unchecked_add, $option['not_selected'] );
+					} elseif ( $context == 'termmeta' ) {
+						$shortcode_checked = wpcf_termmeta_get_shortcode( $field,
+                                $checked_add, $option['selected'] );
+                        $shortcode_unchecked = wpcf_termmeta_get_shortcode( $field,
+                                $unchecked_add, $option['not_selected'] );
                     } else {
                         $shortcode_checked = wpcf_fields_get_shortcode( $field,
                                 $checked_add, $option['selected'] );
@@ -125,9 +134,10 @@ function wpcf_fields_checkboxes_editor_submit( $data, $field, $context ) {
                     $add = ' option="' . $i . '"';
                     if ( $context == 'usermeta' ) {
                         $add .= wpcf_get_usermeta_form_addon_submit();
-                    }
-                    if ( $types_attr == 'usermeta' ) {
-                        $shortcode .= wpcf_usermeta_get_shortcode( $field, $add );
+						$shortcode .= wpcf_usermeta_get_shortcode( $field, $add );
+                    } elseif ( $context == 'termmeta' ) {
+						$add .= wpcf_get_termmeta_form_addon_submit();
+						$shortcode = wpcf_termmeta_get_shortcode( $field, $add );
                     } else {
                         $shortcode .= wpcf_fields_get_shortcode( $field, $add );
                     }
@@ -136,8 +146,10 @@ function wpcf_fields_checkboxes_editor_submit( $data, $field, $context ) {
             }
         }
     } else {
-        if ( $types_attr == 'usermeta' ) {
-            $shortcode .= wpcf_usermeta_get_shortcode( $field, $add );
+		 if ( $context == 'usermeta' ) {
+			$shortcode .= wpcf_usermeta_get_shortcode( $field, $add );
+		} elseif ( $context == 'termmeta' ) {
+			$shortcode = wpcf_termmeta_get_shortcode( $field, $add );
         } else {
             $shortcode .= wpcf_fields_get_shortcode( $field, $add );
         }
@@ -184,18 +196,21 @@ function wpcf_fields_checkboxes_view( $params ) {
              */
             if ( $option['display'] == 'db'
                     && !empty( $option['set_value'] ) && !empty( $value ) ) {
+				// We need to translate here because the stored value is on the original language
+				// When updaing the value in the Field group, we might have problems
                 $value = $option['set_value'];
-                $value = wpcf_translate( 'field ' . $params['field']['id'] . ' option ' . $name . ' value',
-                        $value );
+                $value = wpcf_translate( 'field ' . $params['field']['id'] . ' option ' . $name . ' value', $value );
             } else if ( $option['display'] == 'value' ) {
                 if ( isset( $option['display_value_selected'] ) && !empty( $value ) ) {
+					// We need to translate here because the stored value is on the original language
+					// When updaing the value in the Field group, we might have problems
                     $value = $option['display_value_selected'];
-                    $value = wpcf_translate( 'field ' . $params['field']['id'] . ' option ' . $name . ' display value selected',
-                            $value );
+                    $value = wpcf_translate( 'field ' . $params['field']['id'] . ' option ' . $name . ' display value selected', $value );
                 } else {
+					// We need to translate here because the stored value is on the original language
+					// When updaing the value in the Field group, we might have problems
                     $value = $option['display_value_not_selected'];
-                    $value = wpcf_translate( 'field ' . $params['field']['id'] . ' option ' . $name . ' display value not selected',
-                            $value );
+                    $value = wpcf_translate( 'field ' . $params['field']['id'] . ' option ' . $name . ' display value not selected', $value );
                 }
             } else {
                 unset( $params['field_value'][$name] );
@@ -259,9 +274,10 @@ function wpcf_fields_checkboxes_view( $params ) {
          */
         if ( !empty( $option['data']['set_value'] )
                 && $option['value'] != '__wpcf_unchecked' ) {
+			// We need to translate here because the stored value is on the original language
+			// When updaing the value in the Field group, we might have problems
             $output = $option['data']['set_value'];
-            $output = wpcf_translate( 'field ' . $params['field']['id']
-                    . ' option ' . $option['key'] . ' value', $output );
+            $output = wpcf_translate( 'field ' . $params['field']['id'] . ' option ' . $option['key'] . ' value', $output );
         }
     } else if ( isset($option['data']) && $option['data']['display'] == 'value' ) {
         /*
@@ -270,9 +286,10 @@ function wpcf_fields_checkboxes_view( $params ) {
          */
         if ( $option['value'] != '__wpcf_unchecked' ) {
             if ( isset( $option['data']['display_value_selected'] ) ) {
+				// We need to translate here because the stored value is on the original language
+				// When updaing the value in the Field group, we might have problems
                 $output = $option['data']['display_value_selected'];
-                $output = wpcf_translate( 'field ' . $params['field']['id'] . ' option ' . $option['key'] . ' display value selected',
-                        $output );
+                $output = wpcf_translate( 'field ' . $params['field']['id'] . ' option ' . $option['key'] . ' display value selected', $output );
             }
             /*
              * 
@@ -280,9 +297,10 @@ function wpcf_fields_checkboxes_view( $params ) {
              * Un-checked
              */
         } else if ( isset( $option['data']['display_value_not_selected'] ) ) {
+			// We need to translate here because the stored value is on the original language
+			// When updaing the value in the Field group, we might have problems
             $output = $option['data']['display_value_not_selected'];
-            $output = wpcf_translate( 'field ' . $params['field']['id'] . ' option ' . $option['key'] . ' display value not selected',
-                    $output );
+            $output = wpcf_translate( 'field ' . $params['field']['id'] . ' option ' . $option['key'] . ' display value not selected', $output );
         }
     }
 

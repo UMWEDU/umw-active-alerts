@@ -9,7 +9,12 @@ function wpcf_fields_select() {
         'id' => 'wpcf-select',
         'title' => __('Select', 'wpcf'),
         'description' => __('Select', 'wpcf'),
-        'validate' => array('required'),
+        'validate' => array(
+            'required' => array(
+                'form-settings' => include( dirname( __FILE__ ) . '/patterns/validate/form-settings/required.php' )
+            )
+        ),
+        'types-field-image' => 'select',
     );
 }
 
@@ -17,6 +22,8 @@ function wpcf_fields_select() {
  * Form data for post edit page.
  * 
  * @param type $field 
+ *
+ * @deprecated seems
  */
 function wpcf_fields_select_meta_box_form($field) {
     $options = array();
@@ -73,8 +80,9 @@ function wpcf_fields_select_view($params) {
         foreach ($field['data']['options'] as $option_key => $option) {
             if (isset($option['value'])
                     && $option['value'] == $params['field_value']) {
-                $field_value = wpcf_translate('field ' . $params['field']['id'] . ' option '
-                        . $option_key . ' title', $option['title']);
+				// We need to translate here because the stored value is on the original language
+				// When updaing the value in the Field group, we might have problems
+                $field_value = wpcf_translate('field ' . $params['field']['id'] . ' option ' . $option_key . ' title', $option['title']);
             }
         }
         $output = $field_value;

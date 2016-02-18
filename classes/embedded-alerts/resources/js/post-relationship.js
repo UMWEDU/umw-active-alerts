@@ -311,32 +311,35 @@ jQuery(document).ready(function($) {
      * Parent form
      */
     jQuery('.wpcf-pr-has-apply').click(function() {
+        var $thiz = jQuery(this);
         jQuery(this).parent().slideUp().parent().parent().find('.wpcf-pr-edit').fadeIn();
         var txt = new Array();
         jQuery(this).parent().find('input:checked').each(function() {
             txt.push(jQuery(this).next().html());
         });
         if (txt.length < 1) {
-            var wpcf_pr_has_update = wpcf_pr_has_empty_txt;
+            var wpcf_pr_has_update = $thiz.data('text-empty');
         } else {
             var txt_update = txt.join(', ');
-            var wpcf_pr_has_update = wpcf_pr_has_txt.replace("%s", txt_update);
+            var wpcf_pr_has_update = $thiz.data('text-has').replace("%s", txt_update);
         }
         jQuery(this).parent().parent().parent().find('.wpcf-pr-has-summary').html(wpcf_pr_has_update);
     });
     jQuery('.wpcf-pr-belongs-apply').click(function() {
+        var $thiz = jQuery(this);
         jQuery(this).parent().slideUp().parent().parent().find('.wpcf-pr-edit').fadeIn();
         var txt = new Array();
         jQuery(this).parent().find('input:checked').each(function() {
             txt.push(jQuery(this).next().html());
         });
         if (txt.length < 1) {
-            var wpcf_pr_belongs_update = wpcf_pr_belongs_empty_txt;
+            var wpcf_pr_belongs_update = $thiz.data('text-empty');
         } else {
             var txt_update = txt.join(', ');
-            var wpcf_pr_belongs_update = wpcf_pr_belongs_txt.replace("%s", txt_update);
+            var wpcf_pr_belongs_update = $thiz.data('text-has').replace("%s", txt_update);
         }
         jQuery(this).parent().parent().parent().find('.wpcf-pr-belongs-summary').html(wpcf_pr_belongs_update);
+        return false;
     });
     jQuery('.wpcf-pr-has-cancel').click(function() {
         jQuery(this).parent().find('.checkbox').removeAttr('checked');
@@ -372,6 +375,10 @@ jQuery(document).ready(function($) {
      * POST EDIT SCREEN
      */
     $('#wpcf-post-relationship').on('click', '.js-types-add-child', function() {
+        if( $( this ).hasClass( 'disabled' ) )
+            return false;
+
+        wpcfInitValueOfSelect2DoneClear();
         var $button = $(this), $table = $button.parents('.js-types-relationship-child-posts').find('table');
         $.ajax({
             url: $button.attr('href'),
@@ -406,11 +413,25 @@ jQuery(document).ready(function($) {
                 if ( 'undefined' != typeof wptFile ) {
                     wptFile.init();
                 }
+                /**
+                 * select2
+                 */
+                wpcfBindSelect2($);
+				
+				var data_for_events = {
+					table: $table
+				};
+				
+				$( document ).trigger( 'js_event_wpcf_types_relationship_child_added', [ data_for_events ] );
             }
         });
         return false;
     });
     jQuery('.wpcf-pr-delete-ajax').live('click', function() {
+        if( $( this ).hasClass( 'disabled' ) )
+            return false;
+
+        wpcfInitValueOfSelect2DoneClear();
         var $button = $(this), $table = $button.parents('.js-types-relationship-child-posts').find('table');
         var answer = confirm(wpcf_pr_del_warning);
         if (answer == false) {
@@ -449,6 +470,10 @@ jQuery(document).ready(function($) {
                     }
                 }
                 $('#wpcf-post-relationship .wpcf-pr-pagination-select').trigger('change');
+                /**
+                 * select2
+                 */
+                wpcfBindSelect2($);
             }
         });
         return false;
@@ -509,6 +534,10 @@ jQuery(document).ready(function($) {
                 $button.next().fadeOut(function() {
                     $(this).remove();
                 });
+                /**
+                 * select2
+                 */
+                wpcfBindSelect2($);
             }
         });
         return false;
@@ -547,6 +576,10 @@ jQuery(document).ready(function($) {
                 $button.next().fadeOut(function() {
                     $(this).remove();
                 });
+                /**
+                 * select2
+                 */
+                wpcfBindSelect2($);
             }
         });
         return false;
@@ -586,12 +619,21 @@ jQuery(document).ready(function($) {
                 $button.next().fadeOut(function() {
                     $(this).remove();
                 });
+                /**
+                 * select2
+                 */
+                wpcfBindSelect2($);
             }
         });
         return false;
     });
     $('#wpcf-post-relationship').on('click', '.wpcf-pr-save-ajax', function() {
-        var $button = $(this), $row = $button.parents('tr'), rowId = $row.attr('id'), valid = true;
+        if( $( this ).hasClass( 'disabled' ) )
+            return false;
+
+        wpcfInitValueOfSelect2DoneClear();
+
+        var $button = $(this), $row = $button.parents('tr'), rowId = $row.attr('id'), valid = true, $table = $row.closest( '.js-types-child-table' );
         if (typeof wptValidation == 'undefined') {
             $('.js-types-validate', $row).each(function() {
                 if ($('#post').validate().element($(this)) == false) {
@@ -631,6 +673,7 @@ jQuery(document).ready(function($) {
                 if (data != null) {
                     if (typeof data.output != 'undefined') {
                         $row.replaceWith(data.output).show();
+                        wpcfDisableControls();
                         $('#wpcf-pr-update-' + rand + '').remove();
                         wpcfRelationshipInit('', 'save');
                         tChildTable.reset();
@@ -657,6 +700,17 @@ jQuery(document).ready(function($) {
                     if ('undefined' != typeof data.errors && 0 < data.errors.length ) {
                         $('#wpcf-post-relationship h3.hndle').after(data.errors);
                     }
+                    /**
+                     * select2
+                     */
+                    wpcfInitValueOfSelect2DoneClear();
+                    wpcfBindSelect2($);
+					
+					var data_for_events = {
+						table: $table
+					};
+					
+					$( document ).trigger( 'js_event_wpcf_types_relationship_child_saved', [ data_for_events ] );
                 }
             }
         });
@@ -735,6 +789,10 @@ jQuery(document).ready(function($) {
                         $('#wpcf-post-relationship h3.hndle').after(data.errors);
                     }
                 }
+                /**
+                 * select2
+                 */
+                wpcfBindSelect2($);
             }
         });
         return false;
@@ -829,6 +887,10 @@ jQuery(document).ready(function($) {
                         wptCond.addConditionals(data.conditionals);
                     }
                 }
+                /**
+                 * select2
+                 */
+                wpcfBindSelect2($);
             }
         });
     });
@@ -885,19 +947,19 @@ function wpcfRelationshipInit(selector, context) {
 /**
  * select2
  */
-jQuery(document).ready(function($) {
+function wpcfBindSelect2($) {
     $('.wpcf-pr-belongs').select2({
         id: function(item){
             return item.ID;
         },
         allowClear: true,
         placeholder: $(this).data('placeholder'),
-        minimumInputLength: 1,
+        minimumInputLength: 0,
         formatInputTooShort: $(this).data('input-too-short'),
         ajax: {
             url: ajaxurl,
             dataType: 'json',
-            quietMillis: 100,
+            quietMillis: 250,
             data: function (term, page) {
                 return {
                     nounce: $(this).data('nounce'),
@@ -909,7 +971,8 @@ jQuery(document).ready(function($) {
                 };
             },
             results: function (data, page) {
-                return { results: data.items };
+                var more = (page * data.posts_per_page) < data.total_count;
+                return { results: data.items, more: more };
             },
             cache: true
         },
@@ -929,6 +992,7 @@ jQuery(document).ready(function($) {
                         action: 'wpcf_relationship_entry'
                     }
                 }).done(function(data) {
+                    wpcfInitValueOfSelect2( $(element ).attr( 'id' ), data.ID );
                     $(element).select2("enable", true);
                     callback(data);
                 });
@@ -939,6 +1003,17 @@ jQuery(document).ready(function($) {
         },
         formatSelection: function(item) {
             var target = $('#wpcf_pr_belongs_'+item.parent_id+'_'+item.post_type);
+            var parent;
+            var message;
+            $('a.button', target.closest('.form-item')).attr('href', item.edit_link).removeClass('disabled');
+            if ( 'undefined' != typeof item.save && 'no-save' == item.save ) {
+                return item.post_title;
+            }
+            parent = target.closest('.belongs');
+            if ( $('.js-message', parent).length == 0 ) {
+                $('a.button', parent).after('<div class="notice notice-success below-h2"><p class="wpcf-relationship-message js-message"></p></div>');
+            }
+            var message = $('.js-message', parent);
             $.ajax({
                 url: ajaxurl,
                 dataType: "json",
@@ -948,10 +1023,17 @@ jQuery(document).ready(function($) {
                     post_id: item.parent_id,
                     post_type: item.post_type,
                     p: item.ID
+                },
+                beforeSend: function() {
+                    message.parent().slideDown();
+                    message.html(wpcf_post_relationship_messages.parent_saving);
+                },
+                success: function() {
+                    message.html(wpcf_post_relationship_messages.parent_saving_success);
+                    setTimeout(function(){ message.parent().slideUp(); }, 3000);
                 }
             });
             target.val(item.ID);
-            $('a.button', target.closest('.form-item')).attr('href', item.edit_link).removeClass('disabled');
             return item.post_title;
         },
     }).on('select2-clearing', function() {
@@ -965,8 +1047,66 @@ jQuery(document).ready(function($) {
                 action: 'wpcf_relationship_delete'
             }
         }).done(function(data) {
-            $('a.button', $(data.target)).addClass('disabled').attr('href', '#');
+            target = $(data.target);
+            $('a.button', target).addClass('disabled').attr('href', '#');
+            parent = target.closest('.belongs');
+            if ( $('.js-message', parent).length == 0 ) {
+                $('a.button', parent).after('<div class="notice notice-success below-h2"><p class="wpcf-relationship-message js-message"></p></div>');
+            }
+            var message = $('.js-message', parent);
+            message.parent().slideDown();
+            message.html(wpcf_post_relationship_messages.parent_saving_success);
+            setTimeout(function(){ message.parent().slideUp(); }, 3000);
         });
-    });
+    } );
+}
+jQuery(document).ready(function($) {
+    wpcfBindSelect2($);
 });
 
+/**
+ * Fix for Select2
+ *
+ * A stored value in Select2 is shown in the select on init (page/ajax reload), but not the hidden input value
+ * which is needed for save. To get the hidden input also updated we need to call select2( 'val', currentValue)
+ * to prevent a endless loop in initSelection callback we store if we already set the val (wpcfInitValueOfSelect2Done).
+ *
+ * This storage has to be cleared (wpcfInitValueOfSelect2DoneClear) after an select2 is added / updated / deleted
+ */
+var wpcfInitValueOfSelect2Done = {};
+
+function wpcfInitValueOfSelect2( elementID, value ) {
+    if( wpcfInitValueOfSelect2Done[elementID] != 1 ) {
+        jQuery( '#'+elementID ).select2( 'val', value );
+    }
+
+    wpcfInitValueOfSelect2Done[elementID] = 1;
+}
+
+function wpcfInitValueOfSelect2DoneClear() {
+    if( Object.keys(wpcfInitValueOfSelect2Done).length ) {
+        jQuery.each( wpcfInitValueOfSelect2Done, function( key, val ) {
+            wpcfInitValueOfSelect2Done[key] = 0;
+        } );
+    }
+}
+
+function wpcfDisableControls() {
+    jQuery( '.js-types-add-child, .wpcf-pr-save-ajax, .wpcf-pr-save-ajax ~ a.button-secondary, .wpcf-pr-delete-ajax' ).addClass( 'disabled' );
+    jQuery( 'input[name^="save"]' ).attr( 'disabled', 'disabled' );
+}
+
+function wpcfEnableControls() {
+    jQuery( '.js-types-add-child, .wpcf-pr-save-ajax, .wpcf-pr-save-ajax ~ a.button-secondary, .wpcf-pr-delete-ajax' ).removeClass( 'disabled' );
+    jQuery( 'input[name^="save"]' ).removeAttr( 'disabled' );
+}
+
+jQuery( document ).ajaxStart( function() {
+    wpcfDisableControls();
+});
+
+jQuery( document ).ajaxComplete( function() {
+    if( jQuery.active == 1 ) {
+        wpcfEnableControls();
+    }
+});

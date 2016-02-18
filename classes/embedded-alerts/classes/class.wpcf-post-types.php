@@ -28,14 +28,17 @@ class WPCF_Post_Types
     function __construct()
     {
         add_action('admin_init', array($this, 'admin_init'));
-        add_action('admin_head-nav-menus.php', array($this, 'add_filters'));
-        add_filter('wp_setup_nav_menu_item',  array( $this, 'setup_archive_item'));
-        add_filter('wp_nav_menu_objects', array( $this, 'maybe_make_current'));
+        global $wp_version;
+		if ( version_compare( $wp_version, '4.4' ) < 0 ) {
+			add_action('admin_head-nav-menus.php', array($this, 'add_filters'));
+			add_filter('wp_setup_nav_menu_item',  array( $this, 'setup_archive_item'));
+			add_filter('wp_nav_menu_objects', array( $this, 'maybe_make_current'));
+		}
     }
     /**
      * Check has some custom fields to display.
      *
-     * Check custom post type for custom fields to display on custom post edit 
+     * Check post type for custom fields to display on custom post edit 
      * screen.
      *
      * @since 1.7
@@ -196,7 +199,6 @@ class WPCF_Post_Types
                         /**
                          * turn of sorting for complex data
                          */
-                    case 'date':
                     case 'skype':
                         $columns[$data['meta_key']] = false;;
                         break;
@@ -319,18 +321,26 @@ class WPCF_Post_Types
 
     public function add_archive_checkbox( $posts, $args, $post_type )
     {
+		if (
+			is_array( $post_type ) 
+			&& isset( $post_type['args'] )
+		) {
+			$post_type_object = $post_type['args'];
+		} else {
+			$post_type_object = $post_type;
+		}
         global $_nav_menu_placeholder, $wp_rewrite;
         $_nav_menu_placeholder = ( 0 > $_nav_menu_placeholder ) ? intval($_nav_menu_placeholder) - 1 : -1;
 
         array_unshift( $posts, (object) array(
             'ID' => 0,
             'object_id' => $_nav_menu_placeholder,
-            'post_title' => $post_type['args']->labels->all_items,
+            'post_title' => $post_type_object->labels->all_items,
             'post_type' => 'nav_menu_item',
             'post_excerpt' => '',
             'post_content' => '',
             'type' => 'post_type_archive',
-            'object' => $post_type['args']->slug,
+            'object' => $post_type_object->slug,
         ) );
 
         return $posts;

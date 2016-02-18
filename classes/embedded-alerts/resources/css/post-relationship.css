@@ -64,7 +64,6 @@
 #wpcf-post-relationship .wpcf-pr-save-all-link {
     margin: -15px 0 10px 10px;
     float: right;
-    line-height: 20px !important;
 }
 #wpcf-post-relationship .wpcf-pr-next {
     margin-left: 5px;
@@ -84,6 +83,10 @@
 }
 #wpcf-post-relationship table .textfield {
     width: 100px !important;
+}
+#wpcf-post-relationship .wpcf-pr-belongs
+{
+    min-width: 300px;
 }
 #wpcf-post-relationship table .form-item-radio {
     white-space: nowrap;
