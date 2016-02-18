@@ -160,6 +160,16 @@ if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
 		 * Register the Advisory post type
 		 */
 		function register_post_types() {
+			/**
+			 * Can't do this, because that will bypass the import of the post types
+			 * Gonna have to just make sure we update the embedded-alerts folder every time
+			 * 		there's an update for Types, instead. :(
+			 */
+			/*if ( defined( 'WP_PLUGIN_DIR' ) && file_exists( WP_PLUGIN_DIR . '/types/embedded/types.php' ) ) {
+				require_once( WP_PLUGIN_DIR . '/types/embedded/types.php' );
+				return;
+			}*/
+			
 			require_once( plugin_dir_path( __FILE__ ) . '/embedded-alerts/types.php' );
 		}
 		
