@@ -90,7 +90,7 @@ require_once WPCF_EMBEDDED_INC_ABSPATH . '/fields/date/js.php';
 
 // Parsing date function
 if ( !function_exists( 'wpv_filter_parse_date' ) ) {
-    require_once WPCF_EMBEDDED_ABSPATH . '/toolset/toolset-common/wpv-filter-date-embedded.php';
+    require_once WPCF_EMBEDDED_TOOLSET_ABSPATH . '/toolset-common/wpv-filter-date-embedded.php';
 }
 
 /*

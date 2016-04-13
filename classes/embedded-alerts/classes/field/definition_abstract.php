@@ -58,4 +58,35 @@ abstract class WPCF_Field_Definition_Abstract {
 	}
 
 
+	/**
+	 * Get field definition data as an associative array for coversion to JSON.
+	 * 
+	 * Doesn't return the JSON string directly because child classes may reuse this method and add their own
+	 * properties.
+	 * 
+	 * Guaranteed properties are: isUnderTypesControl, slug, displayName, groups.
+	 * 
+	 * @return array
+	 * @since 2.0
+	 */
+	public function to_json() {
+		
+		$groups = $this->get_associated_groups();
+		$group_slugs = array();
+		foreach( $groups as $group ) {
+			$group_slugs[] = $group->get_slug();
+		}
+		
+		$object_data = array(
+			'isUnderTypesControl' => $this->is_under_types_control(),
+			'slug' => $this->get_slug(),
+			'metaKey' => $this->get_slug(),
+			'displayName' => $this->get_name(),
+			'groups' => $group_slugs
+		);
+		
+		return $object_data;
+	}
+
+
 }

@@ -15,16 +15,18 @@ function wpcf_admin_import_data($data = '', $redirect = true, $context = 'types'
 {
     global $wpdb;
     $data_installer = false;
+	
+	$return = array();
 
     libxml_use_internal_errors( true );
     $data = simplexml_load_string( $data );
     if ( !$data ) {
-        echo '<div class="message error"><p>' . __( 'Error parsing XML', 'wpcf' ) . '</p></div>';
-        foreach ( libxml_get_errors() as $error ) {
-            echo '<div class="message error"><p>' . $error->message . '</p></div>';
-        }
+		$return[] = array(
+			'type'		=> 'error',
+			'content'	=> __( 'Error parsing XML: ', 'wpcf' ) . $error->message
+		);
         libxml_clear_errors();
-        return false;
+		return $return;
     }
     $overwrite_settings = isset( $_POST['overwrite-settings'] );
     $overwrite_groups = isset( $_POST['overwrite-groups'] );
@@ -59,7 +61,10 @@ function wpcf_admin_import_data($data = '', $redirect = true, $context = 'types'
             $wpcf_settings[$key] =  $value;
         }
         wpcf_save_settings( $wpcf_settings );
-        wpcf_admin_message_store( __( 'Settings are updated.', 'wpcf' ) );
+		$return[] = array(
+			'type'		=> 'success',
+			'content'	=> __( 'Settings are updated.', 'wpcf' )
+		);
     }
 
     // Process groups
@@ -118,28 +123,49 @@ function wpcf_admin_import_data($data = '', $redirect = true, $context = 'types'
                         $post['ID'] = $post_to_update;
                         $group_wp_id = wp_update_post( $post );
                         if ( !$group_wp_id ) {
-                            wpcf_admin_message_store( sprintf( __( 'Group "%s" update failed',
-                                                    'wpcf' ),
-                                            $group['post_title'] ), 'error' );
+							$return[] = array(
+								'type'		=> 'error',
+								'content'	=> sprintf( 
+												__( 'Group "%s" update failed', 'wpcf' ),
+												$group['post_title'] 
+											)
+							);
                         } else {
-                            wpcf_admin_message_store( sprintf( __( 'Group "%s" updated',
-                                                    'wpcf' ),
-                                            $group['post_title'] ) );
+							$return[] = array(
+								'type'		=> 'success',
+								'content'	=> sprintf( 
+												__( 'Group "%s" updated', 'wpcf' ),
+												$group['post_title'] 
+											)
+							);
                         }
                     } else {
-                        wpcf_admin_message_store( sprintf( __( 'Group "%s" update failed',
-                                                'wpcf' ), $group['post_title'] ),
-                                'error' );
+						$return[] = array(
+							'type'		=> 'error',
+							'content'	=> sprintf( 
+											__( 'Group "%s" update failed', 'wpcf' ),
+											$group['post_title'] 
+										)
+						);
                     }
                 } else { // Insert
                     $group_wp_id = wp_insert_post( $post, true );
                     if ( is_wp_error( $group_wp_id ) ) {
-                        wpcf_admin_message_store( sprintf( __( 'Group "%s" insert failed',
-                                                'wpcf' ), $group['post_title'] ),
-                                'error' );
+						$return[] = array(
+							'type'		=> 'error',
+							'content'	=> sprintf( 
+											__( 'Group "%s" insert failed', 'wpcf' ),
+											$group['post_title'] 
+										)
+						);
                     } else {
-                        wpcf_admin_message_store( sprintf( __( 'Group "%s" added',
-                                                'wpcf' ), $group['post_title'] ) );
+						$return[] = array(
+							'type'		=> 'success',
+							'content'	=> sprintf( 
+											__( 'Group "%s" added', 'wpcf' ),
+											$group['post_title'] 
+										)
+						);
                     }
                 }
                 // Update meta
@@ -152,7 +178,10 @@ function wpcf_admin_import_data($data = '', $redirect = true, $context = 'types'
                                     $meta_value = array();
                                     if ( $show_import_fail_version_message ) {
                                         $show_import_fail_version_message = false;
-                                        wpcf_admin_message_store( __( 'The Types settings were not fully imported because it contained unsecured data. You should re-export your Types settings using the latest version of Types', 'wpcf' ), 'error' );
+										$return[] = array(
+											'type'		=> 'error',
+											'content'	=> __( 'The Types settings were not fully imported because it contained unsecured data. You should re-export your Types settings using the latest version of Types', 'wpcf' )
+										);
                                     }
                                 }
                             }
@@ -182,14 +211,21 @@ function wpcf_admin_import_data($data = '', $redirect = true, $context = 'types'
                     if ( !in_array( $group_to_delete->ID, $groups_check ) ) {
                         $deleted = wp_delete_post( $group_to_delete->ID, true );
                         if ( !$deleted ) {
-                            wpcf_admin_message_store( sprintf( __( 'Group "%s" delete failed',
-                                                    'wpcf' ),
-                                            $group_to_delete->post_title ),
-                                    'error' );
+							$return[] = array(
+								'type'		=> 'error',
+								'content'	=> sprintf( 
+												__( 'Group "%s" delete failed', 'wpcf' ),
+												$group_to_delete->post_title 
+											)
+							);
                         } else {
-                            wpcf_admin_message_store( sprintf( __( 'Group "%s" deleted',
-                                                    'wpcf' ),
-                                            $group_to_delete->post_title ) );
+							$return[] = array(
+								'type'		=> 'success',
+								'content'	=> sprintf( 
+												__( 'Group "%s" deleted', 'wpcf' ),
+												$group_to_delete->post_title 
+											)
+							);
                         }
                     }
                 }
@@ -201,19 +237,30 @@ function wpcf_admin_import_data($data = '', $redirect = true, $context = 'types'
                     if ( !empty( $group_to_delete_post ) && $group_to_delete_post->post_type == TYPES_CUSTOM_FIELD_GROUP_CPT_NAME ) {
                         $deleted = wp_delete_post( $group_to_delete, true );
                         if ( !$deleted ) {
-                            wpcf_admin_message_store( sprintf( __( 'Group "%s" delete failed',
-                                                    'wpcf' ),
-                                            $group_to_delete_post->post_title ),
-                                    'error' );
+							$return[] = array(
+								'type'		=> 'error',
+								'content'	=> sprintf( 
+												__( 'Group "%s" delete failed', 'wpcf' ),
+												$group_to_delete_post->post_title 
+											)
+							);
                         } else {
-                            wpcf_admin_message_store( sprintf( __( 'Group "%s" deleted',
-                                                    'wpcf' ),
-                                            $group_to_delete_post->post_title ) );
+							$return[] = array(
+								'type'		=> 'success',
+								'content'	=> sprintf( 
+												__( 'Group "%s" deleted', 'wpcf' ),
+												$group_to_delete_post->post_title 
+											)
+							);
                         }
                     } else {
-                        wpcf_admin_message_store( sprintf( __( 'Group "%s" delete failed',
-                                                'wpcf' ), $group_to_delete ),
-                                'error' );
+						$return[] = array(
+							'type'		=> 'error',
+							'content'	=> sprintf( 
+											__( 'Group "%s" delete failed', 'wpcf' ),
+											$group_to_delete 
+										)
+						);
                     }
                 }
             }
@@ -275,9 +322,13 @@ function wpcf_admin_import_data($data = '', $redirect = true, $context = 'types'
                 $iclTranslationManagement->settings['custom_fields_translation'][wpcf_types_get_meta_prefix( $field ) . $field_id] = $field['wpml_action'];
                 $iclTranslationManagement->save_settings();
             }
-
-            wpcf_admin_message_store( sprintf( __( 'Field "%s" added/updated',
-                                    'wpcf' ), $field['name'] ) );
+			$return[] = array(
+				'type'		=> 'success',
+				'content'	=> sprintf( 
+								__( 'Field "%s" added/updated', 'wpcf' ),
+								$field['name'] 
+							)
+			);
         }
     }
         // Delete fields
@@ -287,18 +338,26 @@ function wpcf_admin_import_data($data = '', $redirect = true, $context = 'types'
                     continue;
                 }
                 if ( !in_array( $k, $fields_check ) ) {
-                    wpcf_admin_message_store( sprintf( __( 'Field "%s" deleted',
-                                            'wpcf' ),
-                                    $fields_existing[$k]['name'] ) );
+					$return[] = array(
+						'type'		=> 'success',
+						'content'	=> sprintf( 
+										__( 'Field "%s" deleted', 'wpcf' ),
+										$fields_existing[$k]['name']
+									)
+					);
                     unset( $fields_existing[$k] );
                 }
             }
         } else {
             if ( !empty( $_POST['fields-to-be-deleted'] ) ) {
                 foreach ( $_POST['fields-to-be-deleted'] as $field_to_delete ) {
-                    wpcf_admin_message_store( sprintf( __( 'Field "%s" deleted',
-                                            'wpcf' ),
-                                    $fields_existing[$field_to_delete]['name'] ) );
+					$return[] = array(
+						'type'		=> 'success',
+						'content'	=> sprintf( 
+										__( 'Field "%s" deleted', 'wpcf' ),
+										$fields_existing[$field_to_delete]['name']
+									)
+					);
                     unset( $fields_existing[$field_to_delete] );
                 }
             }
@@ -355,28 +414,54 @@ function wpcf_admin_import_data($data = '', $redirect = true, $context = 'types'
 
                         $group_wp_id = wp_update_post( $post );
                         if ( !$group_wp_id ) {
-                            wpcf_admin_message_store( sprintf( __( 'User group "%s" update failed',
-                                                    'wpcf' ),
-                                            $group['post_title'] ), 'error' );
+							$return[] = array(
+								'type'		=> 'error',
+								'content'	=> sprintf( 
+												__( 'User group "%s" update failed', 'wpcf' ),
+												$group['post_title']
+											)
+							);
                         } else {
+							/*
                             wpcf_admin_message_store( sprintf( __( 'User group "%s" updated',
                                                     'wpcf' ),
                                             $group['post_title'] ) );
+							*/
+							$return[] = array(
+								'type'		=> 'success',
+								'content'	=> sprintf( 
+												__( 'User group "%s" updated', 'wpcf' ),
+												$group['post_title']
+											)
+							);
                         }
                     } else {
-                        wpcf_admin_message_store( sprintf( __( 'User group "%s" update failed',
-                                                'wpcf' ), $group['post_title'] ),
-                                'error' );
+						$return[] = array(
+							'type'		=> 'error',
+							'content'	=> sprintf( 
+											__( 'User group "%s" update failed', 'wpcf' ),
+											$group['post_title']
+										)
+						);
                     }
                 } else { // Insert
                     $group_wp_id = wp_insert_post( $post, true );
                     if ( is_wp_error( $group_wp_id ) ) {
-                        wpcf_admin_message_store( sprintf( __( 'User group "%s" insert failed',
-                                                'wpcf' ), $group['post_title'] ),
-                                'error' );
+						$return[] = array(
+							'type'		=> 'error',
+							'content'	=> sprintf( 
+											__( 'User group "%s" insert failed', 'wpcf' ),
+											$group['post_title']
+										)
+						);
                     } else {
-                        wpcf_admin_message_store( sprintf( __( 'User group "%s" added',
-                                                'wpcf' ), $group['post_title'] ) );
+						$return[] = array(
+							'type'		=> 'success',
+							'content'	=> sprintf( 
+											__( 'User group "%s" added', 'wpcf' ),
+											$group['post_title']
+										)
+						);
                     }
                 }
                 // Update meta
@@ -406,14 +491,21 @@ function wpcf_admin_import_data($data = '', $redirect = true, $context = 'types'
                     if ( !in_array( $group_to_delete->ID, $groups_check ) ) {
                         $deleted = wp_delete_post( $group_to_delete->ID, true );
                         if ( !$deleted ) {
-                            wpcf_admin_message_store( sprintf( __( 'User group "%s" delete failed',
-                                                    'wpcf' ),
-                                            $group_to_delete->post_title ),
-                                    'error' );
+							$return[] = array(
+								'type'		=> 'error',
+								'content'	=> sprintf( 
+												__( 'User group "%s" delete failed', 'wpcf' ),
+												$group_to_delete->post_title
+											)
+							);
                         } else {
-                            wpcf_admin_message_store( sprintf( __( 'User group "%s" deleted',
-                                                    'wpcf' ),
-                                            $group_to_delete->post_title ) );
+							$return[] = array(
+								'type'		=> 'success',
+								'content'	=> sprintf( 
+												__( 'User group "%s" deleted', 'wpcf' ),
+												$group_to_delete->post_title
+											)
+							);
                         }
                     }
                 }
@@ -426,19 +518,30 @@ function wpcf_admin_import_data($data = '', $redirect = true, $context = 'types'
                     if ( !empty( $group_to_delete_post ) && $group_to_delete_post->post_type == TYPES_USER_META_FIELD_GROUP_CPT_NAME ) {
                         $deleted = wp_delete_post( $group_to_delete, true );
                         if ( !$deleted ) {
-                            wpcf_admin_message_store( sprintf( __( 'User group "%s" delete failed',
-                                                    'wpcf' ),
-                                            $group_to_delete_post->post_title ),
-                                    'error' );
+							$return[] = array(
+								'type'		=> 'error',
+								'content'	=> sprintf( 
+												__( 'User group "%s" delete failed', 'wpcf' ),
+												$group_to_delete_post->post_title
+											)
+							);
                         } else {
-                            wpcf_admin_message_store( sprintf( __( 'User group "%s" deleted',
-                                                    'wpcf' ),
-                                            $group_to_delete_post->post_title ) );
+							$return[] = array(
+								'type'		=> 'success',
+								'content'	=> sprintf( 
+												__( 'User group "%s" deleted', 'wpcf' ),
+												$group_to_delete_post->post_title
+											)
+							);
                         }
                     } else {
-                        wpcf_admin_message_store( sprintf( __( 'User group "%s" delete failed',
-                                                'wpcf' ), $group_to_delete ),
-                                'error' );
+						$return[] = array(
+							'type'		=> 'error',
+							'content'	=> sprintf( 
+											__( 'User group "%s" delete failed', 'wpcf' ),
+											$group_to_delete
+										)
+						);
                     }
                 }
             }
@@ -486,6 +589,11 @@ function wpcf_admin_import_data($data = '', $redirect = true, $context = 'types'
             $field_data['description'] = isset( $field['description'] ) ? $field['description'] : '';
             $field_data['type'] = $field['type'];
             $field_data['slug'] = $field['slug'];
+
+            if( isset( $field['meta_key'] ) ) {
+                $field_data['meta_key'] = $field['meta_key'];
+            }
+
             $field_data['data'] = (isset( $field['data'] ) && is_array( $field['data'] )) ? $field['data'] : array();
             $fields_existing[$field_id] = $field_data;
             $fields_check[] = $field_id;
@@ -496,9 +604,13 @@ function wpcf_admin_import_data($data = '', $redirect = true, $context = 'types'
                 $iclTranslationManagement->settings['custom_fields_translation'][wpcf_types_get_meta_prefix( $field ) . $field_id] = $field['wpml_action'];
                 $iclTranslationManagement->save_settings();
             }
-
-            wpcf_admin_message_store( sprintf( __( 'User field "%s" added/updated',
-                                    'wpcf' ), $field['name'] ) );
+			$return[] = array(
+				'type'		=> 'success',
+				'content'	=> sprintf( 
+								__( 'User field "%s" added/updated', 'wpcf' ),
+								$field['name']
+							)
+			);
         }
     }
         // Delete fields
@@ -508,9 +620,13 @@ function wpcf_admin_import_data($data = '', $redirect = true, $context = 'types'
                     continue;
                 }
                 if ( !in_array( $k, $fields_check ) ) {
-                    wpcf_admin_message_store( sprintf( __( 'User field "%s" deleted',
-                                            'wpcf' ),
-                                    $fields_existing[$k]['name'] ) );
+					$return[] = array(
+						'type'		=> 'success',
+						'content'	=> sprintf( 
+										__( 'User field "%s" deleted', 'wpcf' ),
+										$fields_existing[$k]['name']
+									)
+					);
                     unset( $fields_existing[$k] );
                 }
             }
@@ -518,9 +634,13 @@ function wpcf_admin_import_data($data = '', $redirect = true, $context = 'types'
             if ( !empty( $_POST['user-fields-to-be-deleted'] ) ) {
                 foreach ( $_POST['user-fields-to-be-deleted'] as
                             $field_to_delete ) {
-                    wpcf_admin_message_store( sprintf( __( 'User field "%s" deleted',
-                                            'wpcf' ),
-                                    $fields_existing[$field_to_delete]['name'] ) );
+					$return[] = array(
+						'type'		=> 'success',
+						'content'	=> sprintf( 
+										__( 'User field "%s" deleted', 'wpcf' ),
+										$fields_existing[$field_to_delete]['name']
+									)
+					);
                     unset( $fields_existing[$field_to_delete] );
                 }
             }
@@ -563,7 +683,13 @@ function wpcf_admin_import_data($data = '', $redirect = true, $context = 'types'
             unset( $type['add'], $type['update'] );
             $types_existing[$type_id] = $type;
             $types_check[] = $type_id;
-            wpcf_admin_message_store( sprintf( __( 'Post Type "%s" added/updated', 'wpcf' ), $type_id ) );
+			$return[] = array(
+				'type'		=> 'success',
+				'content'	=> sprintf( 
+								__( 'Post Type "%s" added/updated', 'wpcf' ),
+								$type_id
+							)
+			);
         }
     }
         // Delete types
@@ -571,14 +697,25 @@ function wpcf_admin_import_data($data = '', $redirect = true, $context = 'types'
             foreach ( $types_existing as $k => $v ) {
                 if ( !in_array( $k, $types_check ) ) {
                     unset( $types_existing[$k] );
-                    wpcf_admin_message_store( sprintf( __( 'Post Type "%s" deleted', 'wpcf' ), esc_html( $k ) ) );
+					$return[] = array(
+						'type'		=> 'success',
+						'content'	=> sprintf( 
+										__( 'Post Type "%s" deleted', 'wpcf' ),
+										esc_html( $k )
+									)
+					);
                 }
             }
         } else {
             if ( !empty( $_POST['types-to-be-deleted'] ) ) {
                 foreach ( $_POST['types-to-be-deleted'] as $type_to_delete ) {
-                    wpcf_admin_message_store( sprintf( __( 'Post Type "%s" deleted', 'wpcf' ),
-                                    $types_existing[$type_to_delete]['labels']['name'] ) );
+					$return[] = array(
+						'type'		=> 'success',
+						'content'	=> sprintf( 
+										__( 'Post Type "%s" deleted', 'wpcf' ),
+										$types_existing[$type_to_delete]['labels']['name']
+									)
+					);
                     unset( $types_existing[$type_to_delete] );
                 }
             }
@@ -622,7 +759,13 @@ function wpcf_admin_import_data($data = '', $redirect = true, $context = 'types'
             unset( $taxonomy['add'], $taxonomy['update'] );
             $taxonomies_existing[$taxonomy_id] = $taxonomy;
             $taxonomies_check[] = $taxonomy_id;
-            wpcf_admin_message_store( sprintf( __( 'Taxonomy "%s" added/updated', 'wpcf' ), $taxonomy_id ) );
+			$return[] = array(
+				'type'		=> 'success',
+				'content'	=> sprintf( 
+								__( 'Taxonomy "%s" added/updated', 'wpcf' ),
+								$taxonomy_id
+							)
+			);
         }
     }
 
@@ -639,15 +782,26 @@ function wpcf_admin_import_data($data = '', $redirect = true, $context = 'types'
             foreach ( $taxonomies_existing as $k => $v ) {
                 if ( !in_array( $k, $taxonomies_check ) ) {
                     unset( $taxonomies_existing[$k] );
-                    wpcf_admin_message_store( sprintf( __( 'Taxonomy "%s" deleted', 'wpcf' ), $k ) );
+					$return[] = array(
+						'type'		=> 'success',
+						'content'	=> sprintf( 
+										__( 'Taxonomy "%s" deleted', 'wpcf' ),
+										$k
+									)
+					);
                 }
             }
         } else {
             if ( !empty( $_POST['taxonomies-to-be-deleted'] ) ) {
                 foreach ( $_POST['taxonomies-to-be-deleted'] as
                             $taxonomy_to_delete ) {
-                    wpcf_admin_message_store( sprintf( __( 'Taxonomy "%s" deleted', 'wpcf' ),
-                                    $taxonomies_existing[$taxonomy_to_delete]['labels']['name'] ) );
+					$return[] = array(
+						'type'		=> 'success',
+						'content'	=> sprintf( 
+										__( 'Taxonomy "%s" deleted', 'wpcf' ),
+										$taxonomies_existing[$taxonomy_to_delete]['labels']['name']
+									)
+					);
                     unset( $taxonomies_existing[$taxonomy_to_delete] );
                 }
             }
@@ -667,9 +821,15 @@ function wpcf_admin_import_data($data = '', $redirect = true, $context = 'types'
         if ( is_array( $relationship ) ) {
             $relationship = array_merge( $relationship_existing, $relationship );
             update_option( 'wpcf_post_relationship', $relationship );
-            wpcf_admin_message_store( __( 'Post relationships created', 'wpcf' ) );
+			$return[] = array(
+				'type'		=> 'success',
+				'content'	=> __( 'Post relationships created', 'wpcf' )
+			);
         } else {
-            wpcf_admin_message_store( __( 'Post relationships settings were not imported because it contained unsecured data. You should re-export your Types settings using the latest version of Types', 'wpcf' ), 'error' );
+			$return[] = array(
+				'type'		=> 'error',
+				'content'	=> __( 'Post relationships settings were not imported because it contained unsecured data. You should re-export your Types settings using the latest version of Types', 'wpcf' )
+			);
         }
     }
 
@@ -685,11 +845,13 @@ function wpcf_admin_import_data($data = '', $redirect = true, $context = 'types'
     if ( $redirect ) {
         echo '<script type="text/javascript">
 <!--
-window.location = "' . admin_url( 'admin.php?page=wpcf-import-export' ) . '"
+window.location = "' . admin_url( 'admin.php?page=toolset-export-import&tab=types' ) . '"
 //-->
 </script>';
         die();
-    }
+    } else {
+		return $return;
+	}
 }
 
 /**

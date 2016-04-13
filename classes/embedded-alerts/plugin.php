@@ -1,16 +1,4 @@
 <?php
-/*
-  Plugin Name: Toolset Types Embedded
-  Plugin URI: http://wordpress.org/extend/plugins/types/
-  Description: Toolset Types use previously defined custom content in WordPress. Easily use custom post types, fields and taxonomy and connect everything together.
-  Author: OnTheGoSystems
-  Author URI: http://www.onthegosystems.com
-  Version: 1.9
- */
-/**
- *
- *
- */
 
 add_action( 'plugins_loaded', 'wpcf_embedded_load_or_deactivate' );
 

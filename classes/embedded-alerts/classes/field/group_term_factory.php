@@ -55,7 +55,7 @@ final class WPCF_Field_Group_Term_Factory extends WPCF_Field_Group_Factory {
 	}
 
 
-	protected function get_post_type() {
+	public function get_post_type() {
 		return WPCF_Field_Group_Term::POST_TYPE;
 	}
 

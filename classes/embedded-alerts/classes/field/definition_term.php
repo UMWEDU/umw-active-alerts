@@ -22,23 +22,7 @@ final class WPCF_Field_Definition_Term extends WPCF_Field_Definition {
 			$field_instance
 		);
 	}
-
-
-	/**
-	 * @return WPCF_Field_Group[]
-	 */
-	public function get_associated_groups() {
-		$term_field_groups = WPCF_Field_Group_Term_Factory::get_instance()->query_groups();
-		$associated_groups = array();
-		foreach ( $term_field_groups as $field_group ) {
-			if ( $field_group->contains_field_definition( $this ) ) {
-				$associated_groups[] = $field_group;
-			}
-		}
-
-		return $associated_groups;
-	}
-
+	
 
 	/**
 	 * Delete all field values!
@@ -64,4 +48,24 @@ final class WPCF_Field_Definition_Term extends WPCF_Field_Definition {
 
 		return true;
 	}
+
+
+	/**
+	 * @inheritdoc
+	 * 
+	 * Adds properties: domain
+	 * 
+	 * @return array
+	 * @since 2.0
+	 */
+	public function to_json() {
+		$object_data = parent::to_json();
+		
+		$additions = array(
+			'domain' => 'terms'
+		);
+		
+		return array_merge( $object_data, $additions );
+	}
+	
 }

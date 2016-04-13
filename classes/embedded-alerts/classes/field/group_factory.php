@@ -38,7 +38,7 @@ abstract class WPCF_Field_Group_Factory {
 	/**
 	 * @return string Post type that holds information about this field group type.
 	 */
-	abstract protected function get_post_type();
+	abstract public function get_post_type();
 
 
 	/**
@@ -254,6 +254,22 @@ abstract class WPCF_Field_Group_Factory {
 		}
 
 		return $selected_groups;
+	}
+
+
+	/**
+	 * Get a map of all field group slugs to their display names.
+	 * 
+	 * @return string[]
+	 * @since 2.0
+	 */
+	public function get_group_slug_to_displayname_map() {
+		$groups = $this->query_groups();
+		$group_names = array();
+		foreach( $groups as $group ) {
+			$group_names[ $group->get_slug() ] = $group->get_display_name();
+		}
+		return $group_names;
 	}
 
 }

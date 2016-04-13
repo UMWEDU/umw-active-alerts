@@ -69,8 +69,8 @@ body.wp-admin .wpcf-ui-dialog
     float: left;
 }
 
-body.types_page_wpcf-edit-usermeta #major-publishing-actions
-,body.types_page_wpcf-edit #major-publishing-actions
+body.toolset_page_wpcf-edit-usermeta #major-publishing-actions
+,body.toolset_page_wpcf-edit #major-publishing-actions
 {
     border-top: 0;
 }
@@ -334,7 +334,7 @@ td>.wpcf-form-description-fieldset
     margin: 10px 0;
 }
 .wpcf-form-textarea {
-    width: 100%;
+    width: 99%;
 }
 .wpcf-form-description-textarea,
 .wpcf-form-description-checkboxes,
@@ -580,7 +580,7 @@ input.wpcf-form-error {
     min-width:19px;
     padding-left:20px;
     padding-top:4px;
-    background:url('../../toolset/toolset-common/res/images/question.png') no-repeat 0 6px;
+    background:url('../../../../toolset-common/res/images/question.png') no-repeat 0 6px;
     text-decoration:none !important;
     position:relative;
     z-index:100;
@@ -1297,9 +1297,9 @@ body .wpcf-choose-field button.wpcf-form-button span
 /**
  *  jQuery UI
  */
-.types_page_wpcf-edit-type .wpcf-ui-dialog-cancel
-,.types_page_wpcf-edit-type .wpcf-ui-dialog-cancel:active
-,.types_page_wpcf-edit-type .wpcf-ui-dialog-cancel:focus
+.toolset_page_wpcf-edit-type .wpcf-ui-dialog-cancel
+,.toolset_page_wpcf-edit-type .wpcf-ui-dialog-cancel:active
+,.toolset_page_wpcf-edit-type .wpcf-ui-dialog-cancel:focus
 ,#wpcf-types-form-visibility-table
 {
     border: 0;
@@ -1398,4 +1398,13 @@ div.message p:empty {
 
 .types-field-icon-select {
     background-image: url( '../images/fields/select.png' );
+}
+
+input#slug+p.wpcf-form-description {
+    margin-bottom: 0;
+}
+
+.toolset_page_wpcf-edit-type #post-body #visibility:before,
+.toolset_page_wpcf-edit-tax #post-body #visibility:before {
+    content: '\f173';
 }

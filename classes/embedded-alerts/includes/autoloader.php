@@ -8,6 +8,9 @@
  *
  * Warning: Please be careful when using the autoloader for older code that is supposed to be loaded at certain time.
  * The autoloader might grab some classses too early.
+ *
+ * @since 1.9
+ * @deprecated This autoloader is to be used only for legacy code. Since 2.0, use Toolset_Autoloader instead.
  */
 final class WPCF_Autoloader {
 

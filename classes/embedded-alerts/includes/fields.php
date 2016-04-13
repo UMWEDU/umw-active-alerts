@@ -182,7 +182,7 @@ function wpcf_admin_fields_get_fields( $only_active = false,
     switch( $option_name ) {
 	    case 'wpcf-usermeta':
 	    case 'wpcf-fields':
-	    case WPCF_Field_Term_Definition_Factory::FIELD_DEFINITIONS_OPTION:
+	    case WPCF_Field_Definition_Factory_Term::FIELD_DEFINITIONS_OPTION:
 		    break;
 	    default:
 		    $option_name = 'wpcf-fields';
@@ -202,12 +202,12 @@ function wpcf_admin_fields_get_fields( $only_active = false,
                 $failed = true;
                 continue;
             }
-            if ( is_numeric($v[$required]) === true) {
+            /* if ( is_numeric($v[$required]) === true) {
                 $failed = true;
                 continue;
-            }
+            } */
         }
-        if ( is_numeric($k) === true || $failed ) {
+        if ( $failed ) {
             unset( $fields[$k] );
             continue;
         }
@@ -243,7 +243,7 @@ function wpcf_admin_fields_get_fields( $only_active = false,
 	    $option_name_to_meta_type = array(
 		    'wpcf-fields' => 'postmeta',
 		    'wpcf-usermeta' => 'usermeta',
-		    WPCF_Field_Term_Definition_Factory::FIELD_DEFINITIONS_OPTION => 'termmeta'
+		    WPCF_Field_Definition_Factory_Term::FIELD_DEFINITIONS_OPTION => 'termmeta'
 	    );
 
         $v['meta_type'] = $option_name_to_meta_type[ $option_name ];
