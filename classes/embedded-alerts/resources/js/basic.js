@@ -388,8 +388,11 @@ function wpcfBindAutoCreateSlugs()
             slug = jQuery('.js-wpcf-slugize-source', jQuery(this).closest('.js-wpcf-slugize-container')).val();
         }
         if ( '' != slug ){
-            val = wpcf_slugize(slug);
-            jQuery(this).val(val.substring(0,20));
+            var validSlug = wpcf_slugize( slug );
+
+            if( validSlug != slug || jQuery(this).val() == ''  ) {
+                jQuery( this ).val( validSlug.substring( 0, 200 ) );
+            }
         }
     });
 }
@@ -488,7 +491,13 @@ function wpcfCdCheckDateCustomized(object) {
 function wpcfLoadingButton() {
     jQuery('.wpcf-disabled-on-submit').attr('disabled', 'disabled').each(function(){
         if ( 'undefined' == typeof(types_modal) ) {
-            jQuery(this).after('<div id="'+jQuery(this).attr('id')+'-loading" class="wpcf-loading">&nbsp;</div>');
+            var spinnerId = jQuery(this).attr('id') +'-loading';
+            var currentElement = jQuery(this);
+
+            // Do not add the spinner if it's already present.
+            if(0 == currentElement.parent().find('#' + spinnerId).length) {
+                currentElement.after('<div id="' + spinnerId + '" class="wpcf-loading">&nbsp;</div>');
+            }
         }
     });
 }

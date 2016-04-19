@@ -387,7 +387,6 @@ function wpcf_admin_export_selected_data ( array $items, $_type = 'all', $return
 {
     global $wpcf;
 
-    require_once WPCF_EMBEDDED_ABSPATH . '/toolset/toolset-common/array2xml.php';
     $xml = new ICL_Array2XML();
     $data = array();
     $data['settings'] = wpcf_get_settings();

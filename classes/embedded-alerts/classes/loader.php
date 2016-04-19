@@ -155,6 +155,14 @@ class WPCF_Loader
 //        wp_register_script( 'types-js-validation',
 //                WPCF_EMBEDDED_RES_RELPATH . '/js/jquery-form-validation/types.js',
 //                array('types-jquery-validation-additional'), WPCF_VERSION, true );
+		wp_register_script( 'types-export-import', WPCF_EMBEDDED_RES_RELPATH . '/js/export-import.js',
+                array( 'jquery' ), WPCF_VERSION, true );
+		wp_register_script( 'types-settings', WPCF_EMBEDDED_RES_RELPATH . '/js/settings.js',
+                array( 'jquery', 'underscore' ), WPCF_VERSION, true );
+		$settings_script_texts = array(
+			'wpcf_settings_nonce'	=> wp_create_nonce( 'wpcf_settings_nonce' )
+		);
+		wp_localize_script( 'types-settings', 'wpcf_settings_i18n', $settings_script_texts );
     }
 
     /**
@@ -172,7 +180,7 @@ class WPCF_Loader
         if ( !wp_style_is( 'font-awesome', 'registered' ) ) {
             wp_register_style(
                 'font-awesome',
-                WPCF_EMBEDDED_RELPATH.'/toolset/toolset-common/utility/css/font-awesome/css/font-awesome.min.css',
+	            WPCF_EMBEDDED_TOOLSET_RELPATH . '/toolset-common/res/lib/font-awesome/css/font-awesome.min.css',
                 array(),
                 '4.4.0'
             );

@@ -235,7 +235,7 @@ abstract class WPCF_Field_Group {
 		$factory = $this->get_field_definition_factory();
 		foreach( $slugs as $slug ) {
 			$field_definition = $factory->load_field_definition( $slug );
-			if( null != $field_definition ) {
+			if( null != $field_definition && $field_definition->is_under_types_control() ) {
 				$field_definitions[] = $field_definition;
 			}
 		}
@@ -280,9 +280,33 @@ abstract class WPCF_Field_Group {
 		$key = array_search( $slug_to_remove, $field_slugs );
 		if( $key !== false ) {
 			unset( $field_slugs[ $key ] );
+			$is_success = $this->set_field_slugs( $field_slugs );
+		} else {
+			$is_success = true;
 		}
 
-		$is_success = $this->set_field_slugs( $field_slugs );
+		return $is_success;
+	}
+
+
+	/**
+	 * Associate a field definition with this group.
+	 * 
+	 * @param WPCF_Field_Definition $field_definition
+	 * @return bool True on success, false otherwise.
+	 * @since 2.0
+	 */
+	public function add_field_definition( $field_definition ) {
+		
+		$field_slugs = $this->get_field_slugs();
+
+		$slug_to_add = $field_definition->get_slug();
+		if( !in_array( $slug_to_add, $field_slugs ) ) {
+			$field_slugs[] = $slug_to_add;
+			$is_success = $this->set_field_slugs( $field_slugs );
+		} else {
+			$is_success = true;
+		}
 
 		return $is_success;
 	}

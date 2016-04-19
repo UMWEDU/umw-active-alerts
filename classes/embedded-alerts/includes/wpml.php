@@ -300,6 +300,7 @@ function wpcf_admin_bulk_string_translation() {
     // Register groups
     $groups = wpcf_admin_fields_get_groups();
     foreach ( $groups as $group_id => $group ) {
+	    $group_id = $group['id'];
         wpcf_translate_register_string( 'plugin Types',
                 'group ' . $group_id . ' name', $group['name'] );
         if ( isset( $group['description'] ) ) {

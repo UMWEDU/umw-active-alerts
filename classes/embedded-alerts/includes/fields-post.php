@@ -60,22 +60,6 @@ function wpcf_admin_post_init( $post ) {
         }
     }
 
-    // Add marketing box
-    if( ! wpcf_is_client()
-        && !in_array( $post_type, array('post', 'page', 'cred-form', 'cred-user-form') )
-        && !defined( 'WPCF_RUNNING_EMBEDDED' ) ) {
-
-        $settings_help_box = wpcf_get_settings( 'help_box' );
-        $custom_types = get_option( WPCF_OPTION_NAME_CUSTOM_TYPES, array() );
-
-        if( $settings_help_box == 'all'
-            || array_key_exists( $post_type, $custom_types ) ) {
-
-            $displaying_custom_content = include( WPCF_ABSPATH . '/marketing/displaying-custom-content/title-content.php' );
-            add_meta_box( 'add_box_howto', $displaying_custom_content['title'], 'wpcf_admin_post_marketing_displaying_custom_content', $post_type, 'side', 'high' );
-        }
-    }
-
     // Are Types active?
     $wpcf_active = false;
 
@@ -144,6 +128,7 @@ function wpcf_add_meta_boxes( $post_type, $post )
     $post_types_without_meta_boxes = array(
         'view',
         'view-template',
+        'acf-field-group',
     );
 
     /**
@@ -1940,8 +1925,8 @@ function wpcf_post_preview_warning() {
         ?><script type="text/javascript">
             if ( "undefined" != typeof typesPostScreen ) {
                 typesPostScreen.previewWarning(
-                    '<?php esc_attr_e( __( 'Preview warning', 'wpcf' ) ); ?>',
-                    '<?php esc_attr_e( sprintf( __( 'Custom field changes cannot be previewed until %s is updated', 'wpcf' ), $post->post_type ) ); ?>');
+                    '<?php esc_attr_e( 'Preview warning', 'wpcf' ); ?>',
+                    '<?php echo esc_attr( sprintf( __( 'Custom field changes cannot be previewed until %s is updated', 'wpcf' ), $post->post_type ) ); ?>');
             }
 </script><?php
     }

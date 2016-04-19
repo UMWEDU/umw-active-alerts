@@ -23,10 +23,10 @@ add_filter( 'wpcf_post_form_error', 'wpcf_conditional_post_form_error_filter',
  * Logger
  */
 if ( !function_exists( 'wplogger' ) ) {
-    require_once WPCF_EMBEDDED_ABSPATH . '/toolset/toolset-common/wplogger.php';
+    require_once WPCF_EMBEDDED_TOOLSET_ABSPATH . '/toolset-common/wplogger.php';
 }
 if ( !function_exists( 'wpv_filter_parse_date' ) ) {
-    require_once WPCF_EMBEDDED_ABSPATH . '/toolset/toolset-common/wpv-filter-date-embedded.php';
+    require_once WPCF_EMBEDDED_TOOLSET_ABSPATH . '/toolset-common/wpv-filter-date-embedded.php';
 }
 
 require_once WPTOOLSET_FORMS_ABSPATH . '/classes/class.conditional.php';
@@ -119,7 +119,7 @@ function wpcf_cd_post_groups_filter( $groups, $post, $context ) {
                 'conditional' => $cond,
             );
             wptoolset_form_add_conditional( 'post', $data );
-            if ( !$passed ) {
+            if ( !isset( $passed ) || !$passed ) {
                 $group['_conditional_display'] = 'failed';
             } else {
                 $group['_conditional_display'] = 'passed';
@@ -197,14 +197,14 @@ function wpcf_cd_post_edit_field_filter( $element, $field, $post,
  */
 function wpcf_cd_admin_operations() {
     return array(
-        '='     => '=',
-        '>'     => '>',
-        '<'     => '<',
-        '>='    => '>=',
-        '<='    => '<=',
-        '==='   => '===',
-        '<>'    => '!=',
-        '!=='   => '!==',
+        '='     => '= (' . __( 'equal to', 'wpcf' ) . ')',
+        '>'     => '> (' . __( 'larger than', 'wpcf' ) . ')',
+        '<'     => '< (' . __( 'less than', 'wpcf' ) . ')',
+        '>='    => '>= (' . __( 'larger or equal to', 'wpcf' ) . ')',
+        '<='    => '<= (' . __( 'less or equal to', 'wpcf' ) . ')',
+        '==='   => '=== (' . __( 'identical to', 'wpcf' ) . ')',
+        '<>'    => '!= (' . __( 'not identical to', 'wpcf' ) . ')',
+        '!=='   => '!== (' . __( 'strictly not equal', 'wpcf' ) . ')',
 //        'between' => __('between', 'wpcf'),
     );
 }

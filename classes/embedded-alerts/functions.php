@@ -121,12 +121,28 @@ function types_get_field_type($type)
 
 /**
  * Imports settings.
+ *
+ * @fixme Are we touching this on EVERY page load?!
+ * @since unknown
  */
 function wpcf_embedded_check_import()
 {
-    if ( file_exists( WPCF_EMBEDDED_ABSPATH . '/settings.php' ) ) {
+
+	if( !defined( 'WPCF_EMBEDDED_CONFIG_ABSPATH' ) ) {
+
+		/**
+		 * Allow for overriding path to settings.php and settings.xml by a third party.
+		 *
+		 * Falls back to WPCF_EMBEDDED_ABSPATH if not defined.
+		 *
+		 * @since 1.9.1
+		 */
+		define( 'WPCF_EMBEDDED_CONFIG_ABSPATH', WPCF_EMBEDDED_ABSPATH );
+	}
+
+	if ( file_exists( WPCF_EMBEDDED_CONFIG_ABSPATH . '/settings.php' ) ) {
         require_once WPCF_EMBEDDED_ABSPATH . '/admin.php';
-        require_once WPCF_EMBEDDED_ABSPATH . '/settings.php';
+        require_once WPCF_EMBEDDED_CONFIG_ABSPATH . '/settings.php';
         $dismissed = get_option( 'wpcf_dismissed_messages', array() );
         if ( in_array( $timestamp, $dismissed ) ) {
             return false;
@@ -137,7 +153,7 @@ function wpcf_embedded_check_import()
                 && isset( $_GET['_wpnonce'] )
                 && wp_verify_nonce( $_GET['_wpnonce'], 'embedded-import')
             ) {
-                if ( file_exists( WPCF_EMBEDDED_ABSPATH . '/settings.xml' ) ) {
+                if ( file_exists( WPCF_EMBEDDED_CONFIG_ABSPATH . '/settings.xml' ) ) {
                     $_POST['overwrite-groups'] = 1;
                     $_POST['overwrite-fields'] = 1;
                     $_POST['overwrite-types'] = 1;
@@ -145,7 +161,7 @@ function wpcf_embedded_check_import()
                     $_POST['post_relationship'] = 1;
                     require_once WPCF_EMBEDDED_INC_ABSPATH . '/fields.php';
                     require_once WPCF_EMBEDDED_INC_ABSPATH . '/import-export.php';
-                    $data = @file_get_contents( WPCF_EMBEDDED_ABSPATH . '/settings.xml' );
+                    $data = @file_get_contents( WPCF_EMBEDDED_CONFIG_ABSPATH . '/settings.xml' );
                     wpcf_admin_import_data( $data, false, 'types-auto-import' );
                     update_option( 'wpcf-types-embedded-import', $timestamp );
                     wp_safe_redirect( esc_url_raw(admin_url() ));
@@ -558,7 +574,7 @@ function wpcf_enqueue_scripts()
     if ( !wp_script_is('select2', 'registered') ) {
         wp_register_script(
             'select2',
-            WPCF_EMBEDDED_RELPATH. '/toolset/toolset-common/utility/js/select2.min.js',
+            WPCF_EMBEDDED_TOOLSET_RELPATH. '/toolset-common/res/lib/select2/select2.min.js',
             array( 'jquery' ),
             $select2_version
         );
@@ -566,7 +582,7 @@ function wpcf_enqueue_scripts()
     if ( !wp_style_is('select2', 'registered') ) {
         wp_register_style(
             'select2',
-            WPCF_EMBEDDED_RELPATH. '/toolset/toolset-common/utility/css/select2/select2.css',
+            WPCF_EMBEDDED_TOOLSET_RELPATH. '/toolset-common/res/lib/select2/select2.css',
             array(),
             $select2_version
         );
@@ -962,87 +978,4 @@ function wpcf_admin_get_groups_showfor_by_group($group_id) {
     }
     $for_users = explode(',', trim($for_users, ','));
     return $for_users;
-}
-
-// See wpv_get* counterparts in Views for description.
-// This is a temporary solution until these functions land in Toolset Common Library.
-
-function wpcf_getpost( $key, $default = '', $valid = null ) {
-    return wpcf_getarr( $_POST, $key, $default, $valid );
-}
-
-
-function wpcf_getget( $key, $default = '', $valid = null ) {
-    return wpcf_getarr( $_GET, $key, $default, $valid );
-}
-
-
-/**
- * @param mixed|array $source
- * @param string $key
- * @param mixed $default
- * @param null|array $valid
- *
- * @return mixed
- */
-function wpcf_getarr( &$source, $key, $default = '', $valid = null ) {
-    if( isset( $source[ $key ] ) ) {
-        $val = $source[ $key ];
-        if( is_array( $valid ) && !in_array( $val, $valid ) ) {
-            return $default;
-        }
-
-        return $val;
-    } else {
-        return $default;
-    }
-}
-
-
-/**
- * Ensure that a variable is an array.
- *
- * @param mixed $array The original value.
- * @param array $default Default value to use when no array is provided. This one should definitely be an array,
- *     otherwise the function doesn't make much sense.
- * @return array The original array or a default value if no array is provided.
- *
- * @since 1.9
- */
-function wpcf_ensarr( $array, $default = array() ) {
-	return ( is_array( $array ) ? $array : $default );
-}
-
-
-/**
- * Get a value from nested associative array.
- *
- * This function will try to traverse a nested associative array by the set of keys provided.
- *
- * E.g. if you have $source = array( 'a' => array( 'b' => array( 'c' => 'my_value' ) ) ) and want to reach 'my_value',
- * you need to write: $my_value = wpcf_getnest( $source, array( 'a', 'b', 'c' ) );
- *
- * @param mixed|array $source The source array.
- * @param string[] $keys Keys which will be used to access the final value.
- * @param null|mixed $default Default value to return when the keys cannot be followed.
- *
- * @return mixed|null Value in the nested structure defined by keys or default value.
- */
-function wpcf_getnest( &$source, $keys = array(), $default = null ) {
-
-	$current_value = $source;
-	while( !empty( $keys ) ) {
-		$current_key = array_shift( $keys );
-		$is_last_key = empty( $keys );
-
-		$current_value = wpcf_getarr( $current_value, $current_key, null );
-
-		if( $is_last_key ) {
-			return $current_value;
-		} elseif( !is_array( $current_value ) ) {
-			return $default;
-		}
-	}
-
-	return $default;
 }

@@ -42,6 +42,9 @@ abstract class WPCF_Field_Definition_Factory {
 	protected abstract function get_class_name();
 
 
+	public abstract function get_domain();
+
+
 	/**
 	 * @var array Existing instances of field definitions indexed by field slugs.
 	 */
@@ -52,6 +55,8 @@ abstract class WPCF_Field_Definition_Factory {
 	 * Load an existing field definition.
 	 *
 	 * For now, we're using legacy code to read fields from the options table.
+	 *
+	 * Note that field definitions for fields not currently managed by Types may be loaded as well.
 	 *
 	 * @param string $field_key Key used to store the field configuration in options, or field slug (which should be
 	 * equal to the key).
@@ -64,7 +69,7 @@ abstract class WPCF_Field_Definition_Factory {
 		}
 
 		// Can we use cached version?
-		if( !in_array( $field_key, $this->field_definitions ) ) {
+		if( !array_key_exists( $field_key, $this->field_definitions ) ) {
 
 			// Get all field definitions for the option name we're using. No performance worries, it uses caching.
 			$fields_from_options = $this->get_fields_from_options();
@@ -90,7 +95,7 @@ abstract class WPCF_Field_Definition_Factory {
 
 			// Prepare the field type information, fail if we can't.
 			$field_type_slug = wpcf_getarr( $field_configuration, 'type', null );
-			$field_type = WPCF_Field_Type_Definition_Factory::load( $field_type_slug );
+			$field_type = Types_Field_Type_Definition_Factory::load( $field_type_slug );
 			if( null == $field_type ) {
 				return null;
 			}
@@ -99,7 +104,7 @@ abstract class WPCF_Field_Definition_Factory {
 			try {
 				$class_name = $this->get_class_name();
 				/** @var WPCF_Field_Definition $field_definition */
-				$field_definition = new $class_name( $field_type, $field_configuration );
+				$field_definition = new $class_name( $field_type, $field_configuration, $this );
 			} catch( Exception $e ) {
 				return null;
 			}
@@ -112,15 +117,82 @@ abstract class WPCF_Field_Definition_Factory {
 
 
 	/**
-	 * Note: Consider using the builder pattern.
+	 * This method is to be used only for bringing existing fields under Types control.
+	 *
+	 * At this point it is assumed that there doesn't exist any field definition for given meta_key.
+	 * See Types_Field_Utils::start_managing_field() for details.
+	 *
+	 * Maybe the usage could be wider, but that is not yet clear from the legacy code. The behaviour is slightly
+	 * different for meta_keys with the wpcf- prefix from the ones without it. More details in the code.
+	 *
+	 * The field will be created as a text field.
+	 *
+	 * @param string $meta_key Field meta key.
+	 *
+	 * @return string|false New field slug on success, false otherwise.
+	 * @since 2.0
 	 */
-	/*final protected function create_field_definition( ) {
+	final public function create_field_definition_for_existing_fields( $meta_key ) {
 
-	}*/
+		// If the meta_key has our wpcf- prefix, we will not use it in the slug.
+		$field_slug = preg_replace( '/^wpcf\-/', '', $meta_key );
+
+		$definition_array = array(
+			'slug' => $field_slug,
+			'meta_key' => $meta_key,
+			'meta_type' => Types_Field_Utils::domain_to_legacy_meta_type( $this->get_domain() ),
+			'type' => Types_Field_Type_Definition_Factory::TEXTFIELD,
+
+			// Use slug as name as well if we don't have anything better.
+			'name' => $field_slug,
+
+			'description' => '',
+
+			'data' => array(),
+
+			// This is not used anywhere but the sanitization in legacy code will exclude fields without this key.
+			'id' => $field_slug
+		);
+
+
+		// Now comes a funny part that I don't fully understand. When the field's meta_key does contain the Types
+		// prefix ('wpcf-'), we assume that this was most probably a Types field whose definition got lost. If not,
+		// it's a completely "foreign" field that we'll only manage from now on.
+		//
+		// In the first case, the legacy code says "let's take full control" and that means setting 'controlled' to 0,
+		// while for other fields (apparently without "full control") we set 'controlled' to 1... well, ok...
+		//
+		// But it also says "WATCH THIS! MUST NOT BE DROPPED IN ANY CASE", so let's not drop it.
+		//
+		// Name of the legacy function is: wpcf_types_cf_under_control().
+		//
+		// I assume this setting is somehow related to toolset-forms.
+		$adding_field_with_prefix = (
+			substr( $meta_key, 0, strlen( WPCF_Field_Definition::FIELD_META_KEY_PREFIX ) ) == WPCF_Field_Definition::FIELD_META_KEY_PREFIX
+		);
+
+		$definition_array['data']['controlled'] = ( $adding_field_with_prefix ? 0 : 1 );
+
+
+		// Sanitize the definition array by type
+		$textfield_type = Types_Field_Type_Definition_Factory::get_instance()->load_field_type_definition( Types_Field_Type_Definition_Factory::TEXTFIELD );
+		if( null == $textfield_type ) {
+			return false;
+		}
+		$definition_array = $textfield_type->sanitize_field_definition_array( $definition_array );
+
+		// Save the data
+		$this->set_field_definition( $field_slug, $definition_array );
+
+		// Indicate success
+		return $field_slug;
+
+	}
 
 
 	/**
-	 * @return array Raw field definition data from the options.
+	 * @return array Raw field definition data from the options, including definitions of fields not currently
+	 *     managed by Types.
 	 */
 	private function get_fields_from_options() {
 		return wpcf_admin_fields_get_fields( false, false, false, $this->get_option_name() );
@@ -150,14 +222,28 @@ abstract class WPCF_Field_Definition_Factory {
 	 * Completely erase field definition from options and clear cache.
 	 *
 	 * @param string $field_slug
+	 * @since 1.9
 	 */
 	private function erase_field_definition_from_options( $field_slug ) {
 
 		$fields_from_options = $this->get_fields_from_options();
 		unset( $fields_from_options[ $field_slug ] );
-		wpcf_admin_fields_save_fields( $fields_from_options, true, $this->get_option_name() );
+		$this->update_field_definition_option( $fields_from_options );
 
 		$this->clear_definition_storage( $field_slug );
+	}
+
+
+	/**
+	 * Update the option that stores field definitions for current domain with new value.
+	 * 
+	 * This is a low-level method. No validation or sanitization is performed whatsoever.
+	 * 
+	 * @param array $updated_value New value to be stored.
+	 * @since 2.0
+	 */
+	private function update_field_definition_option( $updated_value ) {
+		update_option( $this->get_option_name(), $updated_value );
 	}
 
 
@@ -178,17 +264,22 @@ abstract class WPCF_Field_Definition_Factory {
 
 
 	/**
+	 * Determine if there exists any Types field definition (within the domain) that uses this key.
+	 *
 	 * @param string $meta_key
-	 * @return bool True if there exists any Types field definition (within the domain) that uses this key.
+	 * @param string [$return='boolean'] For 'boolean', the method simply returns true/false answer, for 'definition'
+	 *     it returns either the field definition instance or null if no such one exists.
+	 * @return bool|WPCF_Field_Definition|null
+	 * @since 1.9
 	 */
-	private function meta_key_belongs_to_types_field( $meta_key ) {
+	public function meta_key_belongs_to_types_field( $meta_key, $return = 'boolean' ) {
 		$field_definitions = $this->load_types_field_definitions();
 		foreach( $field_definitions as $field_definition ) {
 			if( $field_definition->get_meta_key() == $meta_key ) {
-				return true;
+				return ( 'boolean' == $return ? true : $field_definition );
 			}
 		}
-		return false;
+		return ( 'boolean' == $return ? false : null );
 	}
 
 
@@ -214,6 +305,13 @@ abstract class WPCF_Field_Definition_Factory {
 	 * @return string[] All meta keys that occur in the database (within the domain).
 	 */
 	protected abstract function get_existing_meta_keys();
+
+
+	/**
+	 * @return WPCF_Field_Group_Factory
+	 * @since 2.0
+	 */
+	public abstract function get_group_factory();
 
 
 	/**
@@ -444,11 +542,62 @@ abstract class WPCF_Field_Definition_Factory {
 		$is_success = $field_definiton->delete_all_fields();
 
 		// Delete the definition
-		$slug_to_delete = $field_definiton->get_slug();
-		$this->erase_field_definition_from_options( $slug_to_delete );
-
+		if( $is_success ) {
+			$slug_to_delete = $field_definiton->get_slug();
+			$this->erase_field_definition_from_options( $slug_to_delete );
+		}
+		
 		return $is_success;
+	}
 
+
+	/**
+	 * Update existing field definition.
+	 *
+	 * @param WPCF_Field_Definition $field_definition
+	 * @throws InvalidArgumentException
+	 * @return bool True when the update was successful, false otherwise.
+	 * @since 2.0
+	 */
+	public function update_definition( $field_definition ) {
+
+		if( ! $field_definition instanceof WPCF_Field_Definition ) {
+			throw new InvalidArgumentException( 'Not a Types field definition.' );
+		}
+
+		$fields_from_options = $this->get_fields_from_options();
+		if( ! array_key_exists( $field_definition->get_slug(), $fields_from_options ) ) {
+			return false;
+		}
+
+		$this->set_field_definition( $field_definition->get_slug(), $field_definition->get_definition_array() );
+
+		return true;
+	}
+
+
+	/**
+	 * Store field definition array in the options.
+	 *
+	 * This is a low-level method that doesn't perform any kind of validation or sanitization. Use with care.
+	 *
+	 * @param string $field_slug
+	 * @param array $definition_array
+	 * @since 2.0
+	 */
+	private function set_field_definition( $field_slug, $definition_array ) {
+
+		$fields_from_options = $this->get_fields_from_options();
+
+		$fields_from_options[ $field_slug ] = $definition_array;
+
+		$this->update_field_definition_option( $fields_from_options );
+
+		// This can be called during an AJAX call, in which case the legacy code is not loaded
+		Types_Main::get_instance()->require_legacy_functions();
+
+		// Clear the underlying legacy cache.
+		wpcf_admin_fields_get_fields( false, false, false, $this->get_option_name(), false, true );
 	}
 
 

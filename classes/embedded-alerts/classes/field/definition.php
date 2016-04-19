@@ -11,6 +11,8 @@
  * identical. Since the slug is used to organize fields into groups, we will use that as the main unique identifier
  * from now on.
  *
+ * Note: id is actually equal to slug, there was "$field['id'] = $field['slug'];" in the legacy code.
+ *
  * @since 1.9
  */
 abstract class WPCF_Field_Definition extends WPCF_Field_Definition_Abstract {
@@ -24,13 +26,8 @@ abstract class WPCF_Field_Definition extends WPCF_Field_Definition_Abstract {
 	const FIELD_META_KEY_PREFIX = 'wpcf-';
 
 
-	const TYPE_CHECKBOXES = 'checkboxes';
-
-	const TYPE_CHECKBOX = 'checkbox';
-
-
 	/**
-	 * @var WPCF_Field_Type_Definition Type definition.
+	 * @var Types_Field_Type_Definition Type definition.
 	 */
 	private $type;
 
@@ -72,35 +69,50 @@ abstract class WPCF_Field_Definition extends WPCF_Field_Definition_Abstract {
 	private $definition_array;
 
 
-	/**
-	 * @var string Field slug.
-	 */
+	/** @var string Field slug. */
 	private $slug;
 
 
-	/**
-	 * @var string Name of the field that can be displayed to the user.
-	 */
+	/** @var string Name of the field that can be displayed to the user. */
 	private $name;
 
+
+	/** @var WPCF_Field_Definition_Factory The factory object that manages this field definition */
+	private $factory;
 
 
 	/**
 	 * WPCF_Field_Definition constructor.
 	 *
-	 * @param WPCF_Field_Type_Definition $type Field type definition.
+	 * @param Types_Field_Type_Definition $type Field type definition.
 	 * @param array $definition_array The underlying array with complete information about this field.
+	 * @param WPCF_Field_Definition_Factory $factory
+	 *
+	 * @since 1.9
 	 */
-	public function __construct( $type, $definition_array ) {
+	public function __construct( $type, $definition_array, $factory ) {
+		
+		if( ! $type instanceof Types_Field_Type_Definition ) {
+			throw new InvalidArgumentException( 'Invalid field type.' );
+		}
+		
 		$this->type = $type;
-		$this->definition_array = $definition_array;
+		
+		$this->definition_array = wpcf_ensarr( $definition_array );
 
 		$this->slug = wpcf_getarr( $definition_array, 'slug' );
+		
 		if( sanitize_title( $this->slug ) != $this->slug ) {
 			throw new InvalidArgumentException( 'Invalid slug.' );
 		}
 
 		$this->name = sanitize_text_field( wpcf_getarr( $definition_array, 'name', $this->get_slug() ) );
+		
+		if( ! $factory instanceof WPCF_Field_Definition_Factory ) {
+			throw new InvalidArgumentException( 'Invalid field definition factory object.' );
+		}
+		
+		$this->factory = $factory;
 	}
 
 
@@ -139,16 +151,26 @@ abstract class WPCF_Field_Definition extends WPCF_Field_Definition_Abstract {
 
 
 	/**
+	 * @return bool
+	 * @deprecated
+	 */
+	public function is_under_types_control() {
+		$is_disabled = (bool) wpcf_getnest( $this->definition_array, array( 'data', 'disabled' ), false );
+		return !$is_disabled;
+	}
+
+
+	/**
 	 * Determine whether the field is currently under Types control.
 	 *
 	 * If it's not, we are only holding on to this definition in case user decides to return it to Types control in the
 	 * future. In all other regards, such field definition should be handled as a generic one.
 	 *
 	 * @return bool
+	 * @since 2.0
 	 */
-	public function is_under_types_control() {
-		$is_disabled = (bool) wpcf_getnest( $this->definition_array, array( 'data', 'disabled' ), false );
-		return !$is_disabled;
+	public function is_managed_by_types() {
+		return $this->is_under_types_control();
 	}
 
 
@@ -193,7 +215,7 @@ abstract class WPCF_Field_Definition extends WPCF_Field_Definition_Abstract {
 
 
 	public function get_type() { return $this->type; }
-
+	
 
 	/**
 	 * For binary fields (like checkbox), it is possible to specify a value that will be saved to the database
@@ -202,6 +224,7 @@ abstract class WPCF_Field_Definition extends WPCF_Field_Definition_Abstract {
 	 * Stored in $cf['data']['set_save'].
 	 *
 	 * @return mixed|null The value or null if none is defined (make sure to compare with ===).
+	 * @since 1.9
 	 */
 	public function get_forced_value() {
 		return wpcf_getnest( $this->definition_array, array( 'data', 'set_value' ), null );
@@ -224,10 +247,71 @@ abstract class WPCF_Field_Definition extends WPCF_Field_Definition_Abstract {
 
 
 	/**
-	 * @return array An option_id => option_data array.
+	 * Retrieve an array of option definitions.
+	 * 
+	 * Allowed only for the checkboxes, radio and select field types.
+	 * 
+	 * @throws RuntimeException when the field type is invalid
+	 * @throws InvalidArgumentException when option definitions are corrupted
+	 * @return WPCF_Field_Option_Checkboxes[] An option_id => option_data array.
+	 * @since 1.9
 	 */
 	public function get_field_options() {
-		return wpcf_ensarr( wpcf_getnest( $this->definition_array, array( 'data', 'options' ) ) );
+		$this->check_allowed_types( 
+			array( 
+				Types_Field_Type_Definition_Factory::CHECKBOXES,
+				Types_Field_Type_Definition_Factory::RADIO,
+				Types_Field_Type_Definition_Factory::SELECT
+			) 
+		);
+		$options_definition = wpcf_ensarr( wpcf_getnest( $this->definition_array, array( 'data', 'options' ) ) );
+		$results = array();
+
+		// The 'default' key can be present, we have to remove it so it's not handled as another option.
+		$has_default = array_key_exists( 'default', $options_definition );
+		$default = wpcf_getarr( $options_definition, 'default', 'no-default' );
+		if( $has_default ) {
+			unset( $options_definition[ 'default' ] );
+		}
+
+		foreach( $options_definition as $option_id => $option_config ) {
+			try {
+				switch( $this->get_type()->get_slug() ) {
+					case Types_Field_Type_Definition_Factory::RADIO:
+						$option = new WPCF_Field_Option_Radio( $option_id, $option_config, $default, $this );
+						break;
+					case Types_Field_Type_Definition_Factory::SELECT:
+						$option = new WPCF_Field_Option_Select( $option_id, $option_config, $default, $this );
+						break;
+					case Types_Field_Type_Definition_Factory::CHECKBOXES:
+						$option = new WPCF_Field_Option_Checkboxes( $option_id, $option_config, $default );
+						break;
+					default:
+						throw new InvalidArgumentException( 'Invalid field type' );
+				}
+				$results[ $option_id ] = $option;
+			} catch( Exception $e ) {
+				// Corrupted data, can't do anything but skip the option.
+			}
+		}
+		return $results;
+	}
+
+
+	/**
+	 * Determines whether the field should display both time and date or date only.
+	 *
+	 * Allowed field type: date.
+	 *
+	 * @throws RuntimeException
+	 * @return string 'date'|'date_and_time' (note that for 'date_and_time' the actual value stored is 'and_time',
+	 *     we're translating it to sound more sensible)
+	 * @since 1.9.1
+	 */
+	public function get_datetime_option() {
+		$this->check_allowed_types( Types_Field_Type_Definition_Factory::DATE );
+		$value = wpcf_getnest( $this->definition_array, array( 'data', 'date_and_time' ) );
+		return ( 'and_time' == $value ? 'date_and_time' : 'date' );
 	}
 
 
@@ -240,6 +324,21 @@ abstract class WPCF_Field_Definition extends WPCF_Field_Definition_Abstract {
 	 */
 	public abstract function get_accessor( $field_instance );
 
+
+	/**
+	 * @return WPCF_Field_Group[]
+	 */
+	public function get_associated_groups() {
+		$field_groups = $this->get_factory()->get_group_factory()->query_groups();
+		$associated_groups = array();
+		foreach ( $field_groups as $field_group ) {
+			if ( $field_group->contains_field_definition( $this ) ) {
+				$associated_groups[] = $field_group;
+			}
+		}
+
+		return $associated_groups;
+	}
 
 
 
@@ -255,9 +354,9 @@ abstract class WPCF_Field_Definition extends WPCF_Field_Definition_Abstract {
 	 */
 	public function get_data_mapper() {
 		switch( $this->get_type()->get_slug() ) {
-			case self::TYPE_CHECKBOXES:
+			case Types_Field_Type_Definition_Factory::CHECKBOXES:
 				return new WPCF_Field_DataMapper_Checkboxes( $this );
-			case self::TYPE_CHECKBOX:
+			case Types_Field_Type_Definition_Factory::CHECKBOX:
 				return new WPCF_Field_DataMapper_Checkbox( $this );
 			default:
 				return new WPCF_Field_DataMapper_Identity( $this );
@@ -271,5 +370,145 @@ abstract class WPCF_Field_Definition extends WPCF_Field_Definition_Abstract {
 	 * @return bool
 	 */
 	public abstract function delete_all_fields();
+
+
+	/**
+	 * Throw a RuntimeException if current field type doesn't match the list of allowed ones.
+	 *
+	 * @param string|string[] $allowed_field_types Field type slugs
+	 * @throws RuntimeException
+	 * @since 1.9.1
+	 */
+	protected function check_allowed_types( $allowed_field_types ) {
+		
+		$allowed_field_types = wpcf_wraparr( $allowed_field_types );
+		
+		if( !in_array( $this->type->get_slug(), $allowed_field_types ) ) {
+			throw new RuntimeException(
+				sprintf(
+					'Invalid operation for this field type "%s", expected one of the following: %s.',
+					$this->type->get_slug(),
+					implode( ', ', $allowed_field_types )
+				)
+			);
+		}
+	}
+
+
+	/**
+	 * @inheritdoc
+	 *
+	 * Adds properties: type, isRepetitive
+	 * 
+	 * @return array
+	 * @since 2.0
+	 */
+	public function to_json() {
+		$object_data = parent::to_json();
+
+		$additions = array(
+			'type' => $this->get_type()->get_slug(),
+			'isRepetitive' => $this->get_is_repetitive(),
+			'metaKey' => $this->get_meta_key()
+		);
+
+		return array_merge( $object_data, $additions );
+	}
+
+
+	/**
+	 * @return WPCF_Field_Definition_Factory Factory object that is responsible for creating this object.
+	 * @since 2.0
+	 */
+	public function get_factory() {
+		return $this->factory;
+	}
+
+
+	/**
+	 * Change type of this field definition.
+	 *
+	 * @param Types_Field_Type_Definition $target_type One of the allowed field types to convert to.
+	 * @throws InvalidArgumentException when $target_type is not a field type definition.
+	 * @return bool True if the conversion was successful, false otherwise.
+	 * @since 2.0
+	 */
+	public function change_type( $target_type ) {
+
+		if( ! $target_type instanceof Types_Field_Type_Definition ) {
+			throw new InvalidArgumentException( 'Not a field type definition' );
+		}
+		
+		if( ! Types_Field_Type_Converter::get_instance()->is_conversion_possible( $this->get_type(), $target_type ) ) {
+			return false;
+		}
+
+		if( $this->get_is_repetitive() && !$target_type->can_be_repetitive() ) {
+			return false;
+		}
+
+		// We need to immediately update this model.
+		$this->type = $target_type;
+
+		$this->definition_array['type'] = $target_type->get_slug();
+
+		return $this->update_self();
+	}
+
+
+	/**
+	 * Convenience method for updating field definition in database after making some changes.
+	 * 
+	 * @return bool True on success.
+	 * @since 2.0
+	 */
+	private function update_self() {
+		$this->definition_array = $this->get_type()->sanitize_field_definition_array( $this->get_definition_array() );
+		$is_success = $this->get_factory()->update_definition( $this );
+		return $is_success;
+	}
+
+
+	/**
+	 * Convenience method for setting a 'data' attribute to the definition array safely.
+	 * 
+	 * @param string $key
+	 * @param mixed $value
+	 * @since 2.0
+	 */
+	private function set_data_key_safely( $key, $value ) {
+		if( !is_array( wpcf_getarr( $this->definition_array, 'data' ) ) ) {
+			$this->definition_array['data'] = array();
+		}
+		$this->definition_array['data'][ $key ] = $value;
+	}
+
+
+	/**
+	 * Set whether this field definition will be managed by Types or not.
+	 * 
+	 * @param bool $is_managed
+	 * @return bool True if the update was successful.
+	 * @since 2.0
+	 */
+	public function set_types_management_status( $is_managed ) {
+		$this->set_data_key_safely( 'disabled', ( $is_managed ? 0 : 1 ) );
+		return $this->update_self();
+	}
+
+
+	/**
+	 * Set whether this will be a repeating or single field.
+	 * 
+	 * Note that this has serious implications for already stored values.
+	 * 
+	 * @param bool $is_repetitive
+	 * @return bool True if the update was successful
+	 * @since 2.0
+	 */
+	public function set_is_repetitive( $is_repetitive ) {
+		$this->set_data_key_safely( 'repetitive', ( $is_repetitive ? 1 : 0 ) );
+		return $this->update_self();
+	}
 
 }

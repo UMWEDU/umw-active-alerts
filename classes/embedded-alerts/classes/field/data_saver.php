@@ -73,7 +73,7 @@ final class WPCF_Field_Data_Saver {
 	 */
 	public function validate_field_data() {
 
-		$field_config = WPCF_Field_Utils::get_toolset_forms_field_config( $this->field );
+		$field_config = Types_Field_Utils::get_toolset_forms_field_config( $this->field );
 
 		$this->toggle_adding_field_names_to_error_messages( false );
 

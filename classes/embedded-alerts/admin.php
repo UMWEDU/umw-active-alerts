@@ -3,7 +3,7 @@
  *
  *
  */
-require_once(WPCF_EMBEDDED_ABSPATH . '/toolset/toolset-common/visual-editor/editor-addon.class.php');
+require_once(WPCF_EMBEDDED_TOOLSET_ABSPATH . '/toolset-common/visual-editor/editor-addon.class.php');
 require_once WPCF_EMBEDDED_ABSPATH . '/includes/post-relationship.php';
 
 if ( defined( 'DOING_AJAX' ) ) {

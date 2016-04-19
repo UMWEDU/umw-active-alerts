@@ -146,6 +146,18 @@ function wpcf_fields_wysiwyg_view( $params ) {
     } else {
         $filter_state = new WPCF_WP_filter_state( 'the_content' );
         $output .= apply_filters( 'the_content', $content );
+        
+        if  ((!(strpos( $output, "&amp;#91;") === false)) && (!( strpos( $output, "&amp;#93;") === false)) && (!(strpos( $output, "<pre") === false)) ) {
+        	global $SyntaxHighlighter;
+        	if ( isset( $SyntaxHighlighter ) ) {
+        		if ( is_object( $SyntaxHighlighter ) ) {
+        			//This is a syntax higlighting content
+        			$output = str_replace("&amp;#91;", "[", $output);
+        			$output = str_replace("&amp;#93;", "]", $output);
+        		}
+        	}
+        }
+        
         $filter_state->restore( );
     }
 

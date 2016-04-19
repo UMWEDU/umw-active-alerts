@@ -5,7 +5,7 @@ $fields_access = new Post_Fields_Access;
 //setlocale(LC_ALL, 'nl_NL');
 
 /**
- * Add User Fields menus, need add to wpcf_admin_menu_hook
+ * Add User Fields menus hook
  *
  * @author Gen gen.i@icanlocalize.com
  * @since Types 1.3
@@ -30,10 +30,10 @@ function wpcf_admin_menu_edit_user_fields_hook() {
             array('jquery'), WPCF_VERSION );
     // Scroll
     wp_enqueue_script( 'wpcf-scrollbar',
-            WPCF_EMBEDDED_RELPATH . '/toolset/toolset-common/visual-editor/res/js/scrollbar.js',
+        WPCF_EMBEDDED_TOOLSET_RELPATH . '/toolset-common/visual-editor/res/js/scrollbar.js',
             array('jquery') );
     wp_enqueue_script( 'wpcf-mousewheel',
-            WPCF_EMBEDDED_RELPATH . '/toolset/toolset-common/visual-editor/res/js/mousewheel.js',
+        WPCF_EMBEDDED_TOOLSET_RELPATH . '/toolset-common/visual-editor/res/js/mousewheel.js',
             array('wpcf-scrollbar') );
     //Css editor
     wp_enqueue_script( 'wpcf-form-codemirror',
@@ -77,7 +77,7 @@ function wpcf_admin_menu_edit_user_fields_hook() {
     /*
      * Enqueue styles
      */
-    wp_enqueue_style( 'wpcf-scroll', WPCF_EMBEDDED_RELPATH . '/toolset/toolset-common/visual-editor/res/css/scroll.css' );
+    wp_enqueue_style( 'wpcf-scroll', WPCF_EMBEDDED_TOOLSET_RELPATH . '/toolset-common/visual-editor/res/css/scroll.css' );
     wp_enqueue_style( 'font-awesome' );
 
     add_action( 'admin_footer', 'wpcf_admin_fields_form_js_validation' );
@@ -376,7 +376,7 @@ function types_render_usermeta_field( $field_id, $params, $content = null,
 
         // Log
         if ( !function_exists( 'wplogger' ) ) {
-            require_once WPCF_EMBEDDED_ABSPATH . '/toolset/toolset-common/wplogger.php';
+            require_once WPCF_EMBEDDED_TOOLSET_ABSPATH . '/toolset-common/wplogger.php';
         }
         global $wplogger;
         $wplogger->log( 'types_render_usermeta_field call for missing field \''

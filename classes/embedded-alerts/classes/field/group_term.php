@@ -36,7 +36,7 @@ final class WPCF_Field_Group_Term extends WPCF_Field_Group {
 	 * @return WPCF_Field_Definition_Factory Field definition factory of the correct type.
 	 */
 	protected function get_field_definition_factory() {
-		return WPCF_Field_Term_Definition_Factory::get_instance();
+		return WPCF_Field_Definition_Factory_Term::get_instance();
 	}
 
 

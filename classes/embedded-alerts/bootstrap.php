@@ -101,33 +101,6 @@ if ( !defined( 'TYPES_DEBUG' ) ) {
 }
 
 /*
-*
-* Load common and local localization
-*/
-if ( !defined( 'WPT_LOCALIZATION' ) ) {
-	require_once( WPCF_EMBEDDED_ABSPATH . '/toolset/toolset-common/localization/wpt-localization.php' );
-}
-new WPToolset_Localization( 'wpcf', WPCF_EMBEDDED_ABSPATH . '/locale', 'types-%s' );
-
-/*
- *
- * Include common code.
- */
-if ( !defined( 'ICL_COMMON_FUNCTIONS' ) ) {
-    require_once WPCF_EMBEDDED_ABSPATH . '/toolset/toolset-common/functions.php';
-    if ( !defined( 'WPTOOLSET_COMMON_PATH' ) ) {
-        define( 'WPTOOLSET_COMMON_PATH', WPCF_EMBEDDED_ABSPATH . '/toolset/toolset-common' );
-    }
-} else if ( !defined( 'WPTOOLSET_COMMON_PATH' ) ) {
-    //$__types_common_reflection = new ReflectionFunction( 'wpv_condition' );
-    //define( 'WPTOOLSET_COMMON_PATH', dirname( $__types_common_reflection->getFileName() ) );
-	define( 'WPTOOLSET_COMMON_PATH', WPCF_EMBEDDED_ABSPATH . '/toolset/toolset-common' );
-}
-if ( !defined( 'WPTOOLSET_FORMS_VERSION' ) ) {
-    require_once WPTOOLSET_COMMON_PATH . '/toolset-forms/bootstrap.php';
-}
-
-/*
  *
  * Register theme options
  */
@@ -178,6 +151,18 @@ function wpcf_embedded_init() {
     $types_instances['init_queued'] = '#' . did_action( 'init' );
     $types_instances['init_priority'] = TYPES_INIT_PRIORITY;
     $types_instances['forced_embedded'] = defined( 'TYPES_LOAD_EMBEDDED' ) && TYPES_LOAD_EMBEDDED;
+	
+	// Localization
+	new Toolset_Localization( 'wpcf', WPCF_EMBEDDED_ABSPATH . '/locale', 'types-%s' );
+	
+	// Toolset Forms
+	if ( ! defined( 'WPTOOLSET_FORMS_VERSION' ) ) {
+		$toolset_common_bootstrap = Toolset_Common_Bootstrap::getInstance();
+		$toolset_common_sections = array(
+			'toolset_forms'
+		);
+		$toolset_common_bootstrap->load_sections( $toolset_common_sections );
+	}
 
     // Loader
     require_once WPCF_EMBEDDED_ABSPATH . '/classes/loader.php';
@@ -374,6 +359,7 @@ function wpcf_embedded_init() {
         'view-template',
         'wp-types-group',
         'wp-types-user-group',
+	    'acf-field-group',
     );
 
     /**

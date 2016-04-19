@@ -20,7 +20,7 @@ $html_id = esc_attr(wpcf_unique_id( $tax_name ));
     <div class="ajaxtag hide-if-no-js">
 		<div class="taghint"><?php echo $taxonomy->labels->add_new_item; ?></div>
 		<p><input type="text" id="new-tag-<?php echo $html_id; ?>" name="newtag<?php echo $html_id; ?>[<?php echo $tax_name; ?>]" class="js-types-newtag form-input-tip" size="16" autocomplete="off" value="" data-types-tax="<?php echo $tax_name; ?>" />
-		<input type="button" class="button js-types-addtag" value="<?php esc_attr_e('Add'); ?>" /></p>
+		<input type="button" class="button js-types-addtag" value="<?php esc_attr_e('Add', 'wpcf'); ?>" /></p>
 	</div>
 	<p class="howto"><?php echo $taxonomy->labels->separate_items_with_commas; ?></p>
 	<?php endif; ?>
