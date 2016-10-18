@@ -7,28 +7,23 @@
  */
 
 /**
- * Caches get_post_meta() calls.
+ * Returns the post meta or empty string if not available
+ * Since 2.3 the function no longer has its own caching.
  *
- * @staticvar array $cache
  * @param type $post_id
  * @param type $meta_key
  * @param type $single
  * @return string
  */
-function wpcf_get_post_meta($post_id, $meta_key, $single)
-{
-    static $cache = array();
+function wpcf_get_post_meta($post_id, $meta_key, $single) {
 
-    if ( !isset( $cache[$post_id] ) ) {
-        $cache[$post_id] = get_post_custom( $post_id );
+    $post_meta = get_post_meta( $post_id, $meta_key, $single );
+
+    if( $post_meta && ! empty( $post_meta ) ) {
+        return maybe_unserialize( $post_meta  );
     }
-    if ( isset( $cache[$post_id][$meta_key] ) ) {
-        if ( $single && isset( $cache[$post_id][$meta_key][0] ) ) {
-            return maybe_unserialize( $cache[$post_id][$meta_key][0] );
-        } elseif ( !$single && !empty( $cache[$post_id][$meta_key] ) ) {
-            return maybe_unserialize( $cache[$post_id][$meta_key] );
-        }
-    }
+
+    // no meta data
     return '';
 }
 
@@ -87,18 +82,29 @@ function wpcf_embedded_after_setup_theme_hook()
  */
 function wpcf_init_custom_types_taxonomies()
 {
-    // register post types first
+    // register taxonomies first
+	// because custom taxonomies might have rewrite rules that used to have priority over post type rewrite rules, and we keep backwards compatibility
+	// for example, a taxonomy "topic" with rewrite "video/topic" assigned to a "video" post type
+	// - if "video" is registered first, top-level topic archives will render as 404
+	// - if "topic" is registered first, top-level "topic" terms will have archive pages and "video" posts will have single pages
+	// note that custom taxonomies on register_taxonomy do not check whether the post types they register to do exist or not
+    $custom_taxonomies = get_option( WPCF_OPTION_NAME_CUSTOM_TAXONOMIES, array() );
+    if ( !empty( $custom_taxonomies ) ) {
+        require_once WPCF_EMBEDDED_INC_ABSPATH . '/custom-taxonomies.php';
+        wpcf_custom_taxonomies_init();
+    }
+	
+    // register post types
     $custom_types = get_option( WPCF_OPTION_NAME_CUSTOM_TYPES, array() );
     if ( !empty( $custom_types ) ) {
         require_once WPCF_EMBEDDED_INC_ABSPATH . '/custom-types.php';
         wpcf_custom_types_init();
     }
 
-    // and than taxonomies, because register_taxonomy_for_object_type() checks if post type is available
-    $custom_taxonomies = get_option( WPCF_OPTION_NAME_CUSTOM_TAXONOMIES, array() );
+    // and then manage builtin taxonomies registration for post types
+	// because we use register_taxonomy_for_object_type(), which checks if the post type is available
     if ( !empty( $custom_taxonomies ) ) {
-        require_once WPCF_EMBEDDED_INC_ABSPATH . '/custom-taxonomies.php';
-        wpcf_custom_taxonomies_init();
+		wpcf_builtin_taxonomies_init();
     }
 
 }
@@ -530,9 +536,13 @@ function wpcf_enqueue_scripts()
     wp_enqueue_script(
         'wpcf-js-embedded',
         WPCF_EMBEDDED_RES_RELPATH . '/js/basic.js',
-        array('jquery', 'jquery-ui-sortable', 'jquery-ui-draggable', 'jquery-ui-tabs', 'select2'),
+        array('jquery', 'jquery-ui-sortable', 'jquery-ui-draggable', 'jquery-ui-tabs', 'toolset_select2'),
         WPCF_VERSION
     );
+    wp_localize_script( 'wpcf-js-embedded', 'WPCF_basic', array(
+        'field_already_in_use' => sprintf( __( '%s This field is locked because the same field is added multiple times to this post. %s%s%s you can set the value%s', 'wpcf' ),'<small style="display: block;">', '<a href="#" class="focus_correct_field" data-field-slug="##DATA-FIELD-ID##" >','Here', '</a>','</small>'),
+    ));
+    
     /*
      *
      * Basic CSS
@@ -570,11 +580,11 @@ function wpcf_enqueue_scripts()
     /**
      * select2
      */
-    $select2_version = '3.5.2';
-    if ( !wp_script_is('select2', 'registered') ) {
+    $select2_version = '4.0.3';
+    if ( !wp_script_is('toolset_select2', 'registered') ) {
         wp_register_script(
-            'select2',
-            WPCF_EMBEDDED_TOOLSET_RELPATH. '/toolset-common/res/lib/select2/select2.min.js',
+            'toolset_select2',
+            WPCF_EMBEDDED_TOOLSET_RELPATH. '/toolset-common/res/lib/select2/select2.js',
             array( 'jquery' ),
             $select2_version
         );
@@ -649,10 +659,11 @@ function wpcf_is_embedded()
 /**
  * Returns post type settings.
  *
- * @param type $post_type
- * @return type
+ * @param string [$post_type]
+ * @return array
+ * @since unknown
  */
-function wpcf_get_custom_post_type_settings($item)
+function wpcf_get_custom_post_type_settings($item = '')
 {
     $custom = get_option( WPCF_OPTION_NAME_CUSTOM_TYPES, array() );
     return !empty( $custom[$item] ) ? $custom[$item] : array();
@@ -661,8 +672,9 @@ function wpcf_get_custom_post_type_settings($item)
 /**
  * Returns Taxonomy settings.
  *
- * @param type $taxonomy
- * @return type
+ * @param string $item
+ * @return array
+ * @since unknown
  */
 function wpcf_get_custom_taxonomy_settings($item)
 {
@@ -829,7 +841,7 @@ function wpcf_get_all_fields_slugs($fields)
  *
  * @return array Array of taxonomies.
  *
- * @deprecated Use WPCF_Utils::get_builtin_taxonomies() instead.
+ * @deprecated Use Types_Utils::get_builtin_taxonomies() instead.
  */
 function wpcf_get_builtin_in_taxonomies($output = 'names')
 {

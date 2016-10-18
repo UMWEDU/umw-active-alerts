@@ -622,7 +622,7 @@ function wpcf_fields_type_action( $type, $func = '', $args = array() ) {
 function wpcf_fields_get_shortcode( $field, $add = '', $content = '' )
 {
     $shortcode = '[';
-    $shortcode .= 'types field="' . $field['slug'] . '"' . $add;
+    $shortcode .= "types field='" . $field['slug'] . "'" . $add;
     $shortcode .= ']' . $content . '[/types]';
     $shortcode = apply_filters( 'wpcf_fields_shortcode', $shortcode, $field );
     $shortcode = apply_filters( 'wpcf_fields_shortcode_type_' . $field['type'], $shortcode, $field );
@@ -632,7 +632,7 @@ function wpcf_fields_get_shortcode( $field, $add = '', $content = '' )
 
 function wpcf_termmeta_get_shortcode( $field, $add = '', $content = '' ) {
     $shortcode = '[';
-    $shortcode .= 'types termmeta="' . $field['slug'] . '"' . $add;
+    $shortcode .= "types termmeta='" . $field['slug'] . "'" . $add;
     $shortcode .= ']' . $content . '[/types]';
     $shortcode = apply_filters( 'wpcf_fields_shortcode', $shortcode, $field );
     $shortcode = apply_filters( 'wpcf_fields_shortcode_type_' . $field['type'], $shortcode, $field );
@@ -659,7 +659,7 @@ function wpcf_usermeta_get_shortcode( $field, $add = '', $content = '' ) {
             $add .= ' user_from_this_loop="true"';
     }*/
     $shortcode = '[';
-    $shortcode .= 'types usermeta="' . $field['slug'] . '"' . $add;
+    $shortcode .= "types usermeta='" . $field['slug'] . "'" . $add;
     $shortcode .= ']' . $content . '[/types]';
     $shortcode = apply_filters( 'wpcf_fields_shortcode', $shortcode, $field );
     $shortcode = apply_filters( 'wpcf_fields_shortcode_type_' . $field['type'], $shortcode, $field );
@@ -771,15 +771,15 @@ function wpcf_get_usermeta_form_addon_submit() {
     $add = '';
     if ( !empty( $_POST['is_usermeta'] ) ) {
         if ( $_POST['display_username_for'] == 'post_autor' ) {
-            $add .= ' user_is_author="true"';
+            $add .= ' user_is_author=\'true\'';
         } elseif ( $_POST['display_username_for'] == 'current_user' ) {
-            $add .= ' user_current="true"';
+            $add .= ' user_current=\'true\'';
         }
          else {
             if ( $_POST['display_username_for_suser_selector'] == 'specific_user_by_id' ) {
-                $add .= ' user_id="' . sanitize_text_field($_POST['display_username_for_suser_id_value']) . '"';
+                $add .= ' user_id=\'' . sanitize_text_field($_POST['display_username_for_suser_id_value']) . '\'';
             } else {
-                $add .= ' user_name="' . sanitize_text_field($_POST['display_username_for_suser_username_value']) . '"';
+                $add .= ' user_name=\'' . sanitize_text_field($_POST['display_username_for_suser_username_value']) . '\'';
             }
         }
     }
