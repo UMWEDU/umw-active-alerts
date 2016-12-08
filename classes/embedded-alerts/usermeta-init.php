@@ -111,7 +111,7 @@ function wpcf_admin_menu_edit_user_fields()
     $post_type = current_filter();
     $title = __('View User Field Group', 'wpcf');
     if ( isset( $_GET['group_id'] ) ) {
-        $item = wpcf_admin_get_user_field_group_by_id($_GET['group_id']);
+        $item = wpcf_admin_get_user_field_group_by_id( (int) $_GET['group_id'] );
         if ( WPCF_Roles::user_can_edit('user-meta-field', $item) ) {
             $title = __( 'Edit User Field Group', 'wpcf' );
             $add_new = array(
@@ -238,7 +238,7 @@ if ( !isset( $_GET['post_type'] ) && isset( $_GET['post'] ) ) {
     isset( $_GET['post_type'] )
     && in_array( $_GET['post_type'], get_post_types( array('show_ui' => true) ) ) 
 ) {
-    $post_type = $_GET['post_type'];
+    $post_type = sanitize_text_field( $_GET['post_type'] );
 }
 
 /*
@@ -345,155 +345,17 @@ function wpcf_admin_post_add_usermeta_to_editor_js( $menu, $views_callback = fal
 /**
  * Calls view function for specific field type.
  *
- * @global object $wpdb
+ * @param $field_id
+ * @param $params
+ * @param null $content
+ * @param string $code
  *
- * @param type $field
- * @param type $atts
- * @return type
+ * @return string
  *
- * @deprecated I can not find where it is being used, we use types_render_usermeta() instead
+ * @deprecated Use types_render_usermeta() instead.
  */
-function types_render_usermeta_field( $field_id, $params, $content = null,
-        $code = '' ) {
-
-    require_once WPCF_EMBEDDED_INC_ABSPATH . '/fields.php';
-    global $wpcf, $post, $wpdb;
-
-    // HTML var holds actual output
-    $html = '';
-
-    // Set post ID
-    $post_id = $post->ID;
-    if ( isset( $params['post_id'] ) && !empty( $params['post_id'] ) ) {
-        $post_id = $params['post_id'];
-    }
-
-    // Get field
-    $field = wpcf_fields_get_field_by_slug( $field_id, 'wpcf-usermeta' );
-
-    // If field not found return empty string
-    if ( empty( $field ) ) {
-
-        // Log
-        if ( !function_exists( 'wplogger' ) ) {
-            require_once WPCF_EMBEDDED_TOOLSET_ABSPATH . '/toolset-common/wplogger.php';
-        }
-        global $wplogger;
-        $wplogger->log( 'types_render_usermeta_field call for missing field \''
-                . $field_id . '\'', WPLOG_DEBUG );
-
-        return '';
-    }
-
-    //Get user By ID
-    if ( isset( $params['user_id'] ) ) {
-        $user_id = $params['user_id'];
-    } else if ( isset( $params['user_name'] ) ) { //Get user by login
-        $user_id = $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT * FROM " . $wpdb->users . " WHERE user_login = %s",
-                $params['user_name']
-            )
-        );
-    } else if ( isset( $params['user_is_author'] ) ) { //Get Post author
-        $user_id = $post->post_author;
-    } else if ( isset( $params['user_current'] ) ) {//Get current logged user
-        $user_id = wpcf_usermeta_get_user();
-    } else { //If empty get post author, if no post, return empty
-        if ( !empty( $post_id ) ) {
-            $user_id = $post->post_author;
-        } else {
-            return;
-        }
-    }
-
-    if ( empty( $user_id ) ) {
-        return;
-    }
-
-    // Set field
-    $wpcf->usermeta_field->set( $user_id, $field );
-
-    // See if repetitive
-    if ( wpcf_admin_is_repetitive( $field ) ) {
-        $wpcf->usermeta_repeater->set( $user_id, $field );
-        $_meta = $wpcf->usermeta_repeater->_get_meta();
-        $meta = $_meta['custom_order'];
-//        $meta = get_post_meta( $post_id,
-//                wpcf_types_get_meta_prefix( $field ) . $field['slug'], false );
-        // Sometimes if meta is empty - array(0 => '') is returned
-        if ( (count( $meta ) == 1 ) ) {
-            $meta_id = key( $meta );
-            $_temp = array_shift( $meta );
-            if ( strval( $_temp ) == '' ) {
-                return '';
-            } else {
-
-                $params['field_value'] = $_temp;
-                return types_render_field_single( $field, $params, $content,
-                                $code, $meta_id );
-            }
-        } else if ( !empty( $meta ) ) {
-            $output = '';
-
-            if ( isset( $params['index'] ) ) {
-                $index = $params['index'];
-            } else {
-                $index = '';
-            }
-
-            // Allow wpv-for-each shortcode to set the index
-            $index = apply_filters( 'wpv-for-each-index', $index );
-
-            if ( $index === '' ) {
-                $output = array();
-                foreach ( $meta as $temp_key => $temp_value ) {
-                    $params['field_value'] = $temp_value;
-                    $temp_output = types_render_field_single( $field, $params,
-                            $content, $code, $temp_key );
-                    if ( !empty( $temp_output ) ) {
-                        $output[] = $temp_output;
-                    }
-                }
-                if ( !empty( $output ) && isset( $params['separator'] ) ) {
-                    $output = implode( html_entity_decode( $params['separator'] ),
-                            $output );
-                } else if ( !empty( $output ) ) {
-                    $output = implode( '', $output );
-                } else {
-                    return '';
-                }
-            } else {
-                // Make sure indexed right
-                $_index = 0;
-                foreach ( $meta as $temp_key => $temp_value ) {
-                    if ( $_index == $index ) {
-                        $params['field_value'] = $temp_value;
-                        return types_render_field_single( $field, $params,
-                                        $content, $code, $temp_key );
-                    }
-                    $_index++;
-                }
-                // If missed index
-                return '';
-            }
-            $html = $output;
-        } else {
-            return '';
-        }
-    } else {
-        $params['field_value'] = get_user_meta( $user_id,
-                wpcf_types_get_meta_prefix( $field ) . $field['slug'], true );
-        if ( $params['field_value'] == '' && $field['type'] != 'checkbox' ) {
-            return '';
-        }
-        $html = types_render_field_single( $field, $params, $content, $code,
-                $wpcf->usermeta_field->meta_object->umeta_id );
-    }
-
-    // API filter
-//    $wpcf->usermeta_field->set( $user_id, $field );
-    return $wpcf->usermeta_field->html( $html, $params );
+function types_render_usermeta_field( $field_id, $params, $content = null, $code = '' ) {
+	return types_render_usermeta( $field_id, $params, $content, $code );
 }
 
 /**

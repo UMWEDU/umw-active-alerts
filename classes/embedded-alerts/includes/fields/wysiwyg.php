@@ -179,18 +179,32 @@ function wpcf_fields_wysiwyg_view( $params ) {
 }
 
 /**
- * Records the WP filter state.
+ * Used for recording a current item of the callbacks in $wp_filter[ $tag ] and restoring it
+ * after applying a filter recursively.
+ *
+ * Workaround for https://core.trac.wordpress.org/ticket/17817.
+ *
+ * From WordPress 4.7 above, this does nothing.
  *
  * @since 1.9.1
+ * @deprecated No longer needed since WordPress 4.7
  */
-
 class WPCF_WP_filter_state {
 
     private $current_index;
     private $tag;
+	private $is_disabled = false;
 
     public function __construct( $tag ) {
-        global $wp_filter;
+
+	    global $wp_version;
+
+	    if( version_compare( $wp_version, '4.6.9', '>' ) ) {
+		    $this->is_disabled = true;
+		    return;
+	    }
+
+	    global $wp_filter;
 
         $this->tag = $tag;
 
@@ -200,6 +214,11 @@ class WPCF_WP_filter_state {
     }
 
     public function restore( ) {
+
+	    if( $this->is_disabled ) {
+		    return;
+	    }
+
         global $wp_filter;
 
         if ( isset( $wp_filter[$this->tag] ) && $this->current_index ) {

@@ -390,8 +390,8 @@ final class WPCF_GUI_Term_Field_Editing {
 	 */
 	public function manage_term_listing_columns( $columns ) {
 
-		$taxonomy_slug = wpcf_getget( 'taxonomy' );
 		$factory = Types_Field_Group_Term_Factory::get_instance();
+		$taxonomy_slug = sanitize_text_field( wpcf_getget( 'taxonomy' ) );
 		$groups = $factory->get_groups_by_taxonomy( $taxonomy_slug );
 
 		$columns_to_insert = array();

@@ -754,7 +754,7 @@ function wpcf_admin_get_edited_post_type( $post = null ) {
             $post_type = 'post';
         } else if ( in_array( $_GET['post_type'],
                         get_post_types( array('show_ui' => true) ) ) ) {
-            $post_type = $_GET['post_type'];
+            $post_type = sanitize_text_field( $_GET['post_type'] );
         } else {
             $post_type = 'post';
         }

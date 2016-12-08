@@ -1021,94 +1021,113 @@ function wpcfBindSelect2($) {
 }
 
 function wpcfBindSelect2For( element ) {
-	var $ = jQuery;
-	element.toolset_select2({
-		allowClear: true,
-		ajax: {
-			url: ajaxurl + '?action=wpcf_relationship_search&nounce='+element.data('nounce'),
-			dataType: 'json',
-			delay: 250,
-			type: 'post',
-			data: function (params) {
-				return {
-					s:			params.term,
-					page:		params.page,
-					post_id:	element.data('post-id'),
-                    post_type:	element.data('post-type')
-				};
+	var $ = jQuery,
+		options = element.find( 'option' ),
+		element_s2_instance;
+	
+	if ( options.length < 16 ) {
+		element_s2_instance = element.toolset_select2({
+			allowClear: true,
+			triggerChange: true,
+		});
+	} else {
+		element_s2_instance = element.toolset_select2({
+			allowClear: true,
+			ajax: {
+				url: ajaxurl + '?action=wpcf_relationship_search&nounce='+element.data('nounce'),
+				dataType: 'json',
+				delay: 250,
+				type: 'post',
+				data: function (params) {
+					return {
+						s:			params.term,
+						page:		params.page,
+						post_id:	element.data('post-id'),
+						post_type:	element.data('post-type')
+					};
+				},
+				processResults: function (data, params) {
+					params.page = params.page || 1;
+					return {
+						results: data.items,
+						pagination: {
+						  more: ( params.page * wpcf_post_relationship_messages.parent_per_page ) < data.total_count
+						}
+					};
+				},
+				cache: false
 			},
-			processResults: function (data, params) {
-				params.page = params.page || 1;
-				return {
-					results: data.items,
-					pagination: {
-					  more: ( params.page * wpcf_post_relationship_messages.parent_per_page ) < data.total_count
-					}
-				};
-			},
-			cache: false
-		},
-		escapeMarkup: function (markup) { return markup; },
-		minimumInputLength: 2,
-		triggerChange: true,
-	})
-	.on('toolset_select2:select', function( evt ) {
-		$.ajax({
-			url:		ajaxurl,
-			dataType:	"json",
-			data: 		{
-				action: 	'wpcf_relationship_update',
-				nounce:		element.data('nounce'),
-				post_id: 	element.data('post-id'),
-				post_type:	element.data('post-type'),
-				p:			element.val()
-			},
-			success: function( response ) {
-				var parent_edit_button = element
-											.closest( '.form-item' )
-												.find( '.js-wpcf-pr-parent-edit' );
-				parent_edit_button
-					.removeClass( 'disabled' )
-					.fadeIn( 'fast' )
-					.addClass( 'wpcf-saved' )
-					.attr( 'href', response.data.edit_link + '?post=' + element.val() + '&action=edit' );
-				setTimeout( function() {
-						parent_edit_button.removeClass( 'wpcf-saved' );
-					},
-					1000
-				);
+			escapeMarkup: function (markup) { return markup; },
+			//minimumInputLength: 2,// No minimum input length so we can search by empty terms, hece offer latests parents
+			triggerChange: true,
+			defaultResults: function() {
+				var results = {};
+				results.items = [],
+				$.each( options, function( index, option ) {
+					results.items.push( { id: option.value, text: option.text } );
+				});
+				return results;
 			}
 		});
-	})
-	.on('toolset_select2:unselect', function( evt ) {
-		$.ajax({
-			url:		ajaxurl,
-			dataType:	"json",
-			data: 		{
-				action: 	'wpcf_relationship_update',
-				nounce:		element.data('nounce'),
-				post_id: 	element.data('post-id'),
-				post_type:	element.data('post-type'),
-				p:			0
-			},
-			success: function() {
-				var parent_edit_button = element
-											.closest( '.form-item' )
-												.find( '.js-wpcf-pr-parent-edit' );
-				parent_edit_button
-					.addClass( 'disabled wpcf-deleted' )
-					.attr( 'href', '#');
-				setTimeout( function() {
-						parent_edit_button
-							.fadeOut( 500, function() {
-								parent_edit_button.removeClass( 'wpcf-deleted' );
-							});
-					},
-					1000
-				);
-			}
+	}
+	element_s2_instance
+		.on('toolset_select2:select', function( evt ) {
+			$.ajax({
+				url:		ajaxurl,
+				dataType:	"json",
+				data: 		{
+					action: 	'wpcf_relationship_update',
+					nounce:		element.data('nounce'),
+					post_id: 	element.data('post-id'),
+					post_type:	element.data('post-type'),
+					p:			element.val()
+				},
+				success: function( response ) {
+					var parent_edit_button = element
+												.closest( '.form-item' )
+													.find( '.js-wpcf-pr-parent-edit' );
+					parent_edit_button
+						.removeClass( 'disabled' )
+						.fadeIn( 'fast' )
+						.addClass( 'wpcf-saved' )
+						.attr( 'href', response.data.edit_link + '?post=' + element.val() + '&action=edit' );
+					setTimeout( function() {
+							parent_edit_button.removeClass( 'wpcf-saved' );
+						},
+						1000
+					);
+				}
+			});
+		})
+		.on('toolset_select2:unselect', function( evt ) {
+			$.ajax({
+				url:		ajaxurl,
+				dataType:	"json",
+				data: 		{
+					action: 	'wpcf_relationship_update',
+					nounce:		element.data('nounce'),
+					post_id: 	element.data('post-id'),
+					post_type:	element.data('post-type'),
+					p:			0
+				},
+				success: function() {
+					var parent_edit_button = element
+												.closest( '.form-item' )
+													.find( '.js-wpcf-pr-parent-edit' );
+					parent_edit_button
+						.addClass( 'disabled wpcf-deleted' )
+						.attr( 'href', '#');
+					setTimeout( function() {
+							parent_edit_button
+								.fadeOut( 500, function() {
+									parent_edit_button.removeClass( 'wpcf-deleted' );
+								});
+						},
+						1000
+					);
+				}
+			});
 		});
-	});
 }
 jQuery(document).ready(function($) {
     wpcfBindSelect2($);

@@ -183,7 +183,7 @@ function wpcf_translate_register_string( $context, $name, $value,
         $allow_empty_value = false ) {
     if ( function_exists( 'icl_register_string' ) ) {
         icl_register_string( $context, $name, stripslashes( $value ),
-                $allow_empty_value );
+            $allow_empty_value );
     }
 }
 
@@ -300,13 +300,8 @@ function wpcf_admin_bulk_string_translation() {
     // Register groups
     $groups = wpcf_admin_fields_get_groups();
     foreach ( $groups as $group_id => $group ) {
-	    $group_id = $group['id'];
-        wpcf_translate_register_string( 'plugin Types',
-                'group ' . $group_id . ' name', $group['name'] );
-        if ( isset( $group['description'] ) ) {
-            wpcf_translate_register_string( 'plugin Types',
-                    'group ' . $group_id . ' description', $group['description'] );
-        }
+        $group_wpml = new Types_Wpml_Field_Group( Types_Field_Group_Post_Factory::load( $group['slug'] ) );
+        $group_wpml->register();
     }
 
     // Register fields
@@ -1236,7 +1231,7 @@ function wpcf_wpml_warnings_init()
  */
 function wpcf_wpml_warning()
 {
-	if(!defined('WPML_ST_PATH') || !class_exists( 'ICL_AdminNotifier' )) return;
+	if(!defined('ICL_SITEPRESS_VERSION') || !defined('WPML_ST_PATH') || !class_exists( 'ICL_AdminNotifier' )) return;
 	ICL_AdminNotifier::displayMessages('wp-types');
 }
 

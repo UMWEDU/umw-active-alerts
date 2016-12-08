@@ -27,7 +27,7 @@ function wpcf_module_inline_table_fields()
         _e('There is a problem with Module Manager', 'wpcf');
         return;
     }
-    $group = wpcf_admin_fields_get_group($_GET['group_id']);
+    $group = wpcf_admin_fields_get_group( (int) $_GET['group_id'] );
     if ( empty($group) ) {
         _e('Wrong group id.', 'wpcf');
         return;
@@ -661,6 +661,7 @@ function wpcf_admin_export_selected_data ( array $items, $_type = 'all', $return
                 if( isset( $type['custom-field-group'] )
                     && is_array( $type['custom-field-group'] )
                     && !empty( $type['custom-field-group'] ) ) {
+
                     foreach( $type['custom-field-group'] as $custom_field_group_id => $senseless_as_it_is_always_one ) {
                         $custom_field_group = get_post( $custom_field_group_id );
 
@@ -671,8 +672,8 @@ function wpcf_admin_export_selected_data ( array $items, $_type = 'all', $return
                         if( !is_object( $custom_field_group ) )
                             continue;
 
-                        // set custom field USING SLUG AS KEY AND ID AS VALUE to custom post type
-                        $custom_types[$key]['custom-field-group'][$custom_field_group->post_name] = $custom_field_group_id;
+                        // set custom field, generating an unique key (but without a particular meaning) AND ID AS VALUE to custom post type
+                        $custom_types[ $key ]['custom-field-group'][ 'group_' . $custom_field_group_id ] = $custom_field_group_id;
                     }
                 }
 
@@ -742,9 +743,8 @@ function wpcf_admin_export_selected_data ( array $items, $_type = 'all', $return
         }
         if ( !empty( $custom_taxonomies ) ) {
             foreach ( $custom_taxonomies as $key => $tax ) {
-                $custom_taxonomies[$key]['id'] = $key;
+	            $custom_taxonomies[$key]['id'] = $key;
                 $custom_taxonomies[$key] = apply_filters( 'wpcf_filter_export_custom_taxonomy', $custom_taxonomies[$key] );
-
                 $custom_taxonomies[$key]['__types_id'] = $key;
                 $custom_taxonomies[$key]['__types_title'] = $tax['labels']['name'];
                 $custom_taxonomies[$key]['checksum'] = $wpcf->export->generate_checksum(
@@ -1320,28 +1320,44 @@ function wpcf_modman_set_submitted_id( $set, $id ) {
     return '12' . $set . '21' . $id;
 }
 
+
+add_filter( 'wpcf_filter_export_custom_taxonomy', 'wpcf_fix_exported_taxonomy_assignment_to_cpt' );
+
+
 /**
-* wpcf_filter_export_custom_taxonomy_data
-*
-* Filter the data to be exported for custom taxonomies.
-*
-* We need to filter the data exported for custom taxonomies.
-* In particular, associated CPTs slugs are stored as XML keys, so they can not start with a number.
-* We force a prefix on all of them on export, and restore them on import.
-*/
+ * Filter the data to be exported for custom taxonomies.
+ *
+ * Ensure the settings of post types associated with the taxonomy is exported correctly, even with support of legacy
+ * settings.
+ *
+ * @param array $taxonomy_data
+ * @return array Modified taxonomy data.
+ * @since unknown
+ */
+function wpcf_fix_exported_taxonomy_assignment_to_cpt( $taxonomy_data = array() ) {
 
-add_filter( 'wpcf_filter_export_custom_taxonomy', 'wpcf_filter_export_custom_taxonomy_data' );
+	$setting_name_prefix = '__types_cpt_supports_';
+	$post_type_support_settings = array();
 
-function wpcf_filter_export_custom_taxonomy_data( $data = array() ) {
-	if ( 
-		isset( $data['supports'] ) 
-		&& is_array( $data['supports'] )
-	) {
-		foreach ( $data['supports'] as $key => $value ) {
-			$new_key = '__types_cpt_supports_' . $key;
-			$data['supports'][ $new_key ] = $value;
-			unset( $data['supports'][ $key ] );
-		}
+	// Associated CPTs slugs are stored as XML keys, so they can not start with a number.
+    // We force a prefix on all of them on export, and restore them on import.
+	$supported_post_types = wpcf_ensarr( wpcf_getarr( $taxonomy_data, 'supports' ) );
+	foreach( $supported_post_types as $post_type_slug => $is_supported ) {
+		$setting_name = $setting_name_prefix . $post_type_slug;
+		$post_type_support_settings[ $setting_name ] = ( $is_supported ? 1 : 0 );
 	}
-	return $data;
+
+	// Here, we will also process the legacy "object_type" setting, containing supported post type slugs as array items,
+	// in the samve way.
+	$legacy_supported_post_type_array = wpcf_ensarr( wpcf_getarr( $taxonomy_data, 'object_type' ) );
+	foreach( $legacy_supported_post_type_array as $post_type_slug ) {
+		$setting_name = $setting_name_prefix . $post_type_slug;
+		$post_type_support_settings[ $setting_name ] = 1;
+	}
+
+	// Now we need to remove this legacy setting to prevent producing invalid XML.
+	unset( $taxonomy_data['object_type'] );
+
+	$taxonomy_data['supports'] = $post_type_support_settings;
+	return $taxonomy_data;
 }

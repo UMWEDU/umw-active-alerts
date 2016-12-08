@@ -217,18 +217,27 @@ function wpcf_add_meta_boxes( $post_type, $post )
 
         // Check if hidden
         if ( !isset( $group['__show_meta_box'] ) || $group['__show_meta_box'] != false ) {
-            // Add meta boxes
-            if ( empty( $only_preview ) ) {
-                add_meta_box( "wpcf-group-{$group['slug']}",
-                        wpcf_translate( 'group ' . $group['id'] . ' name',
-                                $group['name'] ), 'wpcf_admin_post_meta_box',
+
+            $field_group = Types_Field_Group_Post_Factory::load( $group['slug'] );
+
+            // Skip field groups that can't be loaded
+            if( null !== $field_group ) {
+
+                $group_wpml = new Types_Wpml_Field_Group( $field_group );
+
+                // Add meta boxes
+                if ( empty( $only_preview ) ) {
+                    add_meta_box( "wpcf-group-{$group['slug']}",
+                        $group_wpml->translate_name(),
+                        'wpcf_admin_post_meta_box',
                         $post_type, $group['meta_box_context'], 'high', $group );
-            } else {
-                add_meta_box( "wpcf-group-{$group['slug']}",
-                        wpcf_translate( 'group ' . $group['id'] . ' name',
-                                $group['name'] ),
+                } else {
+                    add_meta_box( "wpcf-group-{$group['slug']}",
+                        $group_wpml->translate_name(),
                         'wpcf_admin_post_meta_box_preview', $post_type,
                         $group['meta_box_context'], 'high', $group );
+                }
+
             }
         }
     }
@@ -395,18 +404,19 @@ function wpcf_admin_post_meta_box_preview( $post, $group, $echo = '' ){
 /**
  * Renders meta box content.
  *
- * Core function. Works and stable.
- * If required, add hooks only.
+ * @param $post
+ * @param array $group
+ * @param string $echo
+ * @param bool $open_style_editor if true use code for open style editor when edit group
  *
- * @todo Revise this 1.1.5
- *
- * @param type $post
- * @param type $group
- * @param type $echo
- * @param type boolean $open_style_editor if true use code for open style editor when edit group
+ * @return string
  */
 function wpcf_admin_post_meta_box( $post, $group, $echo = '', $open_style_editor = false )
 {
+
+    $field_group = Types_Field_Group_Post_Factory::load( $group['args']['slug'] );
+    // todo Handle null $field_group.
+    $group_wpml = new Types_Wpml_Field_Group( $field_group );
 
     if (
         false === $open_style_editor
@@ -418,7 +428,7 @@ function wpcf_admin_post_meta_box( $post, $group, $echo = '', $open_style_editor
              */
             if ( array_key_exists('description', $group['args'] ) && !empty($group['args']['description'])) {
                 echo '<div class="wpcf-meta-box-description">';
-                echo wpautop( wpcf_translate( 'group ' . $group['args']['id'] . ' description', $group['args']['description'] ) );
+                echo wpautop( $group_wpml->translate_description() );
                 echo '</div>';
             }
             foreach ( $group['args']['html'] as $field ) {
@@ -487,8 +497,7 @@ function wpcf_admin_post_meta_box( $post, $group, $echo = '', $open_style_editor
         // Display description
         if ( !empty( $group['args']['description'] ) ) {
             $group_output .= '<div class="wpcf-meta-box-description">'
-                . wpautop( wpcf_translate( 'group ' . $group['args']['id'] . ' description',
-                    $group['args']['description'] ) ) . '</div>';
+                . wpautop( $group_wpml->translate_description() ) . '</div>';
         }
         foreach ( $group['args']['fields'] as $field_slug => $field ) {
             if ( empty( $field ) || !is_array( $field ) ) {
@@ -576,415 +585,192 @@ function wpcf_admin_post_meta_box( $post, $group, $echo = '', $open_style_editor
 }
 
 /**
- * Important save_post hook.
- *
- * Core function. Works and stable. Do not move or change.
- * If required, add hooks only.
+ * The save_post hook.
  *
  * @param int $post_ID
  * @param WP_Post $post
- *
- * @return bool
+ * @since unknown
  */
-function wpcf_admin_post_save_post_hook( $post_ID, $post )
-{
+function wpcf_admin_post_save_post_hook( $post_ID, $post ) {
 
-    if ( defined( 'WPTOOLSET_FORMS_VERSION' ) ) {
+	// Apparently, some things are *slightly* different when saving a child post in the Post relationships metabox.
+	// Ugly hack that will go away with m2m.
+	//
+	// Note: The types_updating_child_post filter is needed for a situation when user clicks on the Update button
+	// for the parent post. In that case we don't get enough information to determine if a child post is being updated.
+	$is_child_post_update = (
+		( 'wpcf_ajax' == wpcf_getget( 'action' ) && 'pr_save_child_post' == wpcf_getget( 'wpcf_action' ) )
+		|| apply_filters( 'types_updating_child_post', false )
+	);
 
-	    // Apparently, some things are *slightly* different when saving a child post in the Post relationships metabox.
-	    // Ugly hack that will go away with m2m.
-	    //
-	    // Note: The types_updating_child_post filter is needed for a situation when user clicks on the Update button
-	    // for the parent post. In that case we don't get enough information to determine if a child post is being updated.
-	    $is_child_post_update = (
-	    	( 'wpcf_ajax' == wpcf_getget( 'action' ) && 'pr_save_child_post' == wpcf_getget( 'wpcf_action' ) )
-	        || apply_filters( 'types_updating_child_post', false )
-	    );
+	global $wpcf;
+	$errors = false;
 
-        global $wpcf;
-        $errors = false;
+	// Do not save post if is type of
+	if ( in_array( $post->post_type,
+		array(
+			'revision',
+			'view',
+			'view-template',
+			'cred-form',
+			'cred-user-form',
+			'nav_menu_item',
+			'mediapage'
+		) ) )
+	{
+		return;
+	}
 
-        // Do not save post if is type of
-        if ( in_array( $post->post_type,
-                        array('revision', 'view', 'view-template', 'cred-form', 'cred-user-form' ,
-                            'nav_menu_item', 'mediapage') ) ) {
-            return false;
-                            }
+	$_post_wpcf = array();
+	if ( ! empty( $_POST['wpcf'] ) ) {
+		$_post_wpcf = $_POST['wpcf'];
+	}
 
-        $_post_wpcf = array();
-        if ( !empty( $_POST['wpcf'] ) ) {
-            $_post_wpcf= $_POST['wpcf'];
-        }
+	// handle checkbox
+	if ( array_key_exists( '_wptoolset_checkbox', $_POST ) && is_array( $_POST['_wptoolset_checkbox'] ) ) {
+		foreach ( $_POST['_wptoolset_checkbox'] as $key => $field_value ) {
+			$field_slug = preg_replace( '/^wpcf\-/', '', $key );
+			if ( array_key_exists( $field_slug, $_post_wpcf ) ) {
+				continue;
+			}
+			$_post_wpcf[ $field_slug ] = false;
+		}
+	}
 
-        // handle checkbox
-        if ( array_key_exists( '_wptoolset_checkbox', $_POST ) && is_array($_POST['_wptoolset_checkbox']) ) {
-            foreach ( $_POST['_wptoolset_checkbox'] as $key => $field_value ) {
-                $field_slug = preg_replace( '/^wpcf\-/', '', $key );
-                if ( array_key_exists( $field_slug, $_post_wpcf) ) {
-                    continue;
-                }
-                $_post_wpcf[$field_slug] = false;
-            }
-        }
-
-        // handle radios
-        if ( array_key_exists( '_wptoolset_radios', $_POST ) && is_array($_POST['_wptoolset_radios']) ) {
-            foreach ( $_POST['_wptoolset_radios'] as $key => $field_value ) {
-                $field_slug = preg_replace( '/^wpcf\-/', '', $key );
-                if ( array_key_exists( $field_slug, $_post_wpcf) ) {
-                    continue;
-                }
-                $_post_wpcf[$field_slug] = false;
-            }
-        }
-
-
-        if ( count( $_post_wpcf ) ) {
-            $add_error_message = true;
-            if ( isset( $_POST['post_id']) && $_POST['post_id'] != $post_ID ) {
-                $add_error_message = false;
-            }
-            /**
-             * check some attachment to delete
-             */
-            $delete_attachments = apply_filters( 'wpcf_delete_attachments', true );
-            $images_to_delete = array();
-            if ( $delete_attachments && isset($_POST['wpcf']) && array_key_exists( 'delete-image', $_POST['wpcf'] ) && is_array( $_POST['wpcf']['delete-image'] ) ) {
-                foreach( $_POST['wpcf']['delete-image'] as $image ) {
-                    $images_to_delete[$image] = 1;
-                }
-            }
-            foreach ( $_post_wpcf as $field_slug => $field_value ) {
-                // Get field by slug
-                $field = wpcf_fields_get_field_by_slug( $field_slug );
-                if ( empty( $field ) ) {
-                    continue;
-                }
-                // Skip copied fields
-                if ( isset( $_POST['wpcf_repetitive_copy'][$field['slug']] ) ) {
-                    continue;
-                }
-
-	            // This is (apparently) expected for repetitive fields...
-	            if( $is_child_post_update && types_is_repetitive( $field ) ) {
-		            $field_value = array( $field_value );
-	            }
-
-                $_field_value = !types_is_repetitive( $field ) ? array($field_value) : $field_value;
-
-                // Set config
-                $config = wptoolset_form_filter_types_field( $field, $post_ID, $_post_wpcf);
-
-                /**
-                 * remove from images_to_delete if user add again
-                 */
-                if ( $delete_attachments && 'image' == $config['type'] ) {
-                    $images = $_field_value;
-                    if ( !is_array( $images ) ) {
-                        $images = array( $images );
-                    }
-                    foreach( $images as $image ) {
-                        if ( array_key_exists( $image, $images_to_delete ) ) {
-                            unset($images_to_delete[$image]);
-                        }
-                    }
-                }
-
-                /**
-                 * add filter to remove field name from error message
-                 */
-                /** This filter is toolset-common/toolset-forms/classes/class.validation.php */
-                add_filter('toolset_common_validation_add_field_name_to_error', '__return_false', 1234, 1);
-                foreach ( $_field_value as $_k => $_val ) {
-                    // Check if valid
-                    $validation = wptoolset_form_validate_field( 'post', $config, $_val );
-                    $conditional = wptoolset_form_conditional_check( $config );
-                    $not_valid = is_wp_error( $validation ) || !$conditional;
-                    if ($add_error_message && is_wp_error( $validation )) {
-                        $errors = true;
-                        $_errors = $validation->get_error_data();
-                        $_msg = sprintf( __( 'Field "%s" not updated:', 'wpcf' ), $field['name'] );
-                        wpcf_admin_message_store( $_msg . ' ' . implode( ', ', $_errors ), 'error' );
-                    }
-                    if ( $not_valid ) {
-                        if ( types_is_repetitive( $field ) ) {
-                            unset( $field_value[$_k] );
-                        } else {
-                            break;
-                        }
-                    }
-                }
-                remove_filter('toolset_common_validation_add_field_name_to_error', '__return_false', 1234, 1);
-                // Save field
-                if ( types_is_repetitive( $field ) ) {
-                    $wpcf->repeater->set( $post_ID, $field );
-                    $wpcf->repeater->save( $field_value );
-                } else if ( !$not_valid  ) {
-                    $wpcf->field->set( $post_ID, $field );
-                    $wpcf->field->save( $field_value );
-                }
-                do_action( 'wpcf_post_field_saved', $post_ID, $field );
-                // TODO Move to checkboxes
-                if ( $field['type'] == 'checkboxes' ) {
-                    if ( !empty( $field['data']['options'] ) ) {
-                        $update_data = array();
-                        foreach ( $field['data']['options'] as $option_id => $option_data ) {
-                            if ( !isset( $_POST['wpcf'][$field['id']][$option_id] ) ) {
-                                if ( isset( $field['data']['save_empty'] ) && $field['data']['save_empty'] == 'yes' ) {
-                                    $update_data[$option_id] = 0;
-                                }
-                            } else {
-                                $update_data[$option_id] = $_POST['wpcf'][$field['id']][$option_id];
-                            }
-                        }
-                        update_post_meta( $post_ID, $field['meta_key'], $update_data );
-                    }
-                }
-            }
-
-            /**
-             * delete images
-             */
-            if ( $delete_attachments && !empty( $images_to_delete ) ) {
-                $args = array(
-                    'post_parent' => $post_ID,
-                    'posts_per_page' => -1,
-                );
-                $children_array = get_children($args);
-                foreach( $children_array as $child ) {
-                    if ( !array_key_exists( $child->guid, $images_to_delete ) ) {
-                        continue;
-                    }
-                    wp_delete_attachment($child->ID);
-                }
-            }
-
-        }
-        if ( $errors ) {
-            update_post_meta( $post_ID, '__wpcf-invalid-fields', true );
-        }
-        do_action( 'wpcf_post_saved', $post_ID );
-        return;
-    }
+	// handle radios
+	if ( array_key_exists( '_wptoolset_radios', $_POST ) && is_array( $_POST['_wptoolset_radios'] ) ) {
+		foreach ( $_POST['_wptoolset_radios'] as $key => $field_value ) {
+			$field_slug = preg_replace( '/^wpcf\-/', '', $key );
+			if ( array_key_exists( $field_slug, $_post_wpcf ) ) {
+				continue;
+			}
+			$_post_wpcf[ $field_slug ] = false;
+		}
+	}
 
 
+	if ( count( $_post_wpcf ) ) {
+		$add_error_message = true;
+		if ( isset( $_POST['post_id'] ) && $_POST['post_id'] != $post_ID ) {
+			$add_error_message = false;
+		}
 
-    // OLD
+		// check some attachment to delete
+		$delete_attachments = apply_filters( 'wpcf_delete_attachments', true );
+		$images_to_delete = array();
+		if ( $delete_attachments && isset( $_POST['wpcf'] ) && array_key_exists( 'delete-image', $_POST['wpcf'] ) && is_array( $_POST['wpcf']['delete-image'] ) ) {
+			foreach ( $_POST['wpcf']['delete-image'] as $image ) {
+				$images_to_delete[ $image ] = 1;
+			}
+		}
+		foreach ( $_post_wpcf as $field_slug => $field_value ) {
+			// Get field by slug
+			$field = wpcf_fields_get_field_by_slug( $field_slug );
+			if ( empty( $field ) ) {
+				continue;
+			}
+			// Skip copied fields
+			if ( isset( $_POST['wpcf_repetitive_copy'][ $field['slug'] ] ) ) {
+				continue;
+			}
 
-    global $wpcf;
+			// This is (apparently) expected for repetitive fields...
+			if ( $is_child_post_update && types_is_repetitive( $field ) ) {
+				$field_value = array( $field_value );
+			}
 
-    // Basic cheks
-    /*
-     * Allow this hook to be triggered only if Types form is submitted
-     */
-//    if ( !isset( $_POST['_wpcf_post_wpnonce'] ) || !wp_verify_nonce( $_POST['_wpcf_post_wpnonce'],
-//                    'update-' . $post->post_type . '_' . $post_ID ) ) {
-//        return false;
-//    }
-    /*
-     * Do not save post if is type of:
-     * revision
-     * attachment
-     * wp-types-group
-     * view
-     * view-template
-     * cred-form
-     */
-    if ( in_array( $post->post_type, $wpcf->excluded_post_types ) ) {
-        return false;
-    }
+			$_field_value = ! types_is_repetitive( $field ) ? array( $field_value ) : $field_value;
 
-    /*
-     *
-     *
-     * Get all groups connected to this $post
-     */
-    $groups = wpcf_admin_post_get_post_groups_fields( $post );
-    if ( empty( $groups ) ) {
-        return false;
-    }
-    $all_fields = array();
-    $_not_valid = array();
-    $_error = false;
+			// Set config
+			$config = wptoolset_form_filter_types_field( $field, $post_ID, $_post_wpcf );
 
-    /*
-     *
-     *
-     * Loop over each group
-     *
-     * TODO Document this
-     * Connect 'wpcf-invalid-fields' with all fields
-     */
-    foreach ( $groups as $group ) {
-        if ( isset( $group['fields'] ) ) {
-            // Process fields
-            $fields = wpcf_admin_post_process_fields( $post, $group['fields'],
-                    true, false, 'validation' );
-            // Validate fields
-            $form = wpcf_form_simple_validate( $fields );
-            $all_fields = $all_fields + $fields;
-            // Collect all not valid fields
-            if ( $form->isError() ) {
-                $_error = true; // Set error only to true
-                $_not_valid = array_merge( $_not_valid,
-                        (array) $form->get_not_valid() );
-            }
-        }
-    }
-    // Set fields
-    foreach ( $all_fields as $k => $v ) {
-        // only Types field
-        if ( empty( $v['wpcf-id'] ) ) {
-            continue;
-        }
-        $_temp = new WPCF_Field();
-        $_temp->set( $wpcf->post, $v['wpcf-id'] );
-        $all_fields[$k]['_field'] = $_temp;
-    }
-    foreach ( $_not_valid as $k => $v ) {
-        // only Types field
-        if ( empty( $v['wpcf-id'] ) ) {
-            continue;
-        }
-        $_temp = new WPCF_Field();
-        $_temp->set( $wpcf->post, $v['wpcf-id'] );
-        $_not_valid[$k]['_field'] = $_temp;
-    }
+			// remove from images_to_delete if user add again
+			if ( $delete_attachments && 'image' == $config['type'] ) {
+				$images = $_field_value;
+				if ( ! is_array( $images ) ) {
+					$images = array( $images );
+				}
+				foreach ( $images as $image ) {
+					if ( array_key_exists( $image, $images_to_delete ) ) {
+						unset( $images_to_delete[ $image ] );
+					}
+				}
+			}
 
-    /*
-     *
-     * Allow interaction here.
-     * Conditional will set $error to false if field is conditional
-     * and not submitted.
-     */
-    $error = apply_filters( 'wpcf_post_form_error', $_error, $_not_valid, $all_fields );
-    $not_valid = apply_filters( 'wpcf_post_form_not_valid', $_not_valid, $_error, $all_fields );
+			// add filter to remove field name from error message
+			// This filter is toolset-common/toolset-forms/classes/class.validation.php
+			add_filter( 'toolset_common_validation_add_field_name_to_error', '__return_false', 1234, 1 );
+			foreach ( $_field_value as $_k => $_val ) {
+				// Check if valid
+				$validation = wptoolset_form_validate_field( 'post', $config, $_val );
+				$conditional = wptoolset_form_conditional_check( $config );
+				$not_valid = is_wp_error( $validation ) || ! $conditional;
+				if ( $add_error_message && is_wp_error( $validation ) ) {
+					$errors = true;
+					$_errors = $validation->get_error_data();
+					$_msg = sprintf( __( 'Field "%s" not updated:', 'wpcf' ), $field['name'] );
+					wpcf_admin_message_store( $_msg . ' ' . implode( ', ', $_errors ), 'error' );
+				}
+				if ( $not_valid ) {
+					if ( types_is_repetitive( $field ) ) {
+						unset( $field_value[ $_k ] );
+					} else {
+						break;
+					}
+				}
+			}
+			remove_filter( 'toolset_common_validation_add_field_name_to_error', '__return_false', 1234, 1 );
+			// Save field
+			if ( types_is_repetitive( $field ) ) {
+				$wpcf->repeater->set( $post_ID, $field );
+				$wpcf->repeater->save( $field_value );
+			} else if ( ! $not_valid ) {
+				$wpcf->field->set( $post_ID, $field );
+				$wpcf->field->save( $field_value );
+			}
+			do_action( 'wpcf_post_field_saved', $post_ID, $field );
+			// TODO Move to checkboxes
+			if ( $field['type'] == 'checkboxes' ) {
+				if ( ! empty( $field['data']['options'] ) ) {
+					$update_data = array();
+					foreach ( $field['data']['options'] as $option_id => $option_data ) {
+						if ( ! isset( $_POST['wpcf'][ $field['id'] ][ $option_id ] ) ) {
+							if ( isset( $field['data']['save_empty'] ) && $field['data']['save_empty'] == 'yes' ) {
+								$update_data[ $option_id ] = 0;
+							}
+						} else {
+							$update_data[ $option_id ] = $_POST['wpcf'][ $field['id'] ][ $option_id ];
+						}
+					}
+					update_post_meta( $post_ID, $field['meta_key'], $update_data );
+				}
+			}
+		}
 
-    // Notify user about error
-    if ( $error ) {
-        wpcf_admin_message_store(
-                __( 'Please check your input data', 'wpcf' ), 'error' );
-    }
+		// delete images
+		if ( $delete_attachments && ! empty( $images_to_delete ) ) {
+			$args = array(
+				'post_parent' => $post_ID,
+				'posts_per_page' => - 1,
+			);
+			$children_array = get_children( $args );
+			foreach ( $children_array as $child ) {
+				if ( ! array_key_exists( $child->guid, $images_to_delete ) ) {
+					continue;
+				}
+				wp_delete_attachment( $child->ID );
+			}
+		}
 
-    /*
-     * Save invalid elements so user can be informed after redirect.
-     */
-    if ( !empty( $not_valid ) ) {
-        update_post_meta( $post_ID, 'wpcf-invalid-fields', $not_valid );
-    }
+	}
+	if ( $errors ) {
+		update_post_meta( $post_ID, '__wpcf-invalid-fields', true );
+	}
+	do_action( 'wpcf_post_saved', $post_ID );
 
-    /*
-     *
-     *
-     *
-     *
-     * Save meta fields
-     */
-    if ( !empty( $_POST['wpcf'] ) ) {
-        foreach ( $_POST['wpcf'] as $field_slug => $field_value ) {
-
-            // Get field by slug
-            $field = wpcf_fields_get_field_by_slug( $field_slug );
-            if ( empty( $field ) ) {
-                continue;
-            }
-
-            // Set field
-            $wpcf->field->set( $post_ID, $field );
-
-            // Skip copied fields
-            // CHECKPOINT
-            if ( isset( $_POST['wpcf_repetitive_copy'][$field['slug']] ) ) {
-                continue;
-            }
-
-            // Don't save invalid
-            // CHECKPOINT
-            if ( isset( $not_valid[$field['slug']] ) ) {
-                continue;
-            }
-
-
-            /*
-             *
-             *
-             * Saving fields
-             * @since 1.2
-             *
-             * We changed way repetitive fields are saved.
-             * On each save fields are rewritten and order is saved in
-             * '_$slug-sort-order' meta field.
-             */
-
-            /*
-             *
-             * We marked fields as repetitive in POST['__wpcf_repetitive']
-             * Without this check we won't save any.
-             * @see WPCF_Repeater::get_fields_form()
-             */
-            if ( isset( $_POST['__wpcf_repetitive'][$wpcf->field->slug] ) ) {
-                /*
-                 * Use here WPCF_Repeater class.
-                 * WPCF_Repeater::set() - switches to current post
-                 * WPCF_Repeater::save() - saves repetitive field
-                 */
-                $wpcf->repeater->set( $post_ID, $field );
-                $wpcf->repeater->save();
-            } else {
-                /*
-                 * Use WPCF_Field::save()
-                 */
-                $wpcf->field->save();
-            }
-
-            do_action( 'wpcf_post_field_saved', $post_ID, $field );
-        }
-    }
-
-    /*
-     * Process checkboxes
-     *
-     * TODO Revise and remove
-     * Since Types 1.1.5 we moved this check to embedded/includes/checkbox.php
-     * checkbox.php added permanently to bootstrap.
-     */
-    foreach ( $all_fields as $field ) {
-        if ( !isset( $field['#type'] ) ) {
-            continue;
-        }
-//        if ( $field['#type'] == 'checkbox'
-//                && !isset( $_POST['wpcf'][$field['wpcf-slug']] ) ) {
-//            $field_data = wpcf_admin_fields_get_field( $field['wpcf-id'] );
-//            if ( isset( $field_data['data']['save_empty'] )
-//                    && $field_data['data']['save_empty'] == 'yes' ) {
-//                update_post_meta( $post_ID,
-//                        wpcf_types_get_meta_prefix( $field ) . $field['wpcf-slug'],
-//                        0 );
-//            } else {
-//                delete_post_meta( $post_ID,
-//                        wpcf_types_get_meta_prefix( $field ) . $field['wpcf-slug'] );
-//            }
-//        }
-        if ( $field['#type'] == 'checkboxes' ) {
-            $field_data = wpcf_admin_fields_get_field( $field['wpcf-id'] );
-            if ( !empty( $field_data['data']['options'] ) ) {
-                $update_data = array();
-                foreach ( $field_data['data']['options'] as $option_id => $option_data ) {
-                    if ( !isset( $_POST['wpcf'][$field['wpcf-slug']][$option_id] ) ) {
-                        if ( isset( $field_data['data']['save_empty'] ) && $field_data['data']['save_empty'] == 'yes' ) {
-                            $update_data[$option_id] = 0;
-                        }
-                    } else {
-                        $update_data[$option_id] = $_POST['wpcf'][$field['wpcf-slug']][$option_id];
-                    }
-                }
-                update_post_meta( $post_ID, wpcf_types_get_meta_prefix( $field ) . $field['wpcf-slug'], $update_data );
-            }
-        }
-    }
-
-    do_action( 'wpcf_post_saved', $post_ID );
+	return;
 }
+
 
 /**
  *
@@ -1586,7 +1372,7 @@ function wpcf_admin_post_get_post_groups_fields( $post = false, $context = 'grou
         if ( !isset( $_GET['post_type'] ) ) {
             $post_type = 'post';
         } else if ( in_array( $_GET['post_type'], get_post_types( array('show_ui' => true) ) ) ) {
-            $post_type = $_GET['post_type'];
+            $post_type = sanitize_text_field( $_GET['post_type'] );
         } else {
             $post_type = 'post';
         }

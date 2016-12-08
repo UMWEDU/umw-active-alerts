@@ -150,8 +150,9 @@ function types_field_get_meta_value_repetitive( $field, $post_id = null,
 /**
  * Check if field is repetitive.
  * 
- * @param type $type
- * @return type 
+ * @param array|string $field Field definition or field slug
+ * @return bool|null
+ * @since unknown
  */
 function types_is_repetitive( $field ) {
 
@@ -159,7 +160,7 @@ function types_is_repetitive( $field ) {
     if ( !is_array( $field ) ) {
         $field = types_get_field( $field );
         if ( empty( $field ) ) {
-            return NULL;
+            return null;
         }
     }
 

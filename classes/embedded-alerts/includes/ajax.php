@@ -344,7 +344,7 @@ function wpcf_ajax_embedded() {
         case 'um_repetitive_add':
 
             if ( isset( $_GET['user_id'] ) ) {
-                $user_id = $_GET['user_id'];
+                $user_id = (int) $_GET['user_id'];
             } else {
                 $user_id = wpcf_usermeta_get_user();
             }
@@ -494,7 +494,7 @@ function wpcf_ajax_embedded() {
                 $args = array(
                     'posts_per_page' => apply_filters( 'wpcf_pr_belongs_post_posts_per_page', $posts_per_page ),
                     'post_status' => apply_filters( 'wpcf_pr_belongs_post_status', array( 'publish', 'private' ) ),
-                    'post_type' => $_REQUEST['post_type'],
+                    'post_type' => sanitize_text_field( $_REQUEST['post_type'] ),
                     'suppress_filters' => 1,
                 );
 
@@ -544,7 +544,7 @@ function wpcf_ajax_embedded() {
 
         case 'wpcf_entry_entry':
             if( current_user_can( 'edit_posts' ) && isset($_REQUEST['p'])) {
-                $wpcf_post = get_post($_REQUEST['p'], ARRAY_A);
+                $wpcf_post = get_post( (int) $_REQUEST['p'], ARRAY_A );
                 if ( isset($wpcf_post['ID']) ) {
                         $post_title = $wpcf_post['post_title'];
                         if ( empty($post_title) ) {

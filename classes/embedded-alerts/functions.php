@@ -10,21 +10,24 @@
  * Returns the post meta or empty string if not available
  * Since 2.3 the function no longer has its own caching.
  *
- * @param type $post_id
- * @param type $meta_key
- * @param type $single
- * @return string
+ * @param $post_id
+ * @param $meta_key
+ * @param $is_single
+ *
+ * @return mixed
+ * @deprecated This is no longer needed. For accessing custom fields, use the Toolset_Field* API. For accessing
+ * other postmeta, use get_post_meta() directly.
  */
-function wpcf_get_post_meta($post_id, $meta_key, $single) {
+function wpcf_get_post_meta($post_id, $meta_key, $is_single) {
 
-    $post_meta = get_post_meta( $post_id, $meta_key, $single );
+    $post_meta = get_post_meta( $post_id, $meta_key, $is_single );
 
-    if( $post_meta && ! empty( $post_meta ) ) {
-        return maybe_unserialize( $post_meta  );
+    if( Toolset_Utils::is_field_value_truly_empty( $post_meta ) ) {
+	    // no meta data
+	    return '';
     }
 
-    // no meta data
-    return '';
+	return maybe_unserialize( $post_meta );
 }
 
 /**
@@ -397,8 +400,8 @@ function wpcf_save_settings($settings)
 
 /**
  * Check if it can be repetitive
- * @param type $field
- * @return type
+ * @param $type
+ * @return bool
  */
 function wpcf_admin_can_be_repetitive($type)
 {
@@ -407,17 +410,17 @@ function wpcf_admin_can_be_repetitive($type)
 }
 
 /**
- * Check if field is repetitive
- * @param type $type
- * @return type
+ * Check if field is repetitive.
+ *
+ * @deprecated Use types_is_repetitive instead.
+ * @param array $field Field definition array.
+ * @return bool
  */
-function wpcf_admin_is_repetitive($field)
-{
-    if ( !isset( $field['data']['repetitive'] ) || !isset( $field['type'] ) ) {
-        return false;
-    }
-    $check = intval( $field['data']['repetitive'] );
-    return !empty( $check ) && wpcf_admin_can_be_repetitive( $field['type'] );
+function wpcf_admin_is_repetitive( $field ) {
+	$field_type = wpcf_getarr( $field, 'type', '' );
+	$is_repetitive = (int) wpcf_getnest( $field, array( 'data', 'repetitive' ), 0 );
+
+	return ( $is_repetitive && ! empty( $field_type ) && wpcf_admin_can_be_repetitive( $field_type ) );
 }
 
 /**
@@ -589,16 +592,24 @@ function wpcf_enqueue_scripts()
             $select2_version
         );
     }
-    if ( !wp_style_is('select2', 'registered') ) {
+    if ( !wp_style_is('toolset-select2-css', 'registered') ) {
         wp_register_style(
-            'select2',
+            'toolset-select2-css',
             WPCF_EMBEDDED_TOOLSET_RELPATH. '/toolset-common/res/lib/select2/select2.css',
             array(),
             $select2_version
         );
     }
-    if ( !wp_style_is('select2') ) {
-        wp_enqueue_style('select2');
+	if ( !wp_style_is('toolset-select2-overrides-css', 'registered') ) {
+        wp_register_style(
+            'toolset-select2-css',
+            WPCF_EMBEDDED_TOOLSET_RELPATH. '/toolset-common/res/lib/select2/select2-overrides.css',
+            array('toolset-select2-css'),
+            $select2_version
+        );
+    }
+    if ( !wp_style_is('toolset-select2-overrides-css') ) {
+        wp_enqueue_style('toolset-select2-overrides-css');
     }
 
     // Add JS settings

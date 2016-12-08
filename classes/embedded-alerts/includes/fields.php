@@ -248,10 +248,89 @@ function wpcf_admin_fields_get_fields( $only_active = false,
 
         $v['meta_type'] = $option_name_to_meta_type[ $option_name ];
         $fields[$k] = wpcf_sanitize_field( $v );
+
+        $fields[ $k ] = apply_filters( 'toolset_filter_field_definition_array', $v, 'types_fields' );
     }
     $cache[$cache_key] = apply_filters( 'types_fields', $fields );
     return $cache[$cache_key];
 }
+
+
+add_filter( 'toolset_filter_field_definition_array', 'wpcf_update_mandatory_validation_rules', 10, 2 );
+
+
+/**
+ * Modify field validation rules.
+ *
+ * Hooked into toolset_filter_field_definition_array. Not to be used elsewhere.
+ *
+ * Add mandatory validation rules that have not been stored in the database but are needed by Types and toolset-forms
+ * to work properly. Namely it's the URL validation for file fields. On the contrary CRED needs these validation rules
+ * removed.
+ *
+ * @param array $field_definition A field definition array.
+ * @return array
+ * @since 2.2.4
+ */
+function wpcf_update_mandatory_validation_rules( $field_definition, $ignored ) {
+
+    // Add URL validation to file fields (containing URLs).
+    //
+    // This doesn't include embed files because they are more variable and the URL validation can be
+    // configured on the Edit Field Group page.
+    $file_fields = array( 'file', 'image', 'audio', 'video' );
+
+    $field_type = toolset_getarr( $field_definition, 'type' );
+    $is_file_field = in_array( $field_type, $file_fields );
+    $validation_rules = wpcf_ensarr( wpcf_getnest( $field_definition, array( 'data', 'validate' ) ) );
+    $has_url2_validation = array_key_exists( 'url2', $validation_rules );
+
+    if ( $is_file_field ) {
+
+        unset( $validation_rules['url'] );
+
+        if ( ! $has_url2_validation ) {
+
+            $default_validation_error_message = __( 'Please enter a valid URL address pointing to the file.', 'wpcf' );
+            $validation_error_messages = array(
+                'file' => $default_validation_error_message,
+                'audio' => __( 'Please enter a valid URL address pointing to the audio file.', 'wpcf' ),
+                'image' => __( 'Please enter a valid URL address pointing to the image file.', 'wpcf' ),
+                'video' => __( 'Please enter a valid URL address pointing to the video file.', 'wpcf' )
+            );
+
+            // The url2 validation doesn't require the TLD part of the URL.
+            $validation_rules['url2'] = array(
+                'active' => '1',
+                'message' => toolset_getarr( $validation_error_messages, $field_type, $default_validation_error_message ),
+                'suppress_for_cred' => true
+            );
+        }
+
+        $field_definition['data']['validate'] = $validation_rules;
+    }
+
+
+    // On the contrary, CRED file fileds MUST NOT use this validation otherwise it won't be possible to
+    // submit not changed fields on the edit form. Thus we're making sure that no such rule goes through.
+    //
+    // These field types come via WPToolset_Types::filterValidation().
+    $cred_file_fields = array( 'credfile', 'credimage', 'credaudio', 'credvideo' );
+    $is_cred_field = in_array( $field_type, $cred_file_fields );
+
+    if( $is_cred_field ) {
+
+        unset( $validation_rules['url'] );
+        unset( $validation_rules['url2'] );
+
+        $field_definition['data']['validate'] = $validation_rules;
+    }
+
+
+    return $field_definition;
+}
+
+
 
 function wpcf_admin_fields_get_field_by_meta_key( $meta_key )
 {
@@ -940,7 +1019,7 @@ function wpcf_get_all_field_slugs_except_current_group( $current_group = false )
         }
     }
     if( !$current_group && isset( $_REQUEST['group_id'] ) )
-        $current_group = $_REQUEST['group_id'];
+        $current_group = (int) $_REQUEST['group_id'];
 
     // if no new group
     if( $current_group && !empty( $all_fields ) ) {

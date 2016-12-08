@@ -1451,3 +1451,8 @@ input#slug+p.wpcf-form-description {
 .ui-sortable-handle .description{
     font-weight: normal;
 }
+
+/* todo move to common */
+.ui-datepicker {
+    z-index: 10000 !important;
+}
