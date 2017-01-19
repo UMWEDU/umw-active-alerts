@@ -377,68 +377,75 @@ function wpcf_pr_admin_post_meta_box_belongs_form_items_helper( $item )
 /**
  * Belongs form.
  *
- * @param type $post
- * @param type $post_type
- * @param type $data
- * @param type $parent_post_type
+ * @param $post
+ * @param $type
+ * @param $belongs
+ * @return array
  */
-function wpcf_pr_admin_post_meta_box_belongs_form( $post, $type, $belongs )
-{
-    global $wpdb;
-    $temp_type = get_post_type_object( $type );
-    if ( empty( $temp_type ) ) {
-        return array();
-    }
-    $form = array();
-    $id = esc_attr(sprintf('wpcf_pr_belongs_%d_%s', $post->ID, $type));
-	$belongs_id = isset( $belongs['belongs'][$type] ) ? $belongs['belongs'][$type] : 0;
-	
-	$options_array				= array();
-	
-	$values_to_prepare			= array();
-	
-	$post_status				= array( 'publish', 'private' );
-	
-	$wpml_join = $wpml_where	= "";
-	$is_translated_post_type	= apply_filters( 'wpml_is_translated_post_type', false, $type );
-	
-	if ( $is_translated_post_type ) {
-		$wpml_current_language	= apply_filters( 'wpml_current_language', '' );
-		$wpml_join				= " JOIN {$wpdb->prefix}icl_translations t ";
-		$wpml_where				= " AND p.ID = t.element_id AND t.language_code = %s ";
-		$values_to_prepare[]	= $wpml_current_language;
+function wpcf_pr_admin_post_meta_box_belongs_form( $post, $type, $belongs ) {
+	global $wpdb;
+	$temp_type = get_post_type_object( $type );
+	if ( empty( $temp_type ) ) {
+		return array();
 	}
-	
-	$values_to_prepare[]		= sanitize_text_field( $type );
-	
+
+	$form = array();
+	$id = esc_attr( sprintf( 'wpcf_pr_belongs_%d_%s', $post->ID, $type ) );
+	$belongs_id = isset( $belongs['belongs'][ $type ] ) ? $belongs['belongs'][ $type ] : 0;
+
+	$options_array = array();
+
+	$values_to_prepare = array();
+
+	$post_status = array( 'publish', 'private' );
+
+	$wpml_join = $wpml_where = "";
+	$is_translated_post_type = apply_filters( 'wpml_is_translated_post_type', false, $type );
+
+	if ( $is_translated_post_type ) {
+		$wpml_current_language = apply_filters( 'wpml_current_language', '' );
+		$wpml_join  = " JOIN {$wpdb->prefix}icl_translations t ";
+		$wpml_where = " AND p.ID = t.element_id AND t.language_code = %s AND t.element_type = concat( 'post_', %s ) ";
+		$values_to_prepare[] = $wpml_current_language;
+		$values_to_prepare[] = sanitize_text_field( $type );
+
+		// This is covered by the element_type condition in $wpml_where
+		$where_post_type = '';
+	} else {
+        // No WPML tables, we just query the post type directly.
+	    $where_post_type = ' AND p.post_type = %s ';
+		$values_to_prepare[] = sanitize_text_field( $type );
+    }
+
 	$not_in_selected = '';
 	if ( $belongs_id ) {
-		$not_in_selected		= ' AND p.ID != %d';
-		$values_to_prepare[]	= (int) $belongs_id;
+		$not_in_selected = ' AND p.ID != %d';
+		$values_to_prepare[] = (int) $belongs_id;
 		$options_array[ $belongs_id ] = array(
 			'#title' => get_the_title( $belongs_id ),
 			'#value' => $belongs_id,
 		);
 	} else {
-		$options_array[ '' ] = array(
+		$options_array[''] = array(
 			'#title' => '',
 			'#value' => '',
 		);
 	}
-	
-	$parents_available = $wpdb->get_results(
-		$wpdb->prepare(
-			"SELECT p.ID, p.post_title 
+
+	$sql_query = $wpdb->prepare(
+		"SELECT p.ID, p.post_title 
 			FROM {$wpdb->posts} p {$wpml_join} 
-			WHERE p.post_status IN ('" . implode( "','" , $post_status ) . "') 
-			{$wpml_where} 
-			AND p.post_type = %s 
-			{$not_in_selected} 
+			WHERE 
+			    p.post_status IN ('" . implode( "','", $post_status ) . "') 
+			    {$wpml_where} 
+			    {$where_post_type} 
+			    {$not_in_selected} 
 			ORDER BY p.post_date DESC 
 			LIMIT 15",
-			$values_to_prepare
-		)
+		$values_to_prepare
 	);
+
+	$parents_available = $wpdb->get_results( $sql_query );
 
 	foreach ( $parents_available as $parent_option ) {
 		$options_array[ $parent_option->ID ] = array(
@@ -446,26 +453,26 @@ function wpcf_pr_admin_post_meta_box_belongs_form( $post, $type, $belongs )
 			'#value' => $parent_option->ID,
 		);
 	}
-	
-	
-	$form[$type] = array(
-        '#type' => 'select',
-        '#name' => 'wpcf_pr_belongs[' . $post->ID . '][' . $type . ']',
-        '#default_value' => $belongs_id,
-        '#id' => $id,
-		'#options' => $options_array,
-        '#attributes' => array(
-            'class' => 'wpcf-pr-belongs',
-            'data-loading' => esc_attr__('Please Wait, Loading…', 'wpcf'),
-            'data-nounce' => wp_create_nonce($id),
-            'data-placeholder' => esc_attr( sprintf( __('Search for %s', 'wpcf'), $temp_type->labels->name ) ),
-            'data-post-id' => $post->ID,
-            'data-post-type' => esc_attr($type),
-			'autocomplete'	=> 'off'
-        ),
-    );
 
-    return $form;
+
+	$form[ $type ] = array(
+		'#type' => 'select',
+		'#name' => 'wpcf_pr_belongs[' . $post->ID . '][' . $type . ']',
+		'#default_value' => $belongs_id,
+		'#id' => $id,
+		'#options' => $options_array,
+		'#attributes' => array(
+			'class' => 'wpcf-pr-belongs',
+			'data-loading' => esc_attr__( 'Please Wait, Loading…', 'wpcf' ),
+			'data-nounce' => wp_create_nonce( $id ),
+			'data-placeholder' => esc_attr( sprintf( __( 'Search for %s', 'wpcf' ), $temp_type->labels->name ) ),
+			'data-post-id' => $post->ID,
+			'data-post-type' => esc_attr( $type ),
+			'autocomplete' => 'off'
+		),
+	);
+
+	return $form;
 }
 
 /**
@@ -707,83 +714,89 @@ function wpcf_pr_admin_wpcf_relationship_check($keys_to_check = array())
     }
 }
 
-function wpcf_pr_admin_wpcf_relationship_search()
-{
-    wpcf_pr_admin_wpcf_relationship_check();
-	
+function wpcf_pr_admin_wpcf_relationship_search() {
+	wpcf_pr_admin_wpcf_relationship_check();
+
 	global $wpdb;
-	$values_to_prepare			= array();
-	
-	$posts_per_page				= apply_filters( 'wpcf_pr_belongs_post_numberposts', 10 );
-	$post_type					= sanitize_text_field( $_REQUEST['post_type'] );
-	$post_status				= apply_filters( 'wpcf_pr_belongs_post_status', array( 'publish', 'private' ) );
-	
-	$wpml_join = $wpml_where	= "";
-	$is_translated_post_type	= apply_filters( 'wpml_is_translated_post_type', false, $post_type );
-	
+	$values_to_prepare = array();
+
+	$posts_per_page = apply_filters( 'wpcf_pr_belongs_post_numberposts', 10 );
+	$post_type = sanitize_text_field( $_REQUEST['post_type'] );
+	$post_status = apply_filters( 'wpcf_pr_belongs_post_status', array( 'publish', 'private' ) );
+
+	$wpml_join               = $wpml_where = "";
+	$is_translated_post_type = apply_filters( 'wpml_is_translated_post_type', false, $post_type );
+
+	// TODO Almost the same query is in wpcf_pr_admin_post_meta_box_belongs_form(), DRY.
 	if ( $is_translated_post_type ) {
-		$wpml_current_language	= apply_filters( 'wpml_current_language', '' );
-		$wpml_join				= " JOIN {$wpdb->prefix}icl_translations t ";
-		$wpml_where				= " AND p.ID = t.element_id AND t.language_code = %s ";
-		$values_to_prepare[]	= $wpml_current_language;
+		$wpml_current_language = apply_filters( 'wpml_current_language', '' );
+		$wpml_join = " JOIN {$wpdb->prefix}icl_translations t ";
+		$wpml_where = " AND p.ID = t.element_id AND t.language_code = %s AND t.element_type = concat( 'post_', %s ) ";
+		$values_to_prepare[] = $wpml_current_language;
+		$values_to_prepare[] = $post_type;
+
+		// This is covered by the element_type condition in $wpml_where
+		$where_post_type = '';
+	} else {
+		// No WPML tables, we just query the post type directly.
+		$where_post_type = ' AND p.post_type = %s ';
+		$values_to_prepare[] = $post_type;
 	}
-	
-	$values_to_prepare[]		= sanitize_text_field( $post_type );
-	
-	$search_where				= "";
-	
-	if ( 
-		isset( $_REQUEST['s'] ) 
+
+	$search_where = "";
+
+	if (
+		isset( $_REQUEST['s'] )
 		&& $_REQUEST['s'] != ''
 	) {
 		$search_term = "";
-		if ( method_exists( $wpdb, 'esc_like' ) ) { 
-			$search_term = '%' . $wpdb->esc_like( $_REQUEST['s'] ) . '%'; 
-		} else { 
-			$search_term = '%' . like_escape( esc_sql( $_REQUEST['s'] ) ) . '%'; 
+		if ( method_exists( $wpdb, 'esc_like' ) ) {
+			$search_term = '%' . $wpdb->esc_like( $_REQUEST['s'] ) . '%';
+		} else {
+			$search_term = '%' . like_escape( esc_sql( $_REQUEST['s'] ) ) . '%';
 		}
-		$search_where			= " AND p.post_title LIKE %s ";
-		$values_to_prepare[]	= $search_term;
-		$orderby				= ' ORDER BY p.post_title ';
+		$search_where = " AND p.post_title LIKE %s ";
+		$values_to_prepare[] = $search_term;
+		$orderby = ' ORDER BY p.post_title ';
 	} else {
-		$orderby				= ' ORDER BY p.post_date DESC ';
+		$orderby = ' ORDER BY p.post_date DESC ';
 	}
-	
-	if ( 
-		isset( $_REQUEST['page'] ) 
-		&& preg_match( '/^\d+$/', $_REQUEST['page'] ) 
+
+	if (
+		isset( $_REQUEST['page'] )
+		&& preg_match( '/^\d+$/', $_REQUEST['page'] )
 	) {
-        $values_to_prepare[]	= ( (int) $_REQUEST['page'] - 1 ) * $posts_per_page;
-    } else {
-		$values_to_prepare[]	= 0;
+		$values_to_prepare[] = ( (int) $_REQUEST['page'] - 1 ) * $posts_per_page;
+	} else {
+		$values_to_prepare[] = 0;
 	}
-	$values_to_prepare[]		= $posts_per_page;
-	
+	$values_to_prepare[] = $posts_per_page;
+
 	$parents_available = $wpdb->get_results(
 		$wpdb->prepare(
 			"SELECT SQL_CALC_FOUND_ROWS p.ID as id, p.post_title as text, p.post_type as type, p.post_status as status 
 			FROM {$wpdb->posts} p {$wpml_join} 
-			WHERE p.post_status IN ('" . implode( "','" , $post_status ) . "') 
+			WHERE p.post_status IN ('" . implode( "','", $post_status ) . "') 
 			{$wpml_where} 
-			AND p.post_type = %s 
+			{$where_post_type} 
 			{$search_where} 
 			{$orderby}  
 			LIMIT %d,%d",
 			$values_to_prepare
 		)
 	);
-	
-	$parents_count = $wpdb->get_var('SELECT FOUND_ROWS()');
-	
+
+	$parents_count = $wpdb->get_var( 'SELECT FOUND_ROWS()' );
+
 	$results = array(
-		'items'					=> $parents_available,
-        'total_count'			=> $parents_count,
-        'incomplete_results'	=> $parents_count > $posts_per_page,
-        'posts_per_page'		=> $posts_per_page,
+		'items' => $parents_available,
+		'total_count' => $parents_count,
+		'incomplete_results' => $parents_count > $posts_per_page,
+		'posts_per_page' => $posts_per_page,
 	);
-	
-    echo json_encode( $results );
-    die;
+
+	echo json_encode( $results );
+	die;
 }
 
 // Deprecated since the introduction of select v.4

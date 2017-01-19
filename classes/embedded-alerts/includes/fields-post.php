@@ -246,10 +246,11 @@ function wpcf_add_meta_boxes( $post_type, $post )
 /**
  * Renders meta box content (preview).
  *
+ * @param $post
+ * @param array $group
+ * @param string $echo
  *
- *
- * @param type $post
- * @param type $group
+ * @return string
  */
 function wpcf_admin_post_meta_box_preview( $post, $group, $echo = '' ){
 
@@ -257,22 +258,17 @@ function wpcf_admin_post_meta_box_preview( $post, $group, $echo = '' ){
     require_once WPCF_EMBEDDED_ABSPATH . '/frontend.php';
     global $wpcf;
 
-    if ( isset( $group['args'] ) ) {
-        $fields = $group['args']['fields'];
-    } else {
-        $fields = $group['fields'];
-    }
-    if ( isset( $group['slug'] ) ) {
-        $slug = $group['slug'];
-        $name = $group['name'];
-    } else {
-        $slug = $group['id'];
-        $name = $group['title'];
-    }
-    /**
-     * fake post object if need
-     */
-    $post = wpcf_admin_create_fake_post_if_need($post);
+    // $group['args']['fields'] or $group['fields'] or array().
+    $fields = wpcf_getnest(
+        $group,
+        array( 'args', 'fields' ),
+        wpcf_getarr( $group, 'fields', array() )
+    );
+
+    $slug = wpcf_getarr( $group, 'slug', wpcf_getarr( $group, 'id' ) );
+    $name = wpcf_getarr( $group, 'name', wpcf_getarr( $group, 'title' ) );
+
+    $post = wpcf_admin_create_fake_post_if_need( $post );
 
     $group_output = '';
     if ( !empty( $echo ) ) {
@@ -409,53 +405,55 @@ function wpcf_admin_post_meta_box_preview( $post, $group, $echo = '' ){
  * @param string $echo
  * @param bool $open_style_editor if true use code for open style editor when edit group
  *
- * @return string
+ * @return string|void
  */
 function wpcf_admin_post_meta_box( $post, $group, $echo = '', $open_style_editor = false )
 {
 
-    $field_group = Types_Field_Group_Post_Factory::load( $group['args']['slug'] );
-    // todo Handle null $field_group.
-    $group_wpml = new Types_Wpml_Field_Group( $field_group );
+    $field_group = Types_Field_Group_Post_Factory::load( wpcf_getnest( $group, array( 'args', 'slug' ) ) );
+    // Field group will not exist when we're creating a new one.
+    $group_wpml = ( null !== $field_group ) ? new Types_Wpml_Field_Group( $field_group ) : null;
 
     if (
         false === $open_style_editor
         && defined( 'WPTOOLSET_FORMS_VERSION' )
+        && isset( $group['args']['html'] )
     ) {
-        if ( isset( $group['args']['html'] ) ) {
-            /**
-             * show group description
-             */
-            if ( array_key_exists('description', $group['args'] ) && !empty($group['args']['description'])) {
-                echo '<div class="wpcf-meta-box-description">';
-                echo wpautop( $group_wpml->translate_description() );
-                echo '</div>';
-            }
-            foreach ( $group['args']['html'] as $field ) {
-                echo is_array( $field ) ? wptoolset_form_field( 'post',
-                    $field['config'], $field['meta'] ) : $field;
-            }
+
+        // Show group description if there's something to show.
+        $description = wpcf_getnest( $group, array( 'args', 'description' ), '' );
+        if ( ! empty( $description ) ) {
+            $description = ( null !== $group_wpml ? $group_wpml->translate_description() : $description );
+
+            echo '<div class="wpcf-meta-box-description">';
+            echo wpautop( $description );
+            echo '</div>';
         }
+        foreach ( $group['args']['html'] as $field ) {
+            echo is_array( $field ) ? wptoolset_form_field( 'post',
+                $field['config'], $field['meta'] ) : $field;
+        }
+
         return;
     }
 
-
-
     global $wpcf;
-    /**
-     * fake post object if need
-     */
-    $post = wpcf_admin_create_fake_post_if_need($post);
+
+    $post = wpcf_admin_create_fake_post_if_need( $post );
 
     static $nonce_added = false;
     $group_output = '';
-    if ( !isset( $group['title'] ) ) {
+
+    // A compatibility fix, maybe somehow related to user fields, maybe outdated.
+    // Beware issues with non-existent (new) groups.
+    if ( ! isset( $group['title'] ) ) {
         $temp = $group;
-        $group = '';
-        $group['args'] = $temp;
-        $group['id'] = $temp['slug'];
-        $group['title'] = $temp['name'];
-        $name = $temp['name'];
+        $name = wpcf_getarr( $temp, 'name' );
+        $group = array(
+            'args' => $temp,
+            'id' => (int) wpcf_getarr( $temp, 'slug' ),
+            'title' => $name
+        );
     }
     if ( !empty( $echo ) ) {
         $group_output = '<h3>This Preview generated for latest post "' . $post->post_title . '"</h3>' . "\n" .
@@ -474,7 +472,7 @@ function wpcf_admin_post_meta_box( $post, $group, $echo = '', $open_style_editor
         wp_nonce_field( $nonce_action, '_wpcf_post_wpnonce' );
         $nonce_added = true;
     }
-    $group_output .= "\n\n" . '<div id="wpcf-group-metabox-id-' . $group['args']['slug'] . '">' . "\n";
+    $group_output .= "\n\n" . '<div id="wpcf-group-metabox-id-' . esc_attr( wpcf_getnest( $group, array( 'args', 'slug' ), 'new-group' ) ) . '">' . "\n";
     /*
      * TODO Move to Conditional code
      *

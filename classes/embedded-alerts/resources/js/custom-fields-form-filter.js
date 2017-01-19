@@ -394,11 +394,7 @@ function wpcfFilterCancelClick(object, edit, title, title_not_empty, title_empty
                 .attr('checked', 'checked');
             }
         }
-        /*
-         *
-         *
-         * Set title
-         */
+        // Set title
         if (window.wpcfTaxText.length > 0) {
             title_not_empty = window.wpcfTaxText.join(', ');
             parent.find('.wpcf-filter-ajax-response').html(
@@ -409,16 +405,7 @@ function wpcfFilterCancelClick(object, edit, title, title_not_empty, title_empty
                 _wpcfFilterTitle('empty', title, title_not_empty, title_empty)
                 );
         }
-    /*
-         *
-         *
-         *
-         *
-         *
-         *
-         *
-         * Do templates
-         */
+    // Do templates
     } else if (edit == 'templates') {
         toggle.slideUp().find('input').removeAttr('checked');
         if (window.wpcfFormGroupsTemplatesState.length > 0) {
@@ -435,13 +422,15 @@ function wpcfFilterCancelClick(object, edit, title, title_not_empty, title_empty
             parent.find('.wpcf-filter-ajax-response')
             .html(_wpcfFilterTitle('empty', title, title_not_empty, title_empty));
         }
-    }
-	// Do admin styles
-	else if (edit == 'admin_styles') {
-	  jQuery("#wpcf-admin-styles-box").css({width:'400px','border-color':'#dfdfdf','box-shadow':'none','z-index':'0'});
-	  jQuery('html, body').animate({scrollTop:jQuery('#wpcf-admin-styles-box').position().top}, 'fast');
-      CSSLayoutEditor.setValue( typesBase64.decode(wpcfDefaultCss) );
-	  toggle.slideUp();
+    } else if (edit == 'admin_styles') {
+
+        // Close the Styling editor and slide up
+        var stylingEditorBox = jQuery('#wpcf-admin-styles-box, #types_styling_editor');
+        if(stylingEditorBox.length) {
+            jQuery('html, body').animate({scrollTop:stylingEditorBox.position().top}, 'fast');
+            CSSLayoutEditor.setValue(typesBase64.decode(wpcfDefaultCss));
+            toggle.slideUp();
+        }
     }
 
     parent.children('a').css('visibility', 'visible');
