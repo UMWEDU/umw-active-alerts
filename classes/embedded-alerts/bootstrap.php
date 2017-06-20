@@ -114,25 +114,6 @@ wpcf_embedded_after_setup_theme_hook();
 $GLOBALS['wpcf'] = new stdClass();
 
 
-
-/**
- * Initialize the autoloader (for newer parts of code).
- */
-function wpcf_initialize_autoloader_embedded() {
-	require_once WPCF_EMBEDDED_INC_ABSPATH . '/autoloader.php';
-	$autoloader = WPCF_Autoloader::get_instance();
-	$autoloader->add_prefix( 'WPCF' );
-
-	// This will trigger the loading mechanism for legacy classes.
-	$autoloader->add_prefix( 'Types' );
-	$autoloader->add_prefix( 'WPToolset' );
-
-	$autoloader->add_path( WPCF_EMBEDDED_ABSPATH . '/classes' );
-}
-
-wpcf_initialize_autoloader_embedded();
-
-
 /**
  * Main init hook.
  *
@@ -157,7 +138,7 @@ function wpcf_embedded_init() {
 	
 	// Toolset Forms
 	if ( ! defined( 'WPTOOLSET_FORMS_VERSION' ) ) {
-		$toolset_common_bootstrap = Toolset_Common_Bootstrap::getInstance();
+		$toolset_common_bootstrap = Toolset_Common_Bootstrap::get_instance();
 		$toolset_common_sections = array(
 			'toolset_forms'
 		);
@@ -190,14 +171,6 @@ function wpcf_embedded_init() {
     define( 'WPCF_EMBEDDED_RES_RELPATH', WPCF_EMBEDDED_RELPATH . '/resources' );
 
     // TODO INCLUDES!
-    //
-    // Please add all required includes here
-    // Since Types 1.2 we can consider existing code as core.
-    // All new functionalities should be added as includes HERE
-    // and marked with @since Types $version.
-    //
-    // Thanks!
-    //
 
     // Basic
     /*
@@ -243,25 +216,16 @@ function wpcf_embedded_init() {
         require_once WPCF_EMBEDDED_INC_ABSPATH . '/cred.php';
     }
 
-    /*
-     *
-     *
-     * TODO This is a must for now.
-     * See if any fields need to be loaded.
-     *
-     * 1. Checkboxes - may be missing when submitted
-     */
+    // This is a must for now.
+	// See if any fields need to be loaded.
+	// 1. Checkboxes - may be missing when submitted
     require_once WPCF_EMBEDDED_INC_ABSPATH . '/fields/checkbox.php';
 
+    // Use this call to load basic scripts and styles if necesary
+	// wpcf_enqueue_scripts();
+	require_once WPCF_EMBEDDED_ABSPATH . '/usermeta-init.php';
 
-    /*
-     *
-     *
-     * Use this call to load basic scripts and styles if necesary
-     * wpcf_enqueue_scripts();
-     */
-    require_once WPCF_EMBEDDED_ABSPATH . '/usermeta-init.php';
-    // Include frontend or admin code
+	// Include frontend or admin code
     if ( is_admin() ) {
 
         require_once WPCF_EMBEDDED_ABSPATH . '/admin.php';
@@ -279,7 +243,6 @@ function wpcf_embedded_init() {
 
     global $wpcf;
 
-    // TODO since Types 1.2 Continue adding new functionalities HERE
     /*
      * Consider code already there as core.
      * Use hooks to add new functionalities
@@ -350,6 +313,8 @@ function wpcf_embedded_init() {
     $wpcf->excluded_post_types = array(
         'cred-form',
         'cred-user-form',
+	    'custom_css',
+	    'customize_changeset',
         'dd_layouts',
         'deprecated_log',
         'mediapage',

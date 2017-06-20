@@ -508,6 +508,7 @@ function types_render_usermeta( $field_id, $params, $content = null, $code = '' 
         }
     } else {
         $params['field_value'] = get_user_meta( $user_id, wpcf_types_get_meta_prefix( $field ) . $field['slug'], true );
+
         if ( $params['field_value'] == '' && $field['type'] != 'checkbox' ) {
             return '';
         }
@@ -548,7 +549,7 @@ function types_render_field_single( $field, $params, $content = null, $code = ''
 
     $params['field_value'] = apply_filters( 'wpcf_fields_value_display', $params['field_value'], $params, $post->ID, $field['id'], $meta_id );
 
-    $params['field_value'] = apply_filters( 'wpcf_fields_slug_' . $field['slug'] . '_value_display', $params['field_value'], $params, $post->ID, $field['id'], $meta_id );
+	$params['field_value'] = apply_filters( 'wpcf_fields_slug_' . $field['slug'] . '_value_display', $params['field_value'], $params, $post->ID, $field['id'], $meta_id );
 
     $params['field_value'] = apply_filters( 'wpcf_fields_type_' . $field['type'] . '_value_display', $params['field_value'], $params, $post->ID, $field['id'], $meta_id );
     // To make sure
@@ -585,14 +586,19 @@ function types_render_field_single( $field, $params, $content = null, $code = ''
                 $output = $params['field_value'];
             }
         } else {
-            /*
-             * This is place where view function is called.
-             * Returned data should be string.
-             */
+            // This is place where view function is called.
+	        // Returned data should be string.
             $output = '';
             $_view_func = 'wpcf_fields_' . strtolower( $field['type'] ) . '_view';
             if ( is_callable( $_view_func ) ) {
-                $output = strval( call_user_func( $_view_func, $params ) );
+            	$output = call_user_func( $_view_func, $params );
+
+            	if( is_array( $output ) ) {
+		            // Something went wrong.
+		            $output = '';
+	            }
+
+                $output = strval( $output );
             }
 
 	    if ( Toolset_Utils::is_field_value_truly_empty( $output ) && isset( $params['field_value'] )
@@ -614,9 +620,20 @@ function types_render_field_single( $field, $params, $content = null, $code = ''
         }
 
     // Apply filters
-    $output = strval( apply_filters( 'types_view', $output,
-        $params['field_value'], $field['type'], $field['slug'],
-        $field['name'], $params ) );
+    $output = apply_filters(
+    	'types_view',
+	    $output,
+        $params['field_value'],
+	    $field['type'],
+	    $field['slug'],
+        $field['name'],
+	    $params
+    );
+
+    if( is_array( $output ) ) {
+    	// Something went wrong.
+	    $output = '';
+    }
 
 	return stripslashes( strval( $output ) );
 

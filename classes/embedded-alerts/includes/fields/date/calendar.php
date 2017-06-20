@@ -1,20 +1,7 @@
 <?php
-/*
- *
- * Calendar view.
- */
 
 /**
  * Calendar view.
- *
- * @global object $wpdb
- * @global type $m
- * @global type $wp_locale
- * @global type $posts
- * @param type $params
- * @param type $initial
- * @param type $echo
- * @return type
  */
 function wpcf_fields_date_get_calendar( $params, $initial = true, $echo = true ) {
 

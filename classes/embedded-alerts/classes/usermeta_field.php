@@ -84,6 +84,14 @@ class WPCF_Usermeta_Field extends WPCF_Field
 
         delete_user_meta( $this->currentUID, $this->slug );
 
+	    if(
+	    	empty( $value )
+	    	&& ! wpcf_getnest( $_POST, array( 'wpcf', $this->ID ) )
+	    	&& wpcf_getnest( $this->cf, array( 'data', 'save_empty' ) ) == 'yes'
+	    ) {
+		    // empty value && unchecked field && save 0 if empty
+		    $value = 0;
+	    };
 
         // Save
         if ( !empty( $value ) || is_numeric( $value ) ) {

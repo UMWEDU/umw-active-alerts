@@ -55,10 +55,10 @@ if ( is_admin() ) {
  *
  * Enqueues styles and scripts on post edit page.
  *
- * @param type $post_type
- * @param type $post
- * @param type $groups
- * @param type $wpcf_active
+ * @param $post_type
+ * @param $post
+ * @param $groups
+ * @param $wpcf_active
  */
 function wpcf_pr_admin_post_init_action( $post_type, $post, $groups, $wpcf_active )
 {
@@ -107,14 +107,15 @@ function wpcf_pr_admin_post_init_action( $post_type, $post, $groups, $wpcf_activ
                 wp_enqueue_style( 'wpcf-pr-post',
                         WPCF_EMBEDDED_RES_RELPATH . '/css/fields-post.css',
                         array(), WPCF_VERSION );
-                wp_enqueue_script( 'wpcf-form-validation',
-                        WPCF_EMBEDDED_RES_RELPATH . '/js/'
-                        . 'jquery-form-validation/jquery.validate.min.js',
-                        array('jquery'), WPCF_VERSION );
-                wp_enqueue_script( 'wpcf-form-validation-additional',
-                        WPCF_EMBEDDED_RES_RELPATH . '/js/'
-                        . 'jquery-form-validation/additional-methods.min.js',
-                        array('jquery'), WPCF_VERSION );
+
+	            $asset_manager = Types_Asset_Manager::get_instance();
+	            $asset_manager->enqueue_scripts(
+		            array(
+			            Types_Asset_Manager::SCRIPT_JQUERY_UI_VALIDATION,
+			            Types_Asset_Manager::SCRIPT_ADDITIONAL_VALIDATION_RULES,
+		            )
+	            );
+
             }
             wpcf_admin_add_js_settings( 'wpcf_pr_del_warning',
                     '\'' . __( 'Are you sure about deleting this post?', 'wpcf' ) . '\'' );
@@ -850,7 +851,7 @@ function wpcf_pr_admin_wpcf_relationship_update() {
 		&& (int) $_REQUEST['p'] > 0
 	) {
 		update_post_meta( $post_id, sprintf( '_wpcf_belongs_%s_id', $parent_post_type ), (int) $_REQUEST['p'] );
-		$data['edit_link'] = admin_url( 'post.php ');
+		$data['edit_link'] = admin_url( 'post.php' );
 	} else {
 		delete_post_meta( $post_id, sprintf( '_wpcf_belongs_%s_id', $parent_post_type ) );
 	}

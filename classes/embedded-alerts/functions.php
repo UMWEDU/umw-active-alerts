@@ -627,40 +627,36 @@ function wpcf_enqueue_scripts()
  * Load all scripts required on edit post screen.
  *
  * @since 1.2.1
- * @todo Make loading JS more clear for all components.
  */
-function wpcf_edit_post_screen_scripts()
-{
-    wpcf_enqueue_scripts();
-    // TODO Switch to 1.11.1 jQuery Validation
-//        wp_enqueue_script( 'types-js-validation' );
-    if ( !defined( 'WPTOOLSET_FORMS_ABSPATH' ) ) {
-        wp_enqueue_script( 'wpcf-form-validation',
-                WPCF_EMBEDDED_RES_RELPATH . '/js/'
-                . 'jquery-form-validation/jquery.validate.js', array('jquery'),
-               WPCF_VERSION );
-        wp_enqueue_script( 'wpcf-form-validation-additional',
-                WPCF_EMBEDDED_RES_RELPATH . '/js/'
-                . 'jquery-form-validation/additional-methods.min.js',
-                array('jquery'), WPCF_VERSION );
-    }
-    wp_enqueue_style( 'wpcf-css-embedded',
-            WPCF_EMBEDDED_RES_RELPATH . '/css/basic.css', array(), WPCF_VERSION );
-    wp_enqueue_style( 'wpcf-fields-post',
-            WPCF_EMBEDDED_RES_RELPATH . '/css/fields-post.css',
-            array('wpcf-css-embedded'), WPCF_VERSION );
-    wp_enqueue_style( 'wpcf-usermeta',
-            WPCF_EMBEDDED_RES_RELPATH . '/css/usermeta.css',
-            array('wpcf-css-embedded'), WPCF_VERSION );
-    wp_enqueue_script( 'toolset-colorbox' );
-    wp_enqueue_style( 'toolset-colorbox' );
-    wp_enqueue_style( 'font-awesome' );
+function wpcf_edit_post_screen_scripts() {
+	wpcf_enqueue_scripts();
+
+	$asset_manager = Types_Asset_Manager::get_instance();
+	$asset_manager->enqueue_scripts(
+		array(
+			Types_Asset_Manager::SCRIPT_JQUERY_UI_VALIDATION,
+			Types_Asset_Manager::SCRIPT_ADDITIONAL_VALIDATION_RULES,
+		)
+	);
+
+	wp_enqueue_style( 'wpcf-css-embedded',
+		WPCF_EMBEDDED_RES_RELPATH . '/css/basic.css', array(), WPCF_VERSION );
+	wp_enqueue_style( 'wpcf-fields-post',
+		WPCF_EMBEDDED_RES_RELPATH . '/css/fields-post.css',
+		array( 'wpcf-css-embedded' ), WPCF_VERSION );
+	wp_enqueue_style( 'wpcf-usermeta',
+		WPCF_EMBEDDED_RES_RELPATH . '/css/usermeta.css',
+		array( 'wpcf-css-embedded' ), WPCF_VERSION );
+	wp_enqueue_script( 'toolset-colorbox' );
+	wp_enqueue_style( 'toolset-colorbox' );
+	wp_enqueue_style( 'font-awesome' );
 }
 
 /**
  * Check if running embedded version.
  *
- * @return type
+ * @return boolean
+ * @deprecated
  */
 function wpcf_is_embedded()
 {
@@ -735,8 +731,11 @@ function wpcf_field_enqueue_scripts($type)
  * Get file URL.
  *
  * @uses WPCF_Path (functions taken from CRED_Loader)
- * @param type $file
- * @return type
+ *
+ * @param string $file
+ * @param bool $use_baseurl
+ *
+ * @return string
  */
 function wpcf_get_file_url($file, $use_baseurl = true)
 {

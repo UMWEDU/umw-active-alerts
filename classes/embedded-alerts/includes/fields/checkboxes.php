@@ -1,8 +1,17 @@
 <?php
+/*
+    IMPORTANT NOTE
+
+	Some checkboxes-related functionality is - for historical reasons - shared with checkbox fields in a
+	very unclear way. It's defined in ./checkbox.php.
+
+	Namely wpcf_update_checkboxes_field() which is invoked by wpcf_fields_checkbox_save_check() at save_post.
+ */
+
 /**
  * Register data (called automatically).
  * 
- * @return type 
+ * @return array
  */
 function wpcf_fields_checkboxes() {
     return array(

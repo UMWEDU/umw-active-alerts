@@ -150,14 +150,15 @@ function wpcf_admin_userprofile_init($user_id){
 		wp_enqueue_script( 'wpcf-fields-post',
                 WPCF_EMBEDDED_RES_RELPATH . '/js/fields-post.js',
                 array('jquery'), WPCF_VERSION );
-        wp_enqueue_script( 'wpcf-form-validation',
-                WPCF_EMBEDDED_RES_RELPATH . '/js/'
-                . 'jquery-form-validation/jquery.validate.min.js',
-                array('jquery'), WPCF_VERSION );
-        wp_enqueue_script( 'wpcf-form-validation-additional',
-                WPCF_EMBEDDED_RES_RELPATH . '/js/'
-                . 'jquery-form-validation/additional-methods.min.js',
-                array('jquery'), WPCF_VERSION );
+
+	    $asset_manager = Types_Asset_Manager::get_instance();
+	    $asset_manager->enqueue_scripts(
+		    array(
+			    Types_Asset_Manager::SCRIPT_JQUERY_UI_VALIDATION,
+			    Types_Asset_Manager::SCRIPT_ADDITIONAL_VALIDATION_RULES,
+		    )
+	    );
+
         wp_enqueue_style( 'wpcf-css-embedded',
                 WPCF_EMBEDDED_RES_RELPATH . '/css/basic.css', array(),
                 WPCF_VERSION );
@@ -326,256 +327,84 @@ function wpcf_admin_profile_js_validation(){
 }
 
 
-/*
-* Save user profile custom fields
-*/
-function wpcf_admin_userprofilesave_init($user_id){
+/**
+ * Save user profile custom fields.
+ *
+ * @since unknown
+ * @param $user_id
+ */
+function wpcf_admin_userprofilesave_init( $user_id ) {
 
-    if ( defined( 'WPTOOLSET_FORMS_VERSION' ) ) {
+    global $wpcf;
+	$has_errors = false;
 
-        global $wpcf;
-        $errors = false;
+	$wpcf_form_data = wpcf_ensarr( wpcf_getarr( $_POST, 'wpcf' ) );
 
-        /**
-         * check checkbox type fields to delete or save empty if needed
-         */
-        $groups = wpcf_admin_usermeta_get_groups_fields();
-        foreach ( $groups as $group ) {
-            if ( !array_key_exists( 'fields', $group ) || empty( $group['fields'] ) ) {
-                continue;
-            }
-            foreach( $group['fields'] as $field ) {
-                switch ( $field['type'] ) {
-                case 'checkboxes':
-                    if (
-                        !array_key_exists('wpcf', $_POST)
-                        || !array_key_exists( $field['slug'], $_POST['wpcf'] )
-                    ) {
-                        delete_user_meta($user_id, $field['meta_key']);
-                    }
-                    break;
-                case 'checkbox':
-                    if (
-                        !array_key_exists('wpcf', $_POST)
-                        || !array_key_exists( $field['slug'], $_POST['wpcf'] )
-                    ) {
-                        if ( 'yes' == $field['data']['save_empty'] ) {
-                            $_POST['wpcf'][$field['slug']] = 0;
-                        } else {
-                            delete_user_meta($user_id, $field['meta_key']);
-                        }
-                    }
-                    break;
-                }
-            }
+	// Check wpcf_adjust_form_input_for_checkboxlike_fields() for information about side effects.
+    $wpcf_form_data = wpcf_adjust_form_input_for_checkboxlike_fields(
+	    $wpcf_form_data,
+	    wpcf_ensarr( wpcf_getarr( $_POST, '_wptoolset_checkbox' ) )
+    );
+
+    $wpcf_form_data = wpcf_adjust_form_input_for_checkboxlike_fields(
+	    $wpcf_form_data,
+	    wpcf_ensarr( wpcf_getarr( $_POST, '_wptoolset_radios' ) )
+    );
+
+    // Save meta fields
+    foreach ( $wpcf_form_data as $field_slug => $field_value ) {
+        // Get field by slug
+        $field_definition_array = wpcf_fields_get_field_by_slug( $field_slug, 'wpcf-usermeta' );
+        if ( empty( $field_definition_array ) ) {
+            continue;
         }
-
-        // Save meta fields
-        if ( !empty( $_POST['wpcf'] ) ) {
-            foreach ( $_POST['wpcf'] as $field_slug => $field_value ) {
-                // Get field by slug
-                $field = wpcf_fields_get_field_by_slug( $field_slug, 'wpcf-usermeta' );
-                if ( empty( $field ) ) {
-                    continue;
-                }
-                // Skip copied fields
-                if ( isset( $_POST['wpcf_repetitive_copy'][$field['slug']] ) ) {
-                    continue;
-                }
-                $_field_value = !types_is_repetitive( $field ) ? array($field_value) : $field_value;
-                // Set config
-                $config = wptoolset_form_filter_types_field( $field, $user_id );
-                foreach ( $_field_value as $_k => $_val ) {
-                    // Check if valid
-                    $valid = wptoolset_form_validate_field( 'your-profile', $config,
-                            $_val );
-                    if ( is_wp_error( $valid ) ) {
-                        $errors = true;
-                        $_errors = $valid->get_error_data();
-                        $_msg = sprintf( __( 'Field "%s" not updated:', 'wpcf' ),
-                                $field['name'] );
-                        wpcf_admin_message_store( $_msg . ' ' . implode( ', ',
-                                        $_errors ), 'error' );
-                        if ( types_is_repetitive( $field ) ) {
-                            unset( $field_value[$_k] );
-                        } else {
-                            break;
-                        }
-                    }
-                }
-                // Save field
-                if ( types_is_repetitive( $field ) ) {
-                    $wpcf->usermeta_repeater->set( $user_id, $field );
-                    $wpcf->usermeta_repeater->save( $field_value );
+        // Skip copied fields
+        if ( isset( $_POST['wpcf_repetitive_copy'][$field_definition_array['slug']] ) ) {
+            continue;
+        }
+        $_field_value = !types_is_repetitive( $field_definition_array ) ? array($field_value) : $field_value;
+        // Set config
+        $config = wptoolset_form_filter_types_field( $field_definition_array, $user_id );
+        foreach ( $_field_value as $_k => $_val ) {
+            // Check if valid
+            $valid = wptoolset_form_validate_field( 'your-profile', $config, $_val );
+            if ( is_wp_error( $valid ) ) {
+                $has_errors = true;
+                $_errors = $valid->get_error_data();
+                $_msg = sprintf( __( 'Field "%s" not updated:', 'wpcf' ),
+                        $field_definition_array['name'] );
+                wpcf_admin_message_store( $_msg . ' ' . implode( ', ',
+                                $_errors ), 'error' );
+                if ( types_is_repetitive( $field_definition_array ) ) {
+                    unset( $field_value[$_k] );
                 } else {
-                    $wpcf->usermeta_field->set( $user_id, $field );
-                    $wpcf->usermeta_field->usermeta_save( $field_value );
-                }
-
-                do_action( 'wpcf_user_field_saved', $user_id, $field );
-
-                // TODO Move to checkboxes
-
-                if ( $field['type'] == 'checkboxes' ) {
-                    $field_data = wpcf_admin_fields_get_field( $field['id'], false, false, false, 'wpcf-usermeta' );
-                    if ( !empty( $field_data['data']['options'] ) ) {
-                        $update_data = array();
-                        foreach ( $field_data['data']['options'] as $option_id => $option_data ) {
-                            if ( !isset( $_POST['wpcf'][$field['id']][$option_id] ) ) {
-                                if ( isset( $field_data['data']['save_empty'] ) && $field_data['data']['save_empty'] == 'yes' ) {
-                                    $update_data[$option_id] = 0;
-                                }
-                            } else {
-                                $update_data[$option_id] = $_POST['wpcf'][$field['id']][$option_id];
-                            }
-                        }
-                        update_user_meta( $user_id, $field['meta_key'], $update_data );
-                    }
+                    break;
                 }
             }
         }
-        if ( $errors ) {
-            update_post_meta( $user_id, '__wpcf-invalid-fields', true );
+        // Save field
+        if ( types_is_repetitive( $field_definition_array ) ) {
+            $wpcf->usermeta_repeater->set( $user_id, $field_definition_array );
+            $wpcf->usermeta_repeater->save( $field_value );
+        } else {
+            $wpcf->usermeta_field->set( $user_id, $field_definition_array );
+            $wpcf->usermeta_field->usermeta_save( $field_value );
         }
-        do_action( 'wpcf_user_saved', $user_id );
-        return;
+
+        do_action( 'wpcf_user_field_saved', $user_id, $field_definition_array );
+
+	    // Note: Checkboxes fields used to be handled as a special case here, that was now moved
+	    // to wpcf_update_checkboxes_field(). Unlike for posts, we need to call this funcion manually from here.
+	    if( 'checkboxes' == wpcf_getarr( $field_definition_array, 'type' ) ) {
+		    wpcf_update_checkboxes_field( $field_definition_array, 'user', $user_id, $wpcf_form_data );
+	    }
     }
 
-	global $wpcf;
-
-	$all_fields = array();
-	$_not_valid = array();
-	$_error = false;
-	$error = '';
-
-	$groups = $groups = wpcf_admin_usermeta_get_groups_fields();
-    if ( empty( $groups ) ) {
-        return false;
+    if ( $has_errors ) {
+        update_post_meta( $user_id, '__wpcf-invalid-fields', true );
     }
 
-	foreach ( $groups as $group ) {
-        // Process fields
-
-        $fields = wpcf_admin_usermeta_process_fields( $user_id , $group['fields'], true,
-                false, 'validation' );
-        // Validate fields
-        $form = wpcf_form_simple_validate( $fields );
-
-        $all_fields = $all_fields + $fields;
-
-        // Collect all not valid fields
-        if ( $form->isError() ) {
-            $_error = true; // Set error only to true
-            $_not_valid = array_merge( $_not_valid,
-                    (array) $form->get_not_valid() );
-        }
-    }
-
-	// Set fields
-    foreach ( $all_fields as $k => $v ) {
-        // only Types field
-        if ( empty( $v['wpcf-id'] ) ) {
-            continue;
-        }
-        $_temp = new WPCF_Usermeta_Field();
-        $_temp->set( $user_id, $v['wpcf-id'] );
-        $all_fields[$k]['_field'] = $_temp;
-    }
-	foreach ( $_not_valid as $k => $v ) {
-        // only Types field
-        if ( empty( $v['wpcf-id'] ) ) {
-            continue;
-        }
-        $_temp = new WPCF_Usermeta_Field();
-        $_temp->set( $user_id, $v['wpcf-id'] );
-        $_not_valid[$k]['_field'] = $_temp;
-    }
-
-    $not_valid = apply_filters( 'wpcf_post_form_not_valid', $_not_valid,
-            $_error, $all_fields );
-
-
-    // Notify user about error
-    if ( $error ) {
-        wpcf_admin_message_store(
-                __( 'Please check your input data', 'wpcf' ), 'error' );
-    }
-
-    /*
-     * Save invalid elements so user can be informed after redirect.
-     */
-    if ( !empty( $not_valid ) ) {
-        update_user_meta( $user_id, 'wpcf-invalid-fields', $not_valid );
-    }
-
-
-	if ( !empty( $_POST['wpcf'] ) ) {
-        foreach ( $_POST['wpcf'] as $field_slug => $field_value ) {
-
-			$field = wpcf_fields_get_field_by_slug( $field_slug, 'wpcf-usermeta' );
-			if ( empty( $field ) ) {
-                continue;
-            }
-
-
-			$wpcf->usermeta_field->set( $user_id, $field );
-			if ( isset( $_POST['wpcf_repetitive_copy'][$field['slug']] ) ) {
-                continue;
-            }
-
-			if ( isset( $_POST['__wpcf_repetitive'][$wpcf->usermeta_field->slug] ) ) {
-                 $wpcf->usermeta_repeater->set( $user_id, $field );
-                $wpcf->usermeta_repeater->save();
-            } else {
-                 $wpcf->usermeta_field->usermeta_save();
-            }
-
-            do_action('wpcf_post_field_saved', '', $field);
-
-
-
-		}//end foreach
-
-	}//end if
-
-	foreach ( $all_fields as $field ) {
-		if ( !isset( $field['#type'] ) ) {
-            continue;
-        }
-		if ( $field['#type'] == 'checkbox') {
-            $field_data = wpcf_admin_fields_get_field( $field['wpcf-id'], false,
-                    false, false, 'wpcf-usermeta' );
-			if ( !isset( $_POST['wpcf'][$field['wpcf-slug']] ) ){
-				if ( isset( $field_data['data']['save_empty'] )
-                    && $field_data['data']['save_empty'] == 'yes' ) {
-						update_user_meta($user_id, wpcf_types_get_meta_prefix( $field ) . $field['wpcf-slug'], 0);
-				}
-				else{
-					delete_user_meta($user_id, wpcf_types_get_meta_prefix( $field ) . $field['wpcf-slug']);
-				}
-			}
-		}
-        if ( $field['#type'] == 'checkboxes' ) {
-            $field_data = wpcf_admin_fields_get_field( $field['wpcf-id'], false,
-                    false, false, 'wpcf-usermeta' );
-            if ( !empty( $field_data['data']['options'] ) ) {
-                $update_data = array();
-                foreach ( $field_data['data']['options'] as $option_id => $option_data ) {
-                    if ( !isset( $_POST['wpcf'][$field['wpcf-slug']][$option_id] ) ) {
-                        if ( isset( $field_data['data']['save_empty'] ) && $field_data['data']['save_empty'] == 'yes' ) {
-                            $update_data[$option_id] = 0;
-                        }
-                    } else {
-                        $update_data[$option_id] = $_POST['wpcf'][$field['wpcf-slug']][$option_id];
-                    }
-                }
-                update_user_meta( $user_id,
-                        wpcf_types_get_meta_prefix( $field ) . $field['wpcf-slug'],
-                        $update_data );
-            }
-        }
-	}
-
+    do_action( 'wpcf_user_saved', $user_id );
 
 }
 

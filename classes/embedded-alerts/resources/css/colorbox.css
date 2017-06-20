@@ -82,4 +82,10 @@
 .cboxIE #cboxMiddleRight {
 	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=#00FFFFFF,endColorstr=#00FFFFFF);
 }
+
+/* Make sure field configuration dialog shows on top of VC dialog, which uses z-index 100000 */
+#colorbox.js-wpcf-colorbox-with-iframe {
+	z-index: 100001 !important;
+}
+
 /* Dialogs END */

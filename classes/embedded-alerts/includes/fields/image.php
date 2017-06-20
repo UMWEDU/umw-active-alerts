@@ -1,7 +1,8 @@
 <?php
 /**
  * Register data (called automatically).
- * @return type
+ *
+ * @return array
  */
 function wpcf_fields_image() {
     return array(
@@ -18,16 +19,13 @@ function wpcf_fields_image() {
     );
 }
 
-/**
- *
- *
- */
 
 add_filter( 'wpcf_fields_type_image_value_get', 'wpcf_fields_image_value_filter' );
 add_filter( 'wpcf_fields_type_image_value_save', 'wpcf_fields_image_value_filter' );
 
 // Do not wrap if 'url' is TRUE
 add_filter( 'types_view', 'wpcf_fields_image_view_filter', 10, 6 );
+
 
 /**
  * return array of valid extensions
@@ -53,10 +51,16 @@ function wpcf_fields_image_valid_extension()
 /**
  * Editor callback form.
  *
- * @global object $wpdb
+ * @param $field
+ * @param $data
+ * @param $context
+ * @param $post
  *
+ * @return array
  */
-function wpcf_fields_image_editor_callback( $field, $data, $context, $post ) {
+function wpcf_fields_image_editor_callback(
+	$field, $data, /** @noinspection PhpUnusedParameterInspection */ $context, $post
+) {
 
     // Get post_ID
     $post_ID = !empty( $post->ID ) ? $post->ID : false;
@@ -107,26 +111,9 @@ function wpcf_fields_image_editor_callback( $field, $data, $context, $post ) {
     $data['preview'] = $attachment_id ? wp_get_attachment_image( $attachment_id,
                     'thumbnail' ) : '';
 
-    // Title and Alt
-    if ( $attachment_id ) {
-        $alt = trim( strip_tags( get_post_meta( $attachment_id,
-                                '_wp_attachment_image_alt', true ) ) );
-        $attachment_post = get_post( $attachment_id );
-        if ( !empty( $attachment_post ) ) {
-            $title = trim( strip_tags( $attachment_post->post_title ) );
-        } else if ( !empty( $alt ) ) {
-            $title = $alt;
-        }
-        if ( empty( $alt ) ) {
-            $alt = $title;
-        }
-        if ( !isset( $data['title'] ) ) {
-            $data['title'] = $title;
-        }
-        if ( !isset( $data['alt'] ) ) {
-            $data['alt'] = $alt;
-        }
-    }
+    // Use the title/alt placeholders for all images instead of "hardcoding" specific values.
+	$data['title'] = '%%TITLE%%';
+	$data['alt'] = '%%ALT%%';
 
     // Align options
     $data['alignment_options'] = array(
@@ -315,9 +302,13 @@ function wpcf_fields_image_view( $params ) {
 
     // Pre-configured size (use WP function) IF NOT CROPPED
     if ( $resize == 'crop' && $image_data['is_attachment'] && !empty( $params['size'] ) ) {
-        //print_r('is_attachment');
+
+        // for this case we need to get the attachment id
+        if( $image_data['is_attachment'] === true ) {
+	        $image_data['is_attachment'] = wpcf_image_is_attachment( $image_data['fullrelpath'] );
+        }
+	    
         if ( isset( $params['url'] ) && $params['url'] == 'true' ) {
-            //print_r('is_url');
             $image_url = wp_get_attachment_image_src( $image_data['is_attachment'], $params['size'] );
             if ( !empty( $image_url[0] ) ) {
                 $output = $image_url[0];
@@ -400,8 +391,9 @@ function wpcf_fields_image_view( $params ) {
             } else {
                 $resized_image = $__resized_image->url;
                 $image_abspath = $__resized_image->path;
+	            $id_by_guid = wpcf_image_is_attachment( $__resized_image->url );
                 if ( wpcf_get_settings( 'add_resized_images_to_library' )
-                        && !wpcf_image_is_attachment( $__resized_image->url )
+                        && ! $id_by_guid
                         && $image_data['is_in_upload_path'] ) {
                     global $post;
                     wpcf_image_add_to_library( $post, $image_abspath );
@@ -415,6 +407,10 @@ function wpcf_fields_image_view( $params ) {
             $wpcf->__images_wrap_fix[md5( serialize( $params ) )] = $resized_image;
 
             return $resized_image;
+        }
+
+        if( ! isset( $image_data['is_attachment'] ) || $image_data['is_attachment'] == 0 ) {
+	        $image_data['is_attachment'] = wpcf_image_is_attachment( $resized_image );
         }
 
         $output = sprintf( '<img alt="%s" ', $output .= $alt !== false ? wpcf_attachment_placeholder( $image_data['is_attachment'], $alt ) : '');
@@ -1093,6 +1089,263 @@ function wpcf_image_add_to_library( $post, $abspath ){
 }
 
 /**
+ * Class WPCF_Guid_Id
+ * 
+ * @since 2.2.12 Temporary solution to speed up image fields
+ */
+class WPCF_Guid_Id {
+	/**
+	 * @var WPCF_Guid_Id
+	 */
+	private static $instance;
+
+	/**
+	 * @var string
+	 */
+	private $table_name = 'toolset_post_guid_id';
+
+	/**
+	 * @var wpdb
+	 */
+	private $wpdb;
+
+	/**
+	 * @var bool
+	 */
+	private $is_table_available = false;
+
+	/**
+	 * Temporary singleton until other parts of image fields are refactored
+	 *
+	 * @param wpdb $wpdb
+	 */
+	private function __construct( wpdb $wpdb) {
+		$this->wpdb = $wpdb;
+		$this->is_table_available = $this->create_table_if_not_exist();
+
+		if( $this->is_table_available ) {
+			add_action( 'add_attachment', array( $this, 'on_attachment_save' ) );
+			add_action( 'edit_attachment', array( $this, 'on_attachment_save' ) );
+			add_action( 'delete_attachment', array( $this, 'delete_by_post_id' ) );
+		};
+	}
+
+	/**
+	 * @return WPCF_Guid_Id
+	 */
+	public static function get_instance() {
+		if( self::$instance === null ) {
+			global $wpdb;
+
+			if( is_object( $wpdb ) ) {
+				self::$instance = new self( $wpdb );
+			}
+		}
+
+		return self::$instance;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function get_table_name() {
+		return $this->wpdb->prefix . $this->table_name;
+	}
+
+	/**
+	 * @param $guid
+	 * @param $post_id
+	 *
+	 * @return bool
+	 */
+	public function insert( $guid, $post_id ) {
+		if( ! $this->is_table_available ) {
+			return false;
+		}
+
+		$table_guid_id = $this->get_table_name();
+
+		$this->wpdb->query(
+			$this->wpdb->prepare(
+				"INSERT INTO $table_guid_id (guid,post_id) VALUES (%s,%d)",
+				$guid, $post_id
+			)
+		);
+	}
+
+	/**
+	 * @param $guid
+	 * @param $post_id
+	 *
+	 * @return bool
+	 */
+	public function update( $guid, $post_id ) {
+		if( ! $this->is_table_available ) {
+			return false;
+		}
+
+		$table_guid_id = $this->get_table_name();
+
+		$this->wpdb->query(
+			$this->wpdb->prepare(
+				"UPDATE $table_guid_id SET post_id=%d WHERE guid=%s",
+				$post_id, $guid
+			)
+		);
+	}
+
+	/**
+	 * Delete a relationship by passing post id
+	 *
+	 * @param $post_id
+	 *
+	 * @return bool
+	 */
+	public function delete_by_post_id( $post_id ) {
+		if( ! $this->is_table_available ) {
+			return false;
+		}
+
+		$table_guid_id = $this->get_table_name();
+
+		$this->wpdb->query(
+			$this->wpdb->prepare(
+				"DELETE FROM $table_guid_id WHERE post_id=%d",
+				$post_id
+			)
+		);
+	}
+
+	/**
+	 * Get post_id by guid
+	 * @param $guid
+	 *
+	 * @return null|string
+	 */
+	public function get_id_by_guid( $guid ) {
+		if( ! $this->is_table_available ) {
+			return false;
+		}
+
+		$table_guid_id = $this->get_table_name();
+
+		return $this->wpdb->get_var(
+			$this->wpdb->prepare(
+				"SELECT post_id FROM $table_guid_id WHERE guid=%s LIMIT 1",
+				$guid
+			)
+		);
+	}
+
+	/**
+	 * Get guid by post_id
+	 * @param $post_id
+	 *
+	 * @return null|string
+	 */
+	public function get_guid_by_id( $post_id ) {
+		if( ! $this->is_table_available ) {
+			return false;
+		}
+
+		$table_guid_id = $this->get_table_name();
+
+		return $this->wpdb->get_var(
+			$this->wpdb->prepare(
+				"SELECT guid FROM $table_guid_id WHERE post_id=%d LIMIT 1",
+				$post_id
+			)
+		);
+	}
+
+	/**
+	 * Hooked to 'post_save'
+	 *
+	 * @param $post_id
+	 *
+	 * @return bool|void
+	 */
+	public function on_attachment_save( $post_id  ) {
+		if( ! $this->is_table_available ) {
+			return false;
+		}
+
+		if( ! $post = get_post( $post_id ) ) {
+			// no post found
+			return;
+		};
+
+		if( $post->post_type != 'attachment' ) {
+			// only store for attachments
+			return;
+		}
+
+		$post_id = $this->get_id_by_guid( $post->guid );
+
+		if( $post_id && $post_id == $post->ID ) {
+			// already stored with same guid and id
+			return;
+		}
+
+		if( $post_id ) {
+			// entry for guid already exists, but Post->ID has changed (shouldn't really happen, but who knows -> 3rd party plugins)
+			return $this->update( $post->guid, $post->ID );
+		}
+
+		if( $guid = $this->get_guid_by_id( $post->ID ) ) {
+			// there is an entry for the post_id, but guid differs -> update the guid
+			return $this->update( $post->guid, $post->ID );
+		}
+
+		// create entry for guid
+		$this->insert( $post->guid, $post->ID );
+	}
+
+	/**
+	 * @return array|void
+	 */
+	private function create_table_if_not_exist() {
+		$table_guid_id = $this->get_table_name();
+		$option_key_table_could_not_be_created = '_types-error-on-create-table-' . $table_guid_id;
+
+		if( $this->wpdb->get_var( "SHOW TABLES LIKE '$table_guid_id'" ) == $table_guid_id) {
+			// table already exists
+			return true;
+		}
+
+		if( get_option( $option_key_table_could_not_be_created, false ) ) {
+			// we already tried to create the table before, but without success
+			return false;
+		}
+
+		$query = "CREATE TABLE {$table_guid_id} (
+			`guid` varchar(190) NOT NULL DEFAULT '',
+			`post_id` bigint(20) NOT NULL,
+			UNIQUE KEY `post_id` (`post_id`),
+			KEY `guid` (`guid`)
+		) " . $this->wpdb->get_charset_collate() . ";";
+
+		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+		ob_start(); // prevent any error output
+		@dbDelta( $query ); // error on dbDelta not catchable
+		ob_end_clean();
+
+		if( $this->wpdb->get_var( "SHOW TABLES LIKE '$table_guid_id'" ) == $table_guid_id) {
+			// table successfully created
+			return true;
+		}
+
+		// for some reason the table could not be created - save result
+		update_option( $option_key_table_could_not_be_created, '1' );
+
+		return false;
+	}
+}
+
+// make sure hooks are loaded
+WPCF_Guid_Id::get_instance();
+
+/**
  * Checks if image is attachment.
  *
  * @global object $wpdb
@@ -1100,13 +1353,30 @@ function wpcf_image_add_to_library( $post, $abspath ){
  * @return type
  */
 function wpcf_image_is_attachment( $guid ) {
+	$wpcf_guid_id = WPCF_Guid_Id::get_instance();
+
+	// fetch id by using our toolset_post_guid_id table
+	if( $post_id = $wpcf_guid_id->get_id_by_guid( $guid ) ) {
+		return $post_id;
+	}
+
+	// fetching id by using the wp_post table
     global $wpdb;
-    return $wpdb->get_var(
+    $post_id = $wpdb->get_var(
         $wpdb->prepare(
-            "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'attachment' AND guid=%s",
+            "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'attachment' AND guid=%s LIMIT 1",
             $guid
         )
     );
+
+    if( ! $post_id ) {
+    	return null;
+    }
+
+    // store guid->id to our toolset_post_guid_id table
+	$wpcf_guid_id->insert( $guid, $post_id );
+
+    return $post_id;
 }
 
 /**

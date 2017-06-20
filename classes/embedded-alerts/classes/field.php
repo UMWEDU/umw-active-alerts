@@ -46,19 +46,17 @@ class WPCF_Field
      * /embedded/includes/fields/$field_type.php
      * /includes/fields/$field_type.php
      *
-     * @var type array
+     * @var array
      */
     var $cf = array();
 
     /**
      * All Types created fields
-     * @var type
      */
     var $fields = null;
 
     /**
      * Field saved data
-     * @var type
      */
     var $meta = null;
 
@@ -67,7 +65,7 @@ class WPCF_Field
      *
      * Use it to set default configuration.
      *
-     * @var type array
+     * @var array
      */
     var $config = array(
         'use_form' => false,
@@ -75,7 +73,7 @@ class WPCF_Field
 
     /**
      * Form object
-     * @var type array
+     * @var array
      */
     var $form = array();
 
@@ -86,32 +84,31 @@ class WPCF_Field
 
     /**
      * CF slug
-     * @var type string
+     * @var string
      */
     var $slug = '';
 
     /**
      * Use cache flag
-     * @var type boolean
+     * @var boolean
      */
     var $use_cache = true;
 
     /**
      * Cache.DEPRECATED
      *
-     * @var type
+     * @var
      */
     var $cache = array();
 
     /**
      * Add to editor flas
-     * @var type boolean
+     * @var boolean
      */
     var $add_to_editor = true;
 
     /**
      * Context in which class is called
-     * @var type
      */
     var $context = 'group';
 
@@ -119,7 +116,6 @@ class WPCF_Field
      * Invalid fields
      *
      * @todo Revise
-     * @var type
      */
     var $invalid_fields = array();
 
@@ -138,12 +134,14 @@ class WPCF_Field
         extract( wp_parse_args( (array) $config, $this->config ) );
     }
 
-    /**
-     * Set current post and field.
-     *
-     * @param type $post
-     * @param type $cf
-     */
+	/**
+	 * Set current post and field.
+	 *
+	 * @param $post
+	 * @param $cf
+	 *
+	 * @return bool
+	 */
     function set( $post, $cf ) {
 
         global $wpcf;
@@ -360,27 +358,23 @@ class WPCF_Field
          */
         $_value = $this->_filter_save_postmeta_value( $value );
         $_value = $this->_filter_save_value( $_value );
-        /**
-         * Save field if needed
-         */
-        if (
-            (
-                !( is_null( $value ) || $value === false || $value === '' )
-                || (
-                    isset($this->cf['data']['save_empty'])
-                    && 'yes' == $this->cf['data']['save_empty']
-                )
-            )
-            ||
-            /**
-             * handle "save zero as set value"
-             */
-            (
-                array_key_exists( 'set_value', $this->cf['data'] )
-                && preg_match( '/^0$/', $value )
-                && preg_match( '/^0$/', $this->cf['data']['set_value'] )
-            )
-        ) {
+
+        // Save field if needed
+	    $value_is_empty = ( is_null( $value ) || $value === false || $value === '' );
+	    $should_save_empty_value = (
+		    isset( $this->cf['data']['save_empty'] ) && 'yes' == $this->cf['data']['save_empty']
+	    );
+
+	    // This is a special case where we are supposed to save zero as a value when the field is set
+	    // (applies for checkbox, checkboxes or other boolean-ish fields).
+	    $saving_zero_as_set_value = (
+		    array_key_exists( 'set_value', $this->cf['data'] )
+		    && preg_match( '/^0$/', $value )
+		    && preg_match( '/^0$/', $this->cf['data']['set_value'] )
+	    );
+
+        if ( ! $value_is_empty || $should_save_empty_value || $saving_zero_as_set_value ) {
+
             $mid = add_post_meta( $this->post->ID, $this->slug, $_value );
             /*
              * Use these hooks to add future functionality.

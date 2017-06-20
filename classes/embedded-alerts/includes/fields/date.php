@@ -1,8 +1,8 @@
 <?php
 /**
  * Register data (called automatically).
- * 
- * @return type 
+ *
+ * @return array
  */
 function wpcf_fields_date() {
     $settings = array(
@@ -30,44 +30,6 @@ function wpcf_fields_date() {
         'font-awesome' => 'calendar',
     );
 
-    if ( !defined( 'WPTOOLSET_FORMS_ABSPATH' ) ) {
-        // Allow localized Datepicker if date format does not need translating
-        $localized_date_formats = array(
-            'Y/m/d', // 2011/12/23
-            'm/d/Y', // 12/23/2011
-            'd/m/Y', // 23/22/2011
-            'd/m/y', // 23/22/11
-        );
-
-        $date_format = wpcf_get_date_format();
-        $localized_js = array();
-
-        if ( in_array( $date_format, $localized_date_formats ) ) {
-            $locale = str_replace( '_', '-', strtolower( get_locale() ) );
-            $localized_js = array(
-                'src' => file_exists( WPCF_EMBEDDED_RES_ABSPATH . '/js/i18n/jquery.ui.datepicker-'
-                        . $locale . '.js' ) ? WPCF_EMBEDDED_RES_RELPATH . '/js/i18n/jquery.ui.datepicker-'
-                        . $locale . '.js' : '',
-                'deps' => array('jquery-ui-core'),
-            );
-        }
-        $settings['meta_box_js'] = array(
-            'wpcf-jquery-fields-date' => array(
-                'src' => WPCF_EMBEDDED_RES_RELPATH . '/js/jquery.ui.datepicker.min.js',
-                'deps' => array('jquery-ui-core'),
-            ),
-            'wpcf-jquery-fields-date-inline' => array(
-                'inline' => 'wpcf_fields_date_meta_box_js_inline',
-            ),
-            'wpcf-jquery-fields-date-localization' => $localized_js,
-        );
-        $settings['meta_box_css'] = array(
-            'wpcf-jquery-ui' => array(
-                'src' => WPCF_EMBEDDED_RES_RELPATH
-                . '/css/jquery-ui/jquery-ui-1.9.2.custom.min.css',
-            ),
-        );
-    }
     return $settings;
 }
 
@@ -385,12 +347,11 @@ function wpcf_fields_date_value_get_filter( $value, $field, $return = 'array',
 
 /**
  * View function.
- * 
- * @param type $params 
+ *
+ * @param array $params
+ * @return string
  */
 function wpcf_fields_date_view( $params ) {
-
-    global $wp_locale;
 
     $defaults = array(
         'format' => get_option( 'date_format' ),
@@ -400,13 +361,12 @@ function wpcf_fields_date_view( $params ) {
     $output = '';
 
     // Make sure value is right
-    $__timestamp = wpcf_fields_date_value_get_filter( $params['field_value'],
-            $params['field'], 'timestamp' );
-    if ( is_null( $__timestamp ) ) {
+    $timestamp = wpcf_fields_date_value_get_filter( $params['field_value'], $params['field'], 'timestamp' );
+    if ( is_null( $timestamp ) ) {
         return '';
-    } else {
-        $params['field_value'] = $__timestamp;
     }
+	$params['field_value'] = $timestamp;
+
 
     switch ( $params['style'] ) {
         case 'calendar':
@@ -414,32 +374,12 @@ function wpcf_fields_date_view( $params ) {
             break;
 
         default:
-            $field_name = '';
+	        $format = $params['format'];
+			$date_utils = Toolset_Date_Utils::get_instance();
+			$format = $date_utils->process_custom_escaping_characters_on_format_string( $format );
 
-
-            // Extract the Full month and Short month from the format.
-            // We'll replace with the translated months if possible.
-            $format = $params['format'];
-            //$format = str_replace( 'F', '#111111#', $format );
-            //$format = str_replace( 'M', '#222222#', $format );
-
-            // Same for the Days
-            //$format = str_replace( 'D', '#333333#', $format );
-            //$format = str_replace( 'l', '#444444#', $format );
 
             $date_out = adodb_date( $format, $params['field_value'] );
-
-            //$month = adodb_date( 'm', $params['field_value'] );
-            //$month_full = $wp_locale->get_month( $month );
-            //$date_out = str_replace( '#111111#', $month_full, $date_out );
-            //$month_short = $wp_locale->get_month_abbrev( $month_full );
-            //$date_out = str_replace( '#222222#', $month_short, $date_out );
-
-            //$day = adodb_date( 'w', $params['field_value'] );
-            //$day_full = $wp_locale->get_weekday( $day );
-            //$date_out = str_replace( '#444444#', $day_full, $date_out );
-            //$day_short = $wp_locale->get_weekday_abbrev( $day_full );
-            //$date_out = str_replace( '#333333#', $day_short, $date_out );
 
             $output .= $date_out;
             break;
@@ -447,6 +387,7 @@ function wpcf_fields_date_view( $params ) {
 
     return $output;
 }
+
 
 /**
  * TinyMCE editor form.

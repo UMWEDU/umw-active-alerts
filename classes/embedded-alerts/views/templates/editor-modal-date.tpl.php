@@ -47,8 +47,31 @@ $data = array_merge( array(
 							<label for="date-custom"><?php _e( 'Custom', 'wpcf' ); ?></label>
 							<input id="date-custom-format" type="text" name="custom" value="<?php echo $data['custom']; ?>" />
 							<p>
-								<a href="http://codex.wordpress.org/Formatting_Date_and_Time" target="_blank"><i class="fa fa-book icon-book"></i><?php _e( 'Documentation on date and time formatting', 'wpcf' ); ?></a>
+								<a href="http://codex.wordpress.org/Formatting_Date_and_Time" target="_blank">
+									<!-- this doesn't display properly with colorbox, removing temporarily: <i class="fa fa-book icon-book"></i> -->
+									<?php _e( 'Documentation on date and time formatting', 'wpcf' ); ?>
+								</a>
 							</p>
+							<?php
+								printf(
+									'<p>%s<br />%s<br />%s</p>',
+									sprintf(
+										__( 'Note: Backslash escaping is not safe because of %stechnical reasons%s.', 'wpcf' ),
+										'<a href="https://codex.wordpress.org/Function_Reference/update_post_meta#Character_Escaping">',
+										'</a>'
+									),
+									sprintf(
+										'Please use %s for escaping instead, it will be handled as %s.',
+										'<code>%</code>',
+										'<code>\</code>'
+									),
+									sprintf(
+										'If you need to output %s, use %s.',
+										'<code>%</code>',
+										'<code>%%</code>'
+									)
+								);
+								?>
 						</li>
 				</ul>
 			</div>

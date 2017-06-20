@@ -619,35 +619,20 @@ function wpcf_admin_post_save_post_hook( $post_ID, $post ) {
 		return;
 	}
 
-	$_post_wpcf = array();
-	if ( ! empty( $_POST['wpcf'] ) ) {
-		$_post_wpcf = $_POST['wpcf'];
-	}
+	$wpcf_form_data = wpcf_ensarr( wpcf_getarr( $_POST, 'wpcf' ) );
 
-	// handle checkbox
-	if ( array_key_exists( '_wptoolset_checkbox', $_POST ) && is_array( $_POST['_wptoolset_checkbox'] ) ) {
-		foreach ( $_POST['_wptoolset_checkbox'] as $key => $field_value ) {
-			$field_slug = preg_replace( '/^wpcf\-/', '', $key );
-			if ( array_key_exists( $field_slug, $_post_wpcf ) ) {
-				continue;
-			}
-			$_post_wpcf[ $field_slug ] = false;
-		}
-	}
+	// Check wpcf_adjust_form_input_for_checkboxlike_fields() for information about side effects.
+	$wpcf_form_data = wpcf_adjust_form_input_for_checkboxlike_fields(
+        $wpcf_form_data,
+        wpcf_ensarr( wpcf_getarr( $_POST, '_wptoolset_checkbox' ) )
+    );
 
-	// handle radios
-	if ( array_key_exists( '_wptoolset_radios', $_POST ) && is_array( $_POST['_wptoolset_radios'] ) ) {
-		foreach ( $_POST['_wptoolset_radios'] as $key => $field_value ) {
-			$field_slug = preg_replace( '/^wpcf\-/', '', $key );
-			if ( array_key_exists( $field_slug, $_post_wpcf ) ) {
-				continue;
-			}
-			$_post_wpcf[ $field_slug ] = false;
-		}
-	}
+	$wpcf_form_data = wpcf_adjust_form_input_for_checkboxlike_fields(
+        $wpcf_form_data,
+        wpcf_ensarr( wpcf_getarr( $_POST, '_wptoolset_radios' ) )
+    );
 
-
-	if ( count( $_post_wpcf ) ) {
+	if ( count( $wpcf_form_data ) ) {
 		$add_error_message = true;
 		if ( isset( $_POST['post_id'] ) && $_POST['post_id'] != $post_ID ) {
 			$add_error_message = false;
@@ -661,7 +646,7 @@ function wpcf_admin_post_save_post_hook( $post_ID, $post ) {
 				$images_to_delete[ $image ] = 1;
 			}
 		}
-		foreach ( $_post_wpcf as $field_slug => $field_value ) {
+		foreach ( $wpcf_form_data as $field_slug => $field_value ) {
 			// Get field by slug
 			$field = wpcf_fields_get_field_by_slug( $field_slug );
 			if ( empty( $field ) ) {
@@ -680,7 +665,7 @@ function wpcf_admin_post_save_post_hook( $post_ID, $post ) {
 			$_field_value = ! types_is_repetitive( $field ) ? array( $field_value ) : $field_value;
 
 			// Set config
-			$config = wptoolset_form_filter_types_field( $field, $post_ID, $_post_wpcf );
+			$config = wptoolset_form_filter_types_field( $field, $post_ID, $wpcf_form_data );
 
 			// remove from images_to_delete if user add again
 			if ( $delete_attachments && 'image' == $config['type'] ) {
@@ -717,7 +702,8 @@ function wpcf_admin_post_save_post_hook( $post_ID, $post ) {
 					}
 				}
 			}
-			remove_filter( 'toolset_common_validation_add_field_name_to_error', '__return_false', 1234, 1 );
+			remove_filter( 'toolset_common_validation_add_field_name_to_error', '__return_false', 1234 );
+
 			// Save field
 			if ( types_is_repetitive( $field ) ) {
 				$wpcf->repeater->set( $post_ID, $field );
@@ -727,22 +713,11 @@ function wpcf_admin_post_save_post_hook( $post_ID, $post ) {
 				$wpcf->field->save( $field_value );
 			}
 			do_action( 'wpcf_post_field_saved', $post_ID, $field );
-			// TODO Move to checkboxes
-			if ( $field['type'] == 'checkboxes' ) {
-				if ( ! empty( $field['data']['options'] ) ) {
-					$update_data = array();
-					foreach ( $field['data']['options'] as $option_id => $option_data ) {
-						if ( ! isset( $_POST['wpcf'][ $field['id'] ][ $option_id ] ) ) {
-							if ( isset( $field['data']['save_empty'] ) && $field['data']['save_empty'] == 'yes' ) {
-								$update_data[ $option_id ] = 0;
-							}
-						} else {
-							$update_data[ $option_id ] = $_POST['wpcf'][ $field['id'] ][ $option_id ];
-						}
-					}
-					update_post_meta( $post_ID, $field['meta_key'], $update_data );
-				}
-			}
+
+			// Note: Checkboxes fields used to be handled as a special case here, that was now moved
+            // to wpcf_update_checkboxes_field() and is executed on *each* save_post by
+            // wpcf_fields_checkbox_save_check().
+
 		}
 
 		// delete images
@@ -765,8 +740,6 @@ function wpcf_admin_post_save_post_hook( $post_ID, $post ) {
 		update_post_meta( $post_ID, '__wpcf-invalid-fields', true );
 	}
 	do_action( 'wpcf_post_saved', $post_ID );
-
-	return;
 }
 
 

@@ -911,31 +911,62 @@ function wpcf_wpml_group_filter_add_missing_terms( $form, $settings ) {
 /**
  * Sync when slug changed.
  *
- * @global type $sitepress
- * @global type $sitepress_settings
- * @param type $new_slug
- * @param type $old_slug
+ * @param string $new_slug
+ * @param string $old_slug
+ * @since unknown
  */
 function wpcf_wpml_post_type_renamed( $new_slug, $old_slug ) {
-    global $sitepress, $sitepress_settings, $wpdb;
-    if ( isset( $sitepress_settings['custom_posts_sync_option'][$old_slug] ) ) {
-        $sitepress_settings['custom_posts_sync_option'][$new_slug] = $sitepress_settings['custom_posts_sync_option'][$old_slug];
-        unset( $sitepress_settings['custom_posts_sync_option'][$old_slug] );
-        $sitepress->save_settings( $sitepress_settings );
-        /*
-         * Update slug in icl_strings table
-         */
-        $wpdb->update( $wpdb->prefix . 'icl_strings',
-                array(
-            'name' => 'URL slug: ' . $new_slug,
-            'value' => $new_slug,
-                ),
-                array(
-            'name' => 'URL slug: ' . $old_slug,
-            'context' => 'URL slugs - wpcf',
-                )
-        );
-    }
+	global $sitepress, $sitepress_settings, $wpdb;
+
+	if ( isset( $sitepress_settings['custom_posts_sync_option'][ $old_slug ] ) ) {
+
+		$sitepress_settings['custom_posts_sync_option'][ $new_slug ] = $sitepress_settings['custom_posts_sync_option'][ $old_slug ];
+		unset( $sitepress_settings['custom_posts_sync_option'][ $old_slug ] );
+
+		$sitepress->save_settings( $sitepress_settings );
+
+		// Update the URL slug for the post type in icl_strings table
+		$icl_strings_table = $wpdb->prefix . 'icl_strings';
+		$old_string_name = 'URL slug: ' . $old_slug;
+		$new_string_name = 'URL slug: ' . $new_slug;
+		$string_context = 'URL slugs - wpcf';
+
+		$conflict_count = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(1) 
+				FROM {$icl_strings_table} AS s 
+				WHERE `name` LIKE %s AND `context` LIKE %s
+				LIMIT 1",
+				$new_string_name,
+				$string_context
+			)
+		);
+		$has_conflicts = ( 0 < $conflict_count );
+
+		if( $has_conflicts ) {
+
+			$wpdb->update(
+				$icl_strings_table,
+				array( 'value' => $new_slug ),
+				array( 'name' => $new_string_name, 'context' => $string_context )
+			);
+
+			$wpdb->delete(
+				$icl_strings_table,
+				array( 'name' => $old_string_name, 'context' => $string_context )
+			);
+
+		} else {
+
+			$wpdb->update(
+				$icl_strings_table,
+				array( 'name' => $new_string_name, 'value' => $new_slug ),
+				array( 'name' => $old_string_name, 'context' => $string_context )
+			);
+
+		}
+
+	}
 }
 
 /**

@@ -367,10 +367,10 @@ function wpcf_admin_fields_get_field( $field_id, $only_active = false,
 
 /**
  * Gets field by slug.
- * Modified by Gen, 13.02.2013
  *
- * @param type $slug
- * @return type
+ * @param string $slug
+ * @param string $meta_name
+ * @return array
  */
 function wpcf_fields_get_field_by_slug( $slug, $meta_name = 'wpcf-fields' ) {
     return wpcf_admin_fields_get_field( $slug, false, false, false, $meta_name );
@@ -942,26 +942,34 @@ function wpcf_admin_fields_get_groups_by_field( $field_id,
 /**
  * Saves last field settings when inserting from toolbar.
  *
- * @param type $field_id
- * @param type $settings
- * @param type $append
+ * @param $field_id
+ * @param $settings
+ * @param bool $append
+ * @param bool $overwrite
  */
-function wpcf_admin_fields_save_field_last_settings( $field_id, $settings,
-        $append = false, $overwrite = false ) {
-    $data = get_user_meta( get_current_user_id(), 'wpcf-field-settings', true );
-    if ( $append && isset( $data[$field_id] ) && is_array( $data[$field_id] ) ) {
-        $data[$field_id] = $overwrite ? array_merge( $data[$field_id], $settings ) : array_merge( $settings,
-                        $data[$field_id] );
-    } else {
-        $data[$field_id] = $settings;
-    }
-    update_user_meta( get_current_user_id(), 'wpcf-field-settings', $data );
+function wpcf_admin_fields_save_field_last_settings(
+	$field_id, $settings, $append = false, $overwrite = false
+) {
+	$data = wpcf_ensarr( get_user_meta( get_current_user_id(), 'wpcf-field-settings', true ) );
+	if ( $append && isset( $data[ $field_id ] ) && is_array( $data[ $field_id ] ) ) {
+		$data[ $field_id ] = (
+			$overwrite
+			? array_merge( $data[ $field_id ], $settings )
+			: array_merge( $settings, $data[ $field_id ] )
+		);
+	} else {
+		$data[ $field_id ] = $settings;
+	}
+	update_user_meta( get_current_user_id(), 'wpcf-field-settings', $data );
 }
+
 
 /**
  * Gets last field settings when inserting from toolbar.
  *
- * @param type $field_id
+ * @param $field_id
+ *
+ * @return array
  */
 function wpcf_admin_fields_get_field_last_settings( $field_id ) {
     $data = get_user_meta( get_current_user_id(), 'wpcf-field-settings', true );
@@ -1044,3 +1052,40 @@ function wpcf_get_all_field_slugs_except_current_group( $current_group = false )
     return $all_slugs;
 }
 add_action('wp_ajax_wpcf_get_all_field_slugs_except_current_group', 'wpcf_get_all_field_slugs_except_current_group');
+
+
+/**
+ * Helper function used on submitting a form with custom fields.
+ *
+ * When there's nothing checked in a checkbox/checkboxes/radio fields, there is no corresponding element
+ * in $_POST['wpcf'][ $field_slug ], which would lead to _not removing_ the value from the database because of
+ * the way the submission data is further processed.
+ *
+ * Here, we just create the key for the field without any further notification, and actual saving
+ * these fields' values will be handled later as a special case via wpcf_update_checkboxes_field().
+ *
+ * @param array $wpcf_form_data Form data, usually coming from $_POST['wpcf'].
+ * @param array $fields An associative array with checkbox/checkboxes/radio fields,
+ *     where keys are field slugs with the 'wpcf-' prefix.
+ *
+ * @return array Updated form data with added keys for provided fields.
+ * @since 2.2.7
+ */
+function wpcf_adjust_form_input_for_checkboxlike_fields( $wpcf_form_data, $fields ) {
+
+	if( ! is_array( $wpcf_form_data ) ) {
+		return array();
+	}
+
+	if( is_array( $fields ) ) {
+		foreach ( $fields as $field_key => $field_value ) {
+			$field_slug = preg_replace( '/^wpcf\-/', '', $field_key );
+			if ( array_key_exists( $field_slug, $wpcf_form_data ) ) {
+				continue;
+			}
+			$wpcf_form_data[ $field_slug ] = false;
+		}
+	}
+
+	return $wpcf_form_data;
+}

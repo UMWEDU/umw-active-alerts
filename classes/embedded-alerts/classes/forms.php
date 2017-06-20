@@ -215,11 +215,9 @@ class Enlimbo_Forms_Wpcf
         $this->_errors = true;
     }
 
-    /**
-     * Renders form.
-     * 
-     * @return type 
-     */
+	/**
+	 * Renders form.
+	 */
     public function renderForm()
     {
         // loop over elements and render them

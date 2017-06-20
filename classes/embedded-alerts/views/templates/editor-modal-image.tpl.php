@@ -11,21 +11,24 @@ if ( !isset( $data ) ) {
     $data = array();
 }
 
-$data = array_merge( array(
-    'alignment' => 'none',
-    'alignment_options' => array(),
-    'alt' => '',
-    'height' => '',
-    'image' => '',
-    'image_size' => 'full',
-    'preview' => '',
-    'size_options' => array(),
-    'title' => '',
-    'warning_remote' => false,
-    'width' => '',
-    'url' => false,
-    'onload' => '',
-        ), (array) $data );
+$data = array_merge(
+    array(
+        'alignment' => 'none',
+        'alignment_options' => array(),
+        'alt' => '',
+        'height' => '',
+        'image' => '',
+        'image_size' => 'full',
+        'preview' => '',
+        'size_options' => array(),
+        'title' => '',
+        'warning_remote' => false,
+        'width' => '',
+        'url' => false,
+        'onload' => '',
+    ),
+    (array) $data
+);
 
 if ($data['warning_remote']) {
     if ( wpcf_is_embedded() ) {

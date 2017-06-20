@@ -20,13 +20,6 @@ if( typeof typesStatusBasicJsScript === 'undefined' ) {
     jQuery( document ).ready( function() {
 
         /**
-         * remove any jqueryui theme css loaded
-         */
-        jQuery( 'link' ).filter( function() {
-            return jQuery( this ).attr( 'href' ).match( /jqueryui(.*)themes/ );
-        } ).remove();
-
-        /**
          * check description field
          */
         if( jQuery( '.js-wpcf-toggle-description' ) ) {
@@ -625,10 +618,21 @@ if( typeof typesStatusBasicJsScript === 'undefined' ) {
             typeof WPViews != 'undefined'
             && typeof WPViews.shortcodes_gui != 'undefined'
             && typeof WPViews.shortcodes_gui.shortcode_gui_insert != 'undefined'
-            && WPViews.shortcodes_gui.shortcode_gui_insert == 'create'
         ) {
-            typesWPViews.adminBarEditShortcode( fieldID, metaType, postID );
-            return true;
+			/**
+			 * @todo avoid this hard dependency by using the toolset-event-manager script
+			 *
+			 * Views 2.3.0 introduced a toolset hook to get the current shortcodes GUI action:
+			 * var action = Toolset.hooks.applyFilters( 'wpv-filter-wpv-shortcodes-gui-get-gui-action', 'insert' );
+			 */
+			if ( WPViews.shortcodes_gui.shortcode_gui_insert == 'create' ) {
+				typesWPViews.interceptEditShortcode( fieldID, metaType, postID, 'admin_bar' );
+				return true;
+			}
+			if ( WPViews.shortcodes_gui.shortcode_gui_insert == 'append' ) {
+				typesWPViews.interceptEditShortcode( fieldID, metaType, postID, 'input_append' );
+				return true;
+			}
         }
 
         var colorboxWidth = 750 + 'px';

@@ -26,12 +26,11 @@ function wpcf_usermeta_add_user_templates() {
 
 /**
  * Hooks to 'user_register'
- * @param type $user_id
+ *
+ * @param int $user_id
  */
 function wpcf_usermets_add_user_submit( $user_id ) {
-    if ( isset( $_POST['wpcf'] ) ) {
-        wpcf_admin_userprofilesave_init( $user_id );
-    }
+    wpcf_admin_userprofilesave_init( $user_id );
 }
 
 /**

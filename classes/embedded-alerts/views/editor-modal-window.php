@@ -50,7 +50,7 @@ $data = array_merge(
                     <p class="form-inline">
                         <input type="checkbox" id="types-modal-raw" name="raw_mode" value="1" data-bind="checked: raw, click: rawDisableAll" />
                         <label for="types-modal-raw"><?php _e( 'Display this field without any formatting', 'wpcf' ); ?></label>
-                        <i class="fa fa-question-circle icon-question-sign js-show-tooltip" data-header="<?php _e( 'RAW mode', 'wpv-views' ) ?>" data-content="<?php _e( 'When checked, displays raw data stored in database.', 'wpcf' ) ?>"></i>
+                        <i class="fa fa-question-circle icon-question-sign js-show-tooltip" data-header="<?php _e( 'RAW mode', 'wpcf' ) ?>" data-content="<?php _e( 'When checked, displays raw data stored in database.', 'wpcf' ) ?>"></i>
                     </p>
                 </div>
             </div>
