@@ -41,7 +41,6 @@ class WPCF_Fields
             'date' => WPCF_EMBEDDED_INC_ABSPATH . '/fields/date.php',
             'email' => WPCF_EMBEDDED_INC_ABSPATH . '/fields/email.php',
             'embed' => WPCF_EMBEDDED_INC_ABSPATH . '/fields/embed.php',
-            //'entry' => WPCF_EMBEDDED_INC_ABSPATH . '/fields/entry.php',
             'file' => WPCF_EMBEDDED_INC_ABSPATH . '/fields/file.php',
             'image' => WPCF_EMBEDDED_INC_ABSPATH . '/fields/image.php',
             'map' => WPCF_EMBEDDED_INC_ABSPATH . '/fields/map.php',
