@@ -55,7 +55,7 @@ function _wpcfFilterTitle(e, title, title_not_empty, title_empty) {
 /**
  * Autocomplete slugs
  */
-jQuery('input.wpcf-forms-field-slug').live('blur focus click', function(){
+jQuery( 'body' ).on('blur focus click', 'input.wpcf-forms-field-slug', function(){
     var slug = jQuery(this).val();
     if ( '' == slug ){
 //        jQuery(this).val(wpcf_slugize(jQuery(this).parent().find('input.wpcf-forms-field-name').val()));

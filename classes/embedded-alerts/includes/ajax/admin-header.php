@@ -66,6 +66,19 @@ $admin_body_class = preg_replace( '/[^a-z0-9_-]+/i', '-', $hook_suffix );
     isRtl = <?php echo (int) is_rtl(); ?>;
 </script>
 <?php
+
+/**
+ * This indicates that we're doing a non-standard "admin header" loading and some
+ * precautions need to be taken.
+ *
+ * Specifically, see Types_Interop_Handler_The7 for details.
+ *
+ * It is supposed to run directly before enqueuing assets.
+ *
+ * @since 2.2.16
+ */
+do_action( 'types_leagacy_editor_callback_init' );
+
 do_action( 'admin_enqueue_scripts', $hook_suffix );
 do_action( "admin_print_styles-$hook_suffix" );
 do_action( 'admin_print_styles' );

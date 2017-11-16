@@ -22,12 +22,19 @@ function wpcf_admin_import_data( $data = '', $redirect = true, $context = 'types
 	$return = array();
 
 	libxml_use_internal_errors( true );
+
+	// remove any non UTF-8 characters
+	$data = preg_replace('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', '', $data);
 	$data = simplexml_load_string( $data );
 	if ( ! $data ) {
-		$return[] = array(
-			'type'    => 'error',
-			'content' => __( 'Error parsing XML: ', 'wpcf' ) . $error->message
-		);
+
+		foreach ( libxml_get_errors() as $error ) {
+			$return[] = array(
+				'type'    => 'error',
+				'content' => sprintf( __( 'Error on line %s', 'wpcf' ), $error->line ) . ': '. $error->message
+			);
+		}
+
 		libxml_clear_errors();
 
 		return $return;
@@ -738,8 +745,8 @@ function wpcf_admin_import_data( $data = '', $redirect = true, $context = 'types
 	$return = array_merge( $return, $term_group_results, $term_field_results );
 
 	// Process types
-
-	$types_existing = get_option( WPCF_OPTION_NAME_CUSTOM_TYPES, array() );
+	$post_type_option = new Types_Utils_Post_Type_Option();
+	$types_existing = $post_type_option->get_post_types();
 	$types_check    = array();
 	if ( ! empty( $data->types ) && isset( $data->types->type ) ) {
 		$types = array();

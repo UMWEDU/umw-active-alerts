@@ -334,6 +334,8 @@ class WPCF_Editor
                 $shortcode = preg_replace( '@</?script[^>]*>@im', '', wp_kses_post($shortcode) );
                 // Add additional parameters if required
                 $shortcode = $this->_add_parameters_to_shortcode( $shortcode, $_POST );
+                // Perform a filtering of the shortcode to support different shortcode formats.
+                $shortcode = apply_filters( 'wpv_filter_wpv_shortcodes_transform_format', $shortcode, $this->_post );
                 // Insert shortcode
                 echo '<script type="text/javascript">jQuery(function(){tedFrame.close("'
                 . $shortcode . '", "' . esc_js( $shortcode ) . '");});</script>';

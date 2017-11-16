@@ -21,7 +21,7 @@ jQuery(document).ready(function(){
     /*
      * Generic AJAX call (link). Parameters can be used.
      */
-    jQuery('.wpcf-ajax-link').live('click', function(){
+    jQuery( 'body' ).on( 'click', '.wpcf-ajax-link', function(){
         var callback = wpcfGetParameterByName('wpcf_ajax_callback', jQuery(this).attr('href'));
         var update = wpcfGetParameterByName('wpcf_ajax_update', jQuery(this).attr('href'));
         var updateAdd = wpcfGetParameterByName('wpcf_ajax_update_add', jQuery(this).attr('href'));
@@ -116,7 +116,7 @@ jQuery(document).ready(function(){
         //        });
         //        if (passed == false) {
         //            // Bind message fade out
-        //            jQuery('.wpcf-repetitive').live('click', function(){
+        //            jQuery('.wpcf-repetitive').on('click', function(){
         //                jQuery(this).removeClass('wpcf-repetitive-error');
         //                jQuery(this).parents('.wpcf-repetitive-wrapper').find('.wpcf-form-error-unique-value').fadeOut(function(){
         //                    jQuery(this).remove();
@@ -127,7 +127,7 @@ jQuery(document).ready(function(){
         jQuery('#post .wpcf-cd-failed, #post .wpcf-cd-group-failed').remove();
     });
     
-    jQuery('.wpcf-pr-save-all-link, .wpcf-pr-save-ajax').live('click', function(){
+    jQuery( 'body' ).on( 'click', '.wpcf-pr-save-all-link, .wpcf-pr-save-ajax', function(){
         jQuery(this).parents('.wpcf-pr-has-entries').find('.wpcf-cd-failed').remove();
     });
     

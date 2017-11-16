@@ -104,7 +104,7 @@ jQuery(document).ready(function($){
     /**
      * confitonal logic button close on group edit screen
      */
-    $('#conditional-logic-button-ok').live('click', function(){
+    $( 'body' ).on('click', '#conditional-logic-button-ok', function(){
         $(this).parent().slideUp('slow', function() {
             $('#conditional-logic-button-open').fadeIn();
         });

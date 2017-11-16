@@ -152,6 +152,16 @@ var tedFrame = (function(window, $){
 
     function insertShortcode( shortcode, esc_shortcode )
     {
+        /**
+         * Perform a filtering of the shortcode to support different shortcode formats.
+         *
+         * @param string shortcode The shortcode to be filtered.
+         *
+         * @since 2.2.20
+         */
+        shortcode = window.parent.Toolset.hooks.applyFilters( 'wpv-filter-wpv-shortcodes-transform-format', shortcode );
+        esc_shortcode = window.parent.Toolset.hooks.applyFilters( 'wpv-filter-wpv-shortcodes-transform-format', esc_shortcode );
+
         if ( ted.callback == 'views_wizard' ) {
             window.parent.typesWPViews.wizardSendShortcode( shortcode );
             return true;

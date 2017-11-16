@@ -353,14 +353,15 @@ class WPCF_Field
         ) {
             $value = $this->cf['data']['set_value'];
         }
-        /**
-         * apply filters
-         */
-        $_value = $this->_filter_save_postmeta_value( $value );
-        $_value = $this->_filter_save_value( $_value );
+
+        // Apply filters on the field value.
+        $original_value = $value;
+        unset( $value );
+        $filtered_value = $this->_filter_save_postmeta_value( $original_value );
+        $filtered_value = $this->_filter_save_value( $filtered_value );
 
         // Save field if needed
-	    $value_is_empty = ( is_null( $value ) || $value === false || $value === '' );
+	    $value_is_empty = ( is_null( $filtered_value ) || $filtered_value === false || $filtered_value === '' );
 	    $should_save_empty_value = (
 		    isset( $this->cf['data']['save_empty'] ) && 'yes' == $this->cf['data']['save_empty']
 	    );
@@ -369,18 +370,18 @@ class WPCF_Field
 	    // (applies for checkbox, checkboxes or other boolean-ish fields).
 	    $saving_zero_as_set_value = (
 		    array_key_exists( 'set_value', $this->cf['data'] )
-		    && preg_match( '/^0$/', $value )
+		    && preg_match( '/^0$/', $filtered_value )
 		    && preg_match( '/^0$/', $this->cf['data']['set_value'] )
 	    );
 
         if ( ! $value_is_empty || $should_save_empty_value || $saving_zero_as_set_value ) {
 
-            $mid = add_post_meta( $this->post->ID, $this->slug, $_value );
+            $mid = add_post_meta( $this->post->ID, $this->slug, $filtered_value );
             /*
              * Use these hooks to add future functionality.
              * Do not add any more code to core.
              */
-            $this->_action_save( $this->cf, $_value, $mid, $value );
+            $this->_action_save( $this->cf, $filtered_value, $mid, $original_value );
         }
     }
 

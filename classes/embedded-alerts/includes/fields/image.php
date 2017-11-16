@@ -1167,7 +1167,8 @@ class WPCF_Guid_Id {
 
 		$this->wpdb->query(
 			$this->wpdb->prepare(
-				"INSERT INTO $table_guid_id (guid,post_id) VALUES (%s,%d)",
+				"INSERT INTO $table_guid_id (guid,post_id) VALUES (%s,%d) ON DUPLICATE KEY UPDATE guid=%s, post_id=%d",
+				$guid, $post_id,
 				$guid, $post_id
 			)
 		);

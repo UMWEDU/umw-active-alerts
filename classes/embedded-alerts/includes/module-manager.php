@@ -133,7 +133,8 @@ function wpcf_admin_metabox_module_manager($type)
 function wpcf_module_inline_table_post_types() {
     // dont add module manager meta box on new post type form
     if ( defined( 'MODMAN_PLUGIN_NAME' ) && isset( $_GET['wpcf-post-type'] ) ) {
-        $_custom_types = get_option( WPCF_OPTION_NAME_CUSTOM_TYPES, array() );
+	    $post_type_option = new Types_Utils_Post_Type_Option();
+        $_custom_types = $post_type_option->get_post_types();
         if ( isset( $_custom_types[$_GET['wpcf-post-type']] ) ) {
             $_post_type = $_custom_types[$_GET['wpcf-post-type']];
             // add module manager meta box to post type form
@@ -249,7 +250,8 @@ if ( defined( 'MODMAN_PLUGIN_NAME' ) ) {
     }
 
     function wpcf_register_modules_items_types( $items ) {
-        $custom_types = get_option( WPCF_OPTION_NAME_CUSTOM_TYPES, array() );
+	    $post_type_option = new Types_Utils_Post_Type_Option();
+        $custom_types = $post_type_option->get_post_types();
         foreach ( $custom_types as $type ) {
             if ( empty($type) ) {
                 continue;
@@ -636,7 +638,8 @@ function wpcf_admin_export_selected_data ( array $items, $_type = 'all', $return
 
     // Get custom types
     if ( 'types' == $_type || 'all' == $_type ) {
-        $custom_types = get_option( WPCF_OPTION_NAME_CUSTOM_TYPES, array() );
+	    $post_type_option = new Types_Utils_Post_Type_Option();
+        $custom_types = $post_type_option->get_post_types();
         // Get custom types
         // TODO Document $items
         if ( !empty( $items ) ) {
@@ -1078,7 +1081,8 @@ function wpcf_admin_import_data_from_xmlstring( $data = '', $_type = 'types',
     if ( !empty( $data->types ) && 'types' == $_type ) {
         $imported = true;
 
-        $types_existing = get_option( WPCF_OPTION_NAME_CUSTOM_TYPES, array() );
+	    $post_type_option = new Types_Utils_Post_Type_Option();
+        $types_existing = $post_type_option->get_post_types();
         $types = array();
         $types_check = array();
         // Set insert data from XML

@@ -84,7 +84,8 @@ function wpcf_custom_types_default() {
  * Inits custom types.
  */
 function wpcf_custom_types_init() {
-    $custom_types = get_option( WPCF_OPTION_NAME_CUSTOM_TYPES, array() );
+	$post_type_option = new Types_Utils_Post_Type_Option();
+    $custom_types = $post_type_option->get_post_types();
     if ( !empty( $custom_types ) ) {
         foreach ( $custom_types as $post_type => $data ) {
             if ( empty($data) ) {
@@ -110,7 +111,8 @@ function wpcf_custom_types_init() {
 }
 
 function types_menu_order( $menu ) {
-	$custom_types = get_option( WPCF_OPTION_NAME_CUSTOM_TYPES, array() );
+	$post_type_option = new Types_Utils_Post_Type_Option();
+	$custom_types = $post_type_option->get_post_types();
 
 	if ( !empty( $custom_types ) ) {
 		foreach( $custom_types as $post_type => $data ) {
@@ -454,20 +456,26 @@ function wpcf_filter_type( $data, $post_type ) {
     return $data;
 }
 
+
 /**
  * Returns active post types.
  * 
- * @return type 
+ * @return array
+ * @deprecated Use the Post Type API instead: https://git.onthegosystems.com/toolset/toolset-common/wikis/post-type-api
+ * @since unknown
  */
 function wpcf_get_active_custom_types() {
-    $types = get_option(WPCF_OPTION_NAME_CUSTOM_TYPES, array());
-    foreach ($types as $type => $data) {
-        if (!empty($data['disabled'])) {
-            unset($types[$type]);
-        }
-    }
-    return $types;
+	$post_type_option = new Types_Utils_Post_Type_Option();
+	$types = $post_type_option->get_post_types();
+	foreach ( $types as $type => $data ) {
+		if ( ! empty( $data['disabled'] ) ) {
+			unset( $types[ $type ] );
+		}
+	}
+
+	return $types;
 }
+
 
 /** This action is documented in wp-admin/includes/table.php */
 add_filter('dashboard_glance_items', 'wpcf_dashboard_glance_items');
@@ -487,7 +495,8 @@ function wpcf_dashboard_glance_items($elements)
     wp_register_style( 'wpcf-fix-wordpress-core', WPCF_EMBEDDED_RES_RELPATH . '/css/fix-wordpress-core.css', array(), WPCF_VERSION );
     wp_enqueue_style( 'wpcf-fix-wordpress-core' );
 
-    $custom_types = get_option( WPCF_OPTION_NAME_CUSTOM_TYPES, array() );
+	$post_type_option = new Types_Utils_Post_Type_Option();
+    $custom_types = $post_type_option->get_post_types();
     if ( empty( $custom_types ) ) {
         return $elements;
     }
@@ -548,7 +557,8 @@ function wpcf_dashboard_glance_items($elements)
 function wpcf_filter_enter_title_here($enter_title_here, $post)
 {
     if ( is_object($post) && isset( $post->post_type) ) {
-        $custom_types = get_option( WPCF_OPTION_NAME_CUSTOM_TYPES, array() );
+	    $post_type_option = new Types_Utils_Post_Type_Option();
+        $custom_types = $post_type_option->get_post_types();
         if (
             true
             && isset($custom_types[$post->post_type])
@@ -592,7 +602,8 @@ function types_get_array_key_search_in_sub( $array, $search ) {
  */
 function types_rename_build_in_post_types_menu() {
 
-    $custom_types = get_option( WPCF_OPTION_NAME_CUSTOM_TYPES, array() );
+	$post_type_option = new Types_Utils_Post_Type_Option();
+    $custom_types = $post_type_option->get_post_types();
 
     if ( !empty( $custom_types ) ) {
         global $menu, $submenu;
@@ -665,7 +676,8 @@ add_action( 'admin_menu', 'types_rename_build_in_post_types_menu' );
  */
 function types_rename_build_in_post_types() {
     global $wp_post_types;
-    $custom_types = get_option( WPCF_OPTION_NAME_CUSTOM_TYPES, array() );
+	$post_type_option = new Types_Utils_Post_Type_Option();
+    $custom_types = $post_type_option->get_post_types();
 
     if ( !empty( $custom_types ) ) {
         foreach ( $custom_types as $post_type => $data ) {
@@ -714,7 +726,8 @@ add_action( 'init', 'types_rename_build_in_post_types' );
  * Visibility of inbuild types
  */
 function types_visibility_build_in_types() {
-    $custom_types = get_option( WPCF_OPTION_NAME_CUSTOM_TYPES, array() );
+	$post_type_option = new Types_Utils_Post_Type_Option();
+    $custom_types = $post_type_option->get_post_types();
 
     // Type: Posts
     if( isset( $custom_types['post']['public'] )

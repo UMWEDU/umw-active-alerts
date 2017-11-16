@@ -1452,7 +1452,11 @@ input#slug+p.wpcf-form-description {
     font-weight: normal;
 }
 
-/* todo move to common */
-.ui-datepicker {
-    z-index: 10000 !important;
+/* Part of removed file: ./dashicons.css */
+div.wpcf-types-menu-image {
+    float: left;
+    width: 36px;
+    height: 34px;
+    margin: 0;
+    text-align: center;
 }

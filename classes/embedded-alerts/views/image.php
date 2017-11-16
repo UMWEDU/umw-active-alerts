@@ -260,11 +260,16 @@ class Types_Image_View
                     "Error resampling image {$img}", $dims );
         }
 
+        /* COMMENTED OUT TO NOT USE INDEXED COLORS FOR RESIZED PNGs, EVEN IF THE SOURCE HAS INDEXED COLORS.
+         * REASON: TRANSPARENT SUPPORT NOT WORKING 100% AFTER RESIZING USING INDEXED COLORS
+         * 
         // convert from full colors to index colors, like original PNG.
         if ( IMAGETYPE_PNG == $imgData->imagetype && function_exists( 'imageistruecolor' ) && !imageistruecolor( $imgRes ) ) {
             imagetruecolortopalette( $new_image, false,
                     imagecolorstotal( $imgRes ) );
         }
+        */
+
         // we don't need the original in memory anymore
         imagedestroy( $imgRes );
 

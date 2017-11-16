@@ -84,7 +84,7 @@ function wpcf_field_number_validation_fix(){
     if ( $locale['decimal_point'] != '.' ) {
         wp_enqueue_script( 'wpcf-numeric',
                 WPCF_EMBEDDED_RES_RELPATH
-                . '/js/numeric_fix.js', array('jquery'), WPCF_VERSION );
+                . '/js/numeric_fix.js', array('wptoolset-form-jquery-validation'), WPCF_VERSION );
     }
 }
 

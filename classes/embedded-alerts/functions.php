@@ -64,7 +64,10 @@ function wpcf_get_file_relpath($file)
  */
 function wpcf_embedded_after_setup_theme_hook()
 {
-    $custom_types = get_option( WPCF_OPTION_NAME_CUSTOM_TYPES, array() );
+	// We need to require this file manually because this runs before the autoloader is registered.
+	require_once TYPES_ABSPATH . '/application/controllers/utils/post_type_option.php';
+	$post_type_option = new Types_Utils_Post_Type_Option();
+    $custom_types = $post_type_option->get_post_types();
     if ( !empty( $custom_types ) ) {
         foreach ( $custom_types as $post_type => $data ) {
             if ( !empty( $data['supports']['thumbnail'] ) ) {
@@ -98,7 +101,8 @@ function wpcf_init_custom_types_taxonomies()
     }
 	
     // register post types
-    $custom_types = get_option( WPCF_OPTION_NAME_CUSTOM_TYPES, array() );
+	$post_type_option = new Types_Utils_Post_Type_Option();
+    $custom_types = $post_type_option->get_post_types();
     if ( !empty( $custom_types ) ) {
         require_once WPCF_EMBEDDED_INC_ABSPATH . '/custom-types.php';
         wpcf_custom_types_init();
@@ -672,7 +676,8 @@ function wpcf_is_embedded()
  */
 function wpcf_get_custom_post_type_settings($item = '')
 {
-    $custom = get_option( WPCF_OPTION_NAME_CUSTOM_TYPES, array() );
+	$post_type_option = new Types_Utils_Post_Type_Option();
+    $custom = $post_type_option->get_post_types();
     return !empty( $custom[$item] ) ? $custom[$item] : array();
 }
 

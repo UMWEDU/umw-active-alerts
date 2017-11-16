@@ -193,9 +193,14 @@ if ( !class_exists('Types_Data_Installer') ) {
 
             $this->reset_toolset_edit_last_list[$group_name] = array();
 
-            $date = date('Y-m-d H:i');
             $new = array();
-            $data = get_option($group_name, array());
+
+            if( WPCF_OPTION_NAME_CUSTOM_TYPES === $group_name ) {
+	            $post_type_option = new Types_Utils_Post_Type_Option();
+	            $data = $post_type_option->get_post_types();
+            } else {
+	            $data = get_option( $group_name, array() );
+            }
 
             foreach ( $groups as $group) {
                 $slug = $group->slug->__toString();
@@ -248,8 +253,23 @@ if ( !class_exists('Types_Data_Installer') ) {
                         }
                         break;
                     case WPCF_OPTION_NAME_CUSTOM_TYPES:
+
+	                    $post_type_option = new Types_Utils_Post_Type_Option();
+	                    $options = $post_type_option->get_post_types();
+	                    $new = array();
+	                    foreach ( $options as $one ) {
+		                    if ( in_array($one['slug'], $data ) ) {
+			                    if ( isset( $one[TOOLSET_EDIT_LAST]) ) {
+				                    unset($one[TOOLSET_EDIT_LAST]);
+			                    }
+		                    }
+		                    $new[$one['slug']] = $one;
+	                    }
+	                    update_option($group, $new);
+	                    break;
+
                     case WPCF_OPTION_NAME_CUSTOM_TAXONOMIES:
-                        $options = get_option( $group, array() );
+                        $options = get_option( WPCF_OPTION_NAME_CUSTOM_TAXONOMIES, array() );
                         $new = array();
                         foreach ( $options as $one ) {
                             if ( in_array($one['slug'], $data ) ) {

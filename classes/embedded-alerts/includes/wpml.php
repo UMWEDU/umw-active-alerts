@@ -378,7 +378,8 @@ function wpcf_admin_bulk_string_translation() {
     }
 
     // Register types
-    $custom_types = get_option( WPCF_OPTION_NAME_CUSTOM_TYPES, array() );
+	$post_type_option = new Types_Utils_Post_Type_Option();
+    $custom_types = $post_type_option->get_post_types();
     foreach ( $custom_types as $post_type => $data ) {
         wpcf_custom_types_register_translation( $post_type, $data );
     }

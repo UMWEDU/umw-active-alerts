@@ -45,7 +45,7 @@ jQuery(document).ready(function(){
         });
         return false;
     });
-    jQuery('.wpcf-repetitive-delete').live('click', function(){
+    jQuery( 'body' ).on( 'click', '.wpcf-repetitive-delete', function(){
         
         var wrapper = jQuery(this).parents('.wpcf-repetitive-sortable-wrapper');
         

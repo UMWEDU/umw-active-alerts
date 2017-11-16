@@ -7,8 +7,10 @@
  */
 function wpcf_ajax_embedded() {
 
+	// If this is true, we won't die() at the end of this method.
+	$fallthrough = false;
 
-    if ( isset( $_REQUEST['_typesnonce'] ) ) {
+	if ( isset( $_REQUEST['_typesnonce'] ) ) {
         if ( !wp_verify_nonce( $_REQUEST['_typesnonce'], '_typesnonce' ) ) {
             die( 'Verification failed (1)' );
         }
@@ -36,6 +38,7 @@ function wpcf_ajax_embedded() {
             break;
 
         case 'editor_callback':
+
             if( ! current_user_can( 'edit_posts' ) ) {
                 die( 'Authentication failed' );
             }
@@ -81,6 +84,7 @@ function wpcf_ajax_embedded() {
                 $editor->frame( $field, $meta_type, $parent_post_id, $shortcode,
                         $callback, $views_meta );
             }
+
             break;
 
         case 'dismiss_message':
@@ -570,12 +574,16 @@ function wpcf_ajax_embedded() {
             break;
 
         default:
+        	$fallthrough = true;
             break;
     }
     if ( function_exists( 'wpcf_ajax' ) ) {
-        wpcf_ajax();
+        $fallthrough = wpcf_ajax( $fallthrough );
     }
-    die();
+
+    if( ! $fallthrough ) {
+		die();
+	}
 }
 
 

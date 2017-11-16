@@ -435,7 +435,7 @@ jQuery(document).ready(function($) {
         });
         return false;
     });
-    jQuery('.wpcf-pr-delete-ajax').live('click', function () {
+    jQuery( 'body' ).on( 'click', '.wpcf-pr-delete-ajax', function () {
         if ($(this).hasClass('disabled'))
             return false;
 
@@ -499,7 +499,7 @@ jQuery(document).ready(function($) {
         });
         return false;
     });
-    jQuery('.wpcf-pr-update-belongs').live('click', function () {
+    jQuery( 'body' ).on( 'click', '.wpcf-pr-update-belongs', function () {
         var object = jQuery(this);
         jQuery.ajax({
             url: jQuery(this).attr('href'),

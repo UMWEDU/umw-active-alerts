@@ -179,14 +179,6 @@ class WPCF_Loader
                     WPCF_EMBEDDED_RES_RELPATH . '/css/colorbox.css', array(),
                     WPCF_VERSION );
         }
-        if ( !wp_style_is( 'toolset-dashicons', 'registered' ) ) {
-            wp_register_style(
-                'toolset-dashicons',
-                WPCF_EMBEDDED_RES_RELPATH . '/css/dashicons.css',
-                array(),
-                WPCF_VERSION
-            );
-        }
     }
 
     /**

@@ -19,6 +19,8 @@ if( typeof typesStatusBasicJsScript === 'undefined' ) {
 
     jQuery( document ).ready( function() {
 
+        var wpcfBody = jQuery( 'body' );
+
         /**
          * check description field
          */
@@ -105,7 +107,7 @@ if( typeof typesStatusBasicJsScript === 'undefined' ) {
         //        containment: 'parent'
         //    });
 
-        jQuery( ".wpcf-form-fieldset legend" ).live( 'click', function() {
+        wpcfBody.on( 'click', '.wpcf-form-fieldset legend', function() {
             jQuery( this ).parent().children( ".collapsible" ).slideToggle( "fast", function() {
                 var toggle = '';
                 if( jQuery( this ).is( ":visible" ) ) {
@@ -144,16 +146,16 @@ if( typeof typesStatusBasicJsScript === 'undefined' ) {
                 }
             } );
         } );
-        jQuery( '.wpcf-form-groups-radio-update-title-display-value' ).live( 'keyup', function() {
+        wpcfBody.on( 'keyup', '.wpcf-form-groups-radio-update-title-display-value', function() {
             jQuery( '#' + jQuery( this ).attr( 'id' ) + '-display-value' ).prev( 'label' ).html( jQuery( this ).val() );
         } );
         jQuery( '.form-error' ).parents( '.collapsed' ).slideDown();
-        jQuery( '.wpcf-form input' ).live( 'focus', function() {
+        wpcfBody.on( 'focus', '.wpcf-form input', function() {
             jQuery( this ).parents( '.collapsed' ).slideDown();
         } );
 
         // Delete AJAX added element
-        jQuery( '.wpcf-form-fields-delete' ).live( 'click', function() {
+        wpcfBody.on( 'click', '.wpcf-form-fields-delete', function() {
             if( jQuery( this ).attr( 'href' ) == 'javascript:void(0);' ) {
                 jQuery( this ).parent().fadeOut( function() {
                     jQuery( this ).remove();
@@ -164,7 +166,7 @@ if( typeof typesStatusBasicJsScript === 'undefined' ) {
         /*
          * Generic AJAX call (link). Parameters can be used.
          */
-        jQuery( '.wpcf-ajax-link' ).live( 'click', function() {
+        wpcfBody.on( 'click', '.wpcf-ajax-link', function() {
             var callback = wpcfGetParameterByName( 'wpcf_ajax_callback', jQuery( this ).attr( 'href' ) );
             var update = wpcfGetParameterByName( 'wpcf_ajax_update', jQuery( this ).attr( 'href' ) );
             var updateAdd = wpcfGetParameterByName( 'wpcf_ajax_update_add', jQuery( this ).attr( 'href' ) );

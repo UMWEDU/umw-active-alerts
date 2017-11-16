@@ -122,7 +122,8 @@ class WPCF_Relationship_Child_Form
         /**
          * post types managed by Types
          */
-        $post_types = get_option( WPCF_OPTION_NAME_CUSTOM_TYPES, array() );
+	    $post_type_option = new Types_Utils_Post_Type_Option();
+        $post_types = $post_type_option->get_post_types();
         if (
             array_key_exists($child_post_type, $post_types )
             && array_key_exists('supports', $post_types[$child_post_type] )
