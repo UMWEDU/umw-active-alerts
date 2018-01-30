@@ -579,7 +579,7 @@ if( typeof typesStatusBasicJsScript === 'undefined' ) {
 
                 // Do not add the spinner if it's already present.
                 if( 0 == currentElement.parent().find( '#' + spinnerId ).length ) {
-                    currentElement.after( '<div id="' + spinnerId + '" class="wpcf-loading">&nbsp;</div>' );
+                    currentElement.before( '<div id="' + spinnerId + '" class="js-wpcf-spinner spinner is-active">&nbsp;</div>' );
                 }
             }
         } );
@@ -590,7 +590,7 @@ if( typeof typesStatusBasicJsScript === 'undefined' ) {
      */
     function wpcfLoadingButtonStop() {
         jQuery( '.wpcf-disabled-on-submit' ).removeAttr( 'disabled' );
-        jQuery( '.wpcf-loading' ).fadeOut();
+        jQuery( '.js-wpcf-spinner' ).fadeOut();
         //Fix https://icanlocalize.basecamphq.com/projects/7393061-toolset/todo_items/194177056/comments
         //type modal didnt disappeared
         // jQuery('.types_modal_box').remove();

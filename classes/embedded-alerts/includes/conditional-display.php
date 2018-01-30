@@ -82,7 +82,7 @@ function wpcf_cd_post_groups_filter( $groups, $post, $context ) {
                  */
                 if ( is_array( $v) ) {
                     $v = array_shift($v);
-                    if ( is_array($v) ) {
+                    if ( is_array($v) || ( is_object( $v ) && ! method_exists( $v, '__toString' ) ) ) {
                         continue;
                     }
                     $v = strval( $v);

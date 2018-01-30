@@ -89,7 +89,7 @@ abstract class WPCF_Field_Definition_Abstract {
 			'isUnderTypesControl' => $this->is_under_types_control(),
 			'slug' => $this->get_slug(),
 			'metaKey' => $this->get_slug(),
-			'displayName' => $this->get_name(),
+			'displayName' => stripslashes( $this->get_name() ),
 			'groups' => $this->get_group_slugs()
 		);
 		
