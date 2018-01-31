@@ -9,8 +9,8 @@ License: GPL2
 */
 
 if ( ! class_exists( 'UMW_Active_Alerts' ) ) {
-	require_once( plugin_dir_path( __FILE__ ) . '/classes/class-umw-active-alerts.php' );
+	require_once( plugin_dir_path( __FILE__ ) . '/classes/class-umw-advisories-plugin.php' );
 }
 
 if ( ! isset( $umw_active_alerts_obj ) || ! is_a( $umw_active_alerts_obj, 'UMW_Active_Alerts' ) )
-	UMW_Active_Alerts::instance();
+	$GLOBALS['umw_active_alerts_obj'] = \UMW_Advisories\Plugin::instance();
