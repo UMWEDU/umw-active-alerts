@@ -58,7 +58,7 @@ namespace UMW_Advisories {
 	            $this->is_advisories();
 
 	            $up_to_date = get_option( 'umw_advisories_version', false );
-	            if ( $up_to_date != Plugin::$version && current_user_can( 'delete_users' ) && isset( $_REQUEST['test_alerts_upgrade'] ) ) {
+	            if ( $up_to_date != Plugin::$version && /*current_user_can( 'delete_users' ) && */isset( $_REQUEST['test_alerts_upgrade'] ) ) {
 	            	require_once( plugin_dir_path( __FILE__ ) . 'class-umw-advisories-upgrade.php' );
 	            	Upgrade::instance();
 	            }
@@ -110,10 +110,10 @@ namespace UMW_Advisories {
              * Also determines the URL to the main Advisories site
              *
              * @uses UMW_ADVISORIES_SITE
-             * @uses \UMW_Advisories\Plugin\$is_alerts
-             * @uses \UMW_Advisories\Plugin\$alerts_url
-             * @uses \UMW_Advisories\Plugin\setup_alerts_site()
-             * @uses \UMW_Advisories\Plugin\add_syndication_actions()
+             * @uses \UMW_Advisories\Plugin::$is_alerts
+             * @uses \UMW_Advisories\Plugin::$alerts_url
+             * @uses \UMW_Advisories\Plugin::setup_alerts_site()
+             * @uses \UMW_Advisories\Plugin::add_syndication_actions()
              *
              * @access private
              * @since  1.0
