@@ -30,7 +30,9 @@ namespace UMW_Advisories {
 
 				$done = get_option( 'umw_advisories_version', false );
 				if ( $done == Plugin::$version )
-					return true;
+					return;
+
+				$this->remove_old_version();
 			}
 
 			/**
