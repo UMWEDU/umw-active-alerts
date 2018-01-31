@@ -1,0 +1,147 @@
+[
+    {
+        "key": "group_5a71d775061ac",
+        "title": "Advisory Expiration",
+        "fields": [
+            {
+                "key": "field_5a71d791bceef",
+                "label": "When should this advisory expire?",
+                "name": "_advisory_expires_time",
+                "type": "date_time_picker",
+                "instructions": "",
+                "required": 0,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "",
+                    "class": "",
+                    "id": ""
+                },
+                "display_format": "F j, Y g:i a",
+                "return_format": "Y-m-d H:i:s",
+                "first_day": 0
+            }
+        ],
+        "location": [
+            [
+                {
+                    "param": "post_type",
+                    "operator": "==",
+                    "value": "advisory"
+                }
+            ],
+            [
+                {
+                    "param": "post_type",
+                    "operator": "==",
+                    "value": "alert"
+                }
+            ]
+        ],
+        "menu_order": 0,
+        "position": "normal",
+        "style": "default",
+        "label_placement": "top",
+        "instruction_placement": "label",
+        "hide_on_screen": [
+            "custom_fields",
+            "discussion",
+            "comments",
+            "format",
+            "page_attributes",
+            "featured_image",
+            "categories",
+            "tags",
+            "send-trackbacks"
+        ],
+        "active": 1,
+        "description": ""
+    },
+    {
+        "key": "group_5a71d9ab71516",
+        "title": "Advisory Information",
+        "fields": [
+            {
+                "key": "field_5a71da4225611",
+                "label": "When should this advisory expire?",
+                "name": "_advisory_expires_time",
+                "type": "date_time_picker",
+                "instructions": "If you do not want this advisory to appear as an active advisory, set the expiration date in the past.",
+                "required": 1,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "",
+                    "class": "",
+                    "id": ""
+                },
+                "display_format": "F j, Y g:i a",
+                "return_format": "Y-m-d H:i:s",
+                "first_day": 0
+            },
+            {
+                "key": "field_5a71da7525612",
+                "label": "What is the original URL of this advisory?",
+                "name": "_advisory_permalink",
+                "type": "url",
+                "instructions": "",
+                "required": 0,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "",
+                    "class": "",
+                    "id": ""
+                },
+                "default_value": "",
+                "placeholder": ""
+            },
+            {
+                "key": "field_5a71da9125613",
+                "label": "Who is the original author of this advisory?",
+                "name": "_advisory_author",
+                "type": "text",
+                "instructions": "",
+                "required": 0,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "",
+                    "class": "",
+                    "id": ""
+                },
+                "default_value": "",
+                "placeholder": "",
+                "prepend": "",
+                "append": "",
+                "maxlength": ""
+            }
+        ],
+        "location": [
+            [
+                {
+                    "param": "post_type",
+                    "operator": "==",
+                    "value": "external_advisory"
+                }
+            ]
+        ],
+        "menu_order": 0,
+        "position": "normal",
+        "style": "default",
+        "label_placement": "top",
+        "instruction_placement": "label",
+        "hide_on_screen": [
+            "excerpt",
+            "custom_fields",
+            "discussion",
+            "comments",
+            "revisions",
+            "author",
+            "format",
+            "page_attributes",
+            "featured_image",
+            "categories",
+            "tags",
+            "send-trackbacks"
+        ],
+        "active": 1,
+        "description": ""
+    }
+]
