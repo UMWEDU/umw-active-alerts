@@ -45,14 +45,23 @@ namespace UMW_Advisories {
 	        private $alerts_url = null;
 
             /**
-             * Creates the \AdmLdg17\Plugin object
+             * Creates the \UMW_Advisories\Plugin object
              *
              * @access private
              * @since  0.1
              */
             private function __construct() {
+            	if ( is_network_admin() )
+            		return;
+
 	            $this->is_root();
 	            $this->is_advisories();
+
+	            $up_to_date = get_option( 'umw_advisories_version', false );
+	            if ( $up_to_date != Plugin::$version && current_user_can( 'delete_users' ) && isset( $_REQUEST['test_alerts_upgrade'] ) ) {
+	            	require_once( plugin_dir_path( __FILE__ ) . 'class-umw-advisories-upgrade.php' );
+	            	Upgrade::instance();
+	            }
             }
 
             /**
@@ -139,13 +148,13 @@ namespace UMW_Advisories {
 	         * @return void
 	         */
 	        private function setup_acf() {
-	        	add_filter( 'acf/settings/path', function() { return plugin_dir_path( __FILE__ ) . '/includes/acf/'; } );
-	        	add_filter( 'acf/settings/dir', function() { return plugin_dir_url( __FILE__ ) . '/includes/acf/'; } );
+	        	add_filter( 'acf/settings/path', function() { return plugin_dir_path( __FILE__ ) . '/inc/acf/'; } );
+	        	add_filter( 'acf/settings/dir', function() { return plugin_dir_url( __FILE__ ) . '/inc/acf/'; } );
 	        	if ( ! is_plugin_active( 'advanced-custom-fields-pro' ) && ( is_multisite() && ! is_plugin_active_for_network( 'advanced-custom-fields-pro' ) ) ) {
 	        		add_filter( 'acf/settings/show_admin', '__return_false' );
 		        }
-		        include_once( plugin_dir_path( __FILE__ ) . '/includes/acf/acf.php' );
-	        	include_once( plugin_dir_path( __FILE__ ) . '/includes/acf-fields.php' );
+		        include_once( plugin_dir_path( __FILE__ ) . '/inc/acf/acf.php' );
+	        	include_once( plugin_dir_path( __FILE__ ) . '/inc/acf-fields.php' );
 
 	        	add_filter( 'acf/load_value/type=date_time_picker', array( $this, 'default_expiry' ) );
 	        }
@@ -179,9 +188,9 @@ namespace UMW_Advisories {
 	         */
 	        private function register_post_types() {
 	        	if ( $this->is_alerts ) {
-	        		require_once( plugin_dir_path( __FILE__ ) . '/includes/post-types-root.php' );
+	        		require_once( plugin_dir_path( __FILE__ ) . '/inc/post-types-root.php' );
 		        } else {
-	        		require_once( plugin_dir_path( __FILE__ ) . '/includes/post-types-remote.php' );
+	        		require_once( plugin_dir_path( __FILE__ ) . '/inc/post-types-remote.php' );
 		        }
 		        $this->setup_acf();
 	        }
