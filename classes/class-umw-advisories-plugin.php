@@ -56,12 +56,7 @@ namespace UMW_Advisories {
 
 	            $this->is_root();
 	            $this->is_advisories();
-
-	            $up_to_date = get_option( 'umw_advisories_version', false );
-	            if ( $up_to_date != Plugin::$version && /*current_user_can( 'delete_users' ) && */isset( $_REQUEST['test_alerts_upgrade'] ) ) {
-	            	require_once( plugin_dir_path( __FILE__ ) . 'class-umw-advisories-upgrade.php' );
-	            	Upgrade::instance();
-	            }
+	            add_action( 'init', array( $this, 'maybe_do_upgrade' ) );
             }
 
             /**
@@ -79,6 +74,21 @@ namespace UMW_Advisories {
 
                 return self::$instance;
             }
+
+	        /**
+	         * Checks to see whether plugin upgrade functions need to be run
+	         *
+	         * @access public
+	         * @since  1.0
+	         * @return void
+	         */
+	        public function maybe_do_upgrade() {
+		        $up_to_date = get_option( 'umw_advisories_version', false );
+		        if ( $up_to_date != Plugin::$version && current_user_can( 'delete_users' ) && isset( $_REQUEST['test_alerts_upgrade'] ) ) {
+			        require_once( plugin_dir_path( __FILE__ ) . 'class-umw-advisories-upgrade.php' );
+			        Upgrade::instance();
+		        }
+	        }
 
             /**
              * Determines whether this is the root UMW site
@@ -150,6 +160,11 @@ namespace UMW_Advisories {
 	        private function setup_acf() {
 	        	add_filter( 'acf/settings/path', function() { return plugin_dir_path( __FILE__ ) . '/inc/acf/'; } );
 	        	add_filter( 'acf/settings/dir', function() { return plugin_dir_url( __FILE__ ) . '/inc/acf/'; } );
+
+	        	if ( ! function_exists( 'is_plugin_active' ) ) {
+			        include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+		        }
+
 	        	if ( ! is_plugin_active( 'advanced-custom-fields-pro' ) && ( is_multisite() && ! is_plugin_active_for_network( 'advanced-custom-fields-pro' ) ) ) {
 	        		add_filter( 'acf/settings/show_admin', '__return_false' );
 		        }

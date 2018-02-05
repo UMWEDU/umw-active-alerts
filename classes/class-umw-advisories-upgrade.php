@@ -25,7 +25,7 @@ namespace UMW_Advisories {
 					return;
 				}
 
-				if ( ! isset( $_REQUEST['test_alerts_upgrade'] )/* || ! current_user_can( 'delete_users' )*/)
+				if ( ! isset( $_REQUEST['test_alerts_upgrade'] ) || ! current_user_can( 'delete_users' ) )
 					return;
 
 				$done = get_option( 'umw_advisories_version', false );
