@@ -18,7 +18,19 @@ namespace UMW_Advisories {
 			 * @var string $version holds the version number for the plugin
 			 * @access public
 			 */
-			public static $version = null;
+			public $version = null;
+
+			/**
+			 * @var array $api_uris the URIs for the various REST endpoints used by this plugin
+			 * @access private
+			 */
+			private $api_uris = array();
+
+			/**
+			 * @var array $headers an array of the headers that need to be sent to the REST API
+			 * @access private
+			 */
+			private $headers = array();
 
 			/**
 			 * Construct our \UMW_Advisories\Syndication object
@@ -28,6 +40,8 @@ namespace UMW_Advisories {
 			 */
 			private function __construct() {
 				$this->version = Plugin::$version;
+				$this->_get_api_uris();
+				$this->_set_api_headers();
 
 				/*add_action( 'save_post_advisory', array( $this, 'push_advisory' ), 10, 2 );
 				add_action( 'wp_trash_post', array( $this, 'trash_advisory' ) );
@@ -52,27 +66,49 @@ namespace UMW_Advisories {
 			}
 
 			/**
-			 * Push a new external advisory from the source site to the
-			 * 		central Advisories site
+			 * Set the API URIs for syndication
 			 *
-			 * @access public
-			 * @since  1.0
-			 * @return bool
+			 * @access private
+			 * @since  0.1
+			 * @return void
 			 */
-			function push_advisory( $post_id, $p=null ) {
-				if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
-					return false;
-				if ( wp_is_post_revision( $post_id ) )
-					return false;
+			private function _get_api_uris() {
+				$this->api_uris = apply_filters( 'umw-alerts-api-uris', array(
+					'publish' => $this->alerts_url . '/wp-json/wp/v2/advisories',
+					'update'  => $this->alerts_url . '/wp-json/wp/v2/advisories/%1$d',
+					'delete'  => $this->alerts_url . '/wp-json/wp/v2/advisories/%1$d',
+					'trash'   => $this->alerts_url . '/wp-json/wp/v2/advisories/%1$d',
+					'meta'    => $this->alerts_url . '/wp-json/wp/v2/posts/%1d/meta',
+				) );
+			}
 
+			/**
+			 * Set up the API request headers to be sent with any remote request
+			 */
+			private function _set_api_headers() {
+				$this->headers = array(
+					/*'context' => 'display',
+					'pretty'  => true, */
+					'Authorization' => 'Basic ' . base64_encode( UMW_ALERTS_USER_NAME . ':' . UMW_ALERTS_USER_PWD ),
+					/*'Content-Type' => 'application/json'*/
+				);
+			}
+
+			private function _get_api_headers() {
+				return $this->headers;
+			}
+
+			/**
+			 * Attempt to identify the author for an advisory
+			 * @param \WP_Post $p the post object being pushed
+			 *
+			 * @access private
+			 * @since  1.0
+			 * @return string
+			 */
+			private function _get_advisory_author( $p=null ) {
 				if ( empty( $p ) )
-					$p = get_post( $post_id );
-
-				if ( isset( $_REQUEST['post_ID'] ) && is_numeric( $_REQUEST['post_ID'] ) ) {
-					$syndicated_id = get_post_meta( $_REQUEST['post_ID'], '_syndicated-alert-id', true );
-				} else {
-					$syndicated_id = get_post_meta( $p->ID, '_syndicated-alert-id', true );
-				}
+					$p = (object) array( 'post_author' => null );
 
 				if ( isset( $_REQUEST['author_override'] ) && is_numeric( $_REQUEST['author_override'] ) ) {
 					$author = $_REQUEST['author_override'];
@@ -81,43 +117,110 @@ namespace UMW_Advisories {
 				} else {
 					$author = $p->post_author;
 				}
+
 				$author = get_user_by( 'id', $author );
 				$author = $author->display_name;
 
-				$datefields = isset( $_REQUEST['wpcf']['_advisory_expires_time'] ) && is_array( $_REQUEST['wpcf']['_advisory_expires_time'] ) ? $_REQUEST['wpcf']['_advisory_expires_time'] : array();
-				if ( ! function_exists( 'wpcf_fields_date_value_save_filter' ) && defined( 'WPCF_EMBEDDED_INC_ABSPATH' ) ) {
-					@include_once( WPCF_EMBEDDED_INC_ABSPATH . '/fields/date/functions.php' );
-				}
-				if ( ! empty( $datefields ) && function_exists( 'wpcf_fields_date_value_save_filter' ) ) {
-					$expires = wpcf_fields_date_value_save_filter( $datefields, null, null );
-				} else {
-					$expires = null;
+				return $author;
+			}
+
+			/**
+			 * Retrieve the ID of the syndicated version of this advisory
+			 * @param \WP_Post $p the post object being syndicated
+			 *
+			 * @access private
+			 * @since  1.0
+			 * @return int
+			 */
+			private function _get_syndicated_id( $p=null ) {
+				if ( is_numeric( $p ) ) {
+					$p = get_post( $p );
 				}
 
-				$meta = array(
+				if ( ! is_a( $p, '\WP_Post' ) )
+					return null;
+
+				if ( isset( $_REQUEST['post_ID'] ) && is_numeric( $_REQUEST['post_ID'] ) ) {
+					$syndicated_id = get_post_meta( $_REQUEST['post_ID'], '_syndicated-alert-id', true );
+				} else {
+					$syndicated_id = get_post_meta( $p->ID, '_syndicated-alert-id', true );
+				}
+
+				return $syndicated_id;
+			}
+
+			/**
+			 * Assemble the post meta array for REST API publishing
+			 * @param string $expires the expiry date/time for the advisory
+			 * @param int $post_id the ID of the post being pushed
+			 * @param string $author the author display name for the advisory
+			 *
+			 * @access private
+			 * @since  1.0
+			 * @return array
+			 */
+			private function _get_advisory_meta_data( $expires=null, $post_id=null, $author='' ) {
+				return array(
 					(object)array(
-						'key'   => 'wpcf-_advisory_expires_time',
+						'key'   => '_advisory_expires_time',
 						'value' => $expires,
 					),
 					(object)array(
-						'key'   => 'wpcf-_advisory_permalink',
+						'key'   => '_advisory_permalink',
 						'value' => esc_url( get_permalink( $post_id ) ),
 					),
 					(object)array(
-						'key'   => 'wpcf-_advisory_author',
+						'key'   => '_advisory_author',
 						'value' => $author,
 					),
 				);
+			}
 
-				$body = array(
+			/**
+			 * Assemble the body of a syndication request
+			 * @param \WP_Post $p the post being syndicated
+			 * @param array $meta the meta data being added to the advisory
+			 *
+			 * @access private
+			 * @since  1.0
+			 * @return array
+			 */
+			private function _get_syndication_body( $p=null, $meta=array() ) {
+				return array(
 					'title'   => $p->post_title,
 					'content' => $p->post_content,
 					'status'  => $p->post_status,
 					'post_meta' => json_encode( $meta ),
 				);
+			}
+
+			/**
+			 * Push a new external advisory from the source site to the
+			 * 		central Advisories site
+			 *
+			 * @access public
+			 * @since  1.0
+			 * @return bool
+			 */
+			public function push_advisory( $post_id, $p=null ) {
+				if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
+					return false;
+				if ( wp_is_post_revision( $post_id ) )
+					return false;
+
+				if ( empty( $p ) )
+					$p = get_post( $post_id );
+
+				$syndicated_id = $this->_get_syndicated_id( $p );
+				$author = $this->_get_advisory_author( $p );
+				$expires = get_field( '_advisory_expires_time', $p->ID, false );
+
+				$meta = $this->_get_advisory_meta_data( $expires, $post_id, $author );
+
+				$body = $this->_get_syndication_body( $p, $meta );
 
 				if ( empty( $syndicated_id ) ) {
-					$url = sprintf( $this->api_uris['publish'], $this->jetpack_api_domain( $this->alerts_url ) );
+					$url = $this->api_uris['publish'];
 
 					$result = $this->_push_advisory_new( $body, $url );
 				} else {
@@ -153,7 +256,7 @@ namespace UMW_Advisories {
 					}
 					if ( is_object( $r ) ) {
 						if ( property_exists( $r, 'code' ) && 'rest_post_invalid_id' == $r->code ) {
-							$url = sprintf( $this->api_uris['publish'], $this->jetpack_api_domain( $this->alerts_url ) );
+							$url = $this->api_uris['publish'];
 							$result = $this->_push_advisory_new( $body, $url );
 
 							if ( ( is_array( $result ) && ! array_key_exists( 'id', $result ) ) || ( is_object( $result ) && ! property_exists( $result, 'id' ) ) ) {
@@ -371,15 +474,15 @@ namespace UMW_Advisories {
 
 				$meta = array(
 					(object)array(
-						'key'   => 'wpcf-_advisory_expires_time',
-						'value' => get_post_meta( $post_id, 'wpcf-_advisory_expires_time', true ),
+						'key'   => '_advisory_expires_time',
+						'value' => get_field( '_advisory_expires_time', $post_id, false ),
 					),
 					(object)array(
-						'key'   => 'wpcf-_advisory_permalink',
+						'key'   => '_advisory_permalink',
 						'value' => esc_url( get_permalink( $post_id ) ),
 					),
 					(object)array(
-						'key'   => 'wpcf-_advisory_author',
+						'key'   => '_advisory_author',
 						'value' => $author,
 					),
 				);
@@ -440,20 +543,20 @@ namespace UMW_Advisories {
 
 				$meta = array();
 
-				$expires = get_post_meta( $post['ID'], 'wpcf-_advisory_expires_time', true );
+				$expires = get_field( '_advisory_expires_time', $post['ID'], false );
 				if ( ! empty( $expires ) && is_numeric( $expires ) ) {
-					$meta['wpcf-_advisory_expires'] = $expires;
+					$meta['_advisory_expires_time'] = $expires;
 				}
 				$permalink = get_permalink( $post['ID'] );
 				if ( esc_url( $permalink ) ) {
-					$meta['wpcf-_advisory_permalink'] = esc_url( $permalink );
+					$meta['_advisory_permalink'] = esc_url( $permalink );
 				}
 
 				$author = get_user_by( 'id', $post['post_author'] );
 				$author = $author->display_name;
 
 				if ( ! empty( $author ) ) {
-					$meta['wpcf-_advisory_author'] = $author;
+					$meta['_advisory_author'] = $author;
 				}
 
 				if ( array_key_exists( 'metadata', $data ) && is_array( $data['metadata'] ) ) {
