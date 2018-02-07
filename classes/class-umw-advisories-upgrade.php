@@ -15,6 +15,12 @@ namespace UMW_Advisories {
 			private static $instance;
 
 			/**
+			 * @var bool a variable to determine whether we've performed init actions or not
+			 * @access private
+			 */
+			private $did_init = false;
+
+			/**
 			 * Creates the \UMW_Advisories\Plugin object
 			 *
 			 * @access private
@@ -28,11 +34,7 @@ namespace UMW_Advisories {
 				if ( ! isset( $_REQUEST['test_alerts_upgrade'] ) || ! current_user_can( 'delete_users' ) )
 					return;
 
-				$done = get_option( 'umw_advisories_version', false );
-				if ( $done == Plugin::$version )
-					return;
-
-				$this->remove_old_version();
+				$this->do_init();
 			}
 
 			/**
@@ -50,6 +52,27 @@ namespace UMW_Advisories {
 
 				return self::$instance;
 			}
+
+			/**
+			 * Run any startup actions
+			 *
+			 * @access public
+			 * @since  1.0
+			 * @return void
+			 */
+			public function do_init() {
+				if ( true === $this->did_init )
+					return;
+
+				$this->did_init = true;
+
+				$done = get_option( 'umw_advisories_version', false );
+				if ( $done == Plugin::$version )
+					return;
+
+				$this->remove_old_version();
+			}
+
 			/**
 			 * Attempt to remove all traces of the old Toolset way of managing this plugin
 			 *

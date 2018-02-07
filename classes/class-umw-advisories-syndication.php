@@ -33,20 +33,19 @@ namespace UMW_Advisories {
 			private $headers = array();
 
 			/**
+			 * @var bool a variable to determine whether we've performed init actions or not
+			 * @access private
+			 */
+			private $did_init = false;
+
+			/**
 			 * Construct our \UMW_Advisories\Syndication object
 			 *
 			 * @access private
 			 * @since  2018.1
 			 */
 			private function __construct() {
-				$this->version = Plugin::$version;
-				$this->_get_api_uris();
-				$this->_set_api_headers();
-
-				add_action( 'save_post_advisory', array( $this, 'push_advisory' ), 10, 2 );
-				add_action( 'wp_trash_post', array( $this, 'trash_advisory' ) );
-				add_action( 'untrashed_post', array( $this, 'untrash_advisory' ) );
-				add_action( 'delete_post', array( $this, 'delete_advisory' ) );
+				$this->do_init();
 			}
 
 			/**
@@ -66,6 +65,35 @@ namespace UMW_Advisories {
 			}
 
 			/**
+			 * Run any startup actions that need to happen
+			 *
+			 * @access public
+			 * @since  1.0
+			 * @return void
+			 */
+			public function do_init() {
+				if ( true === $this->did_init )
+					return;
+
+				$this->did_init = true;
+
+				$this->version = Plugin::$version;
+				$this->_get_api_uris();
+				$this->_set_api_headers();
+
+				/*if ( ! has_action( 'save_post_advisory', array( $this, 'push_advisory' ) ) )
+					add_action( 'save_post_advisory', array( $this, 'push_advisory' ), 10, 2 );
+				if ( ! has_action( 'wp_trash_post', array( $this, 'trash_advisory' ) ) )
+					add_action( 'wp_trash_post', array( $this, 'trash_advisory' ) );
+				if ( ! has_action( 'untrashed_post', array( $this, 'untrash_advisory' ) ) )
+					add_action( 'untrashed_post', array( $this, 'untrash_advisory' ) );
+				if ( ! has_action( 'delete_post', array( $this, 'delete_advisory' ) ) )
+					add_action( 'delete_post', array( $this, 'delete_advisory' ) );*/
+
+				return;
+			}
+
+			/**
 			 * Set the API URIs for syndication
 			 *
 			 * @access private
@@ -73,12 +101,13 @@ namespace UMW_Advisories {
 			 * @return void
 			 */
 			private function _get_api_uris() {
+				$url = Plugin::instance()->get_alerts_url();
 				$this->api_uris = apply_filters( 'umw-alerts-api-uris', array(
-					'publish' => Plugin::instance()->get_alerts_url() . '/wp-json/wp/v2/advisories',
-					'update'  => Plugin::instance()->get_alerts_url() . '/wp-json/wp/v2/advisories/%1$d',
-					'delete'  => Plugin::instance()->get_alerts_url() . '/wp-json/wp/v2/advisories/%1$d',
-					'trash'   => Plugin::instance()->get_alerts_url() . '/wp-json/wp/v2/advisories/%1$d',
-					'meta'    => Plugin::instance()->get_alerts_url() . '/wp-json/wp/v2/posts/%1d/meta',
+					'publish' => $url . '/wp-json/wp/v2/advisories',
+					'update'  => $url . '/wp-json/wp/v2/advisories/%1$d',
+					'delete'  => $url . '/wp-json/wp/v2/advisories/%1$d',
+					'trash'   => $url . '/wp-json/wp/v2/advisories/%1$d',
+					'meta'    => $url . '/wp-json/wp/v2/posts/%1d/meta',
 				) );
 			}
 
@@ -446,7 +475,7 @@ namespace UMW_Advisories {
 			 * @since  0.1
 			 * @return bool
 			 */
-			function trash_advisory( $post_id=null, $force=false ) {
+			public function trash_advisory( $post_id=null, $force=false ) {
 				$force = true;
 
 				if ( empty( $post_id ) ) {
@@ -496,7 +525,7 @@ namespace UMW_Advisories {
 			 * @since  0.1
 			 * @return bool
 			 */
-			function untrash_advisory( $post_id=null ) {
+			public function untrash_advisory( $post_id=null ) {
 				if ( empty( $post_id ) ) {
 					$post_id = isset( $_REQUEST['post'] ) && is_numeric( $_REQUEST['post'] ) ? $_REQUEST['post'] : null;
 				}
@@ -578,7 +607,7 @@ namespace UMW_Advisories {
 			 * @since  0.1
 			 * @return bool
 			 */
-			function delete_advisory( $post_id=null ) {
+			public function delete_advisory( $post_id=null ) {
 				if ( empty( $post_id ) ) {
 					$post_id = isset( $_REQUEST['post'] ) && is_numeric( $_REQUEST['post'] ) ? $_REQUEST['post'] : null;
 				}

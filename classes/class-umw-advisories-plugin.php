@@ -44,6 +44,12 @@ namespace UMW_Advisories {
 	         */
 	        private $alerts_url = null;
 
+	        /**
+	         * @var bool a variable to determine whether we've performed init actions or not
+	         * @access private
+	         */
+	        private $did_init = false;
+
             /**
              * Creates the \UMW_Advisories\Plugin object
              *
@@ -54,9 +60,7 @@ namespace UMW_Advisories {
             	if ( is_network_admin() )
             		return;
 
-	            $this->is_root();
-	            $this->is_advisories();
-	            add_action( 'init', array( $this, 'maybe_do_upgrade' ) );
+            	$this->do_init();
             }
 
             /**
@@ -76,6 +80,24 @@ namespace UMW_Advisories {
             }
 
 	        /**
+	         * Run any startup actions that need to happen
+	         *
+	         * @access public
+	         * @since  1.0
+	         * @return void
+	         */
+	        public function do_init() {
+	        	if ( true === $this->did_init )
+	        		return;
+
+		        $this->did_init = true;
+
+		        $this->is_root();
+		        $this->is_advisories();
+		        add_action( 'init', array( $this, 'maybe_do_upgrade' ) );
+	        }
+
+	        /**
 	         * Checks to see whether plugin upgrade functions need to be run
 	         *
 	         * @access public
@@ -83,6 +105,7 @@ namespace UMW_Advisories {
 	         * @return void
 	         */
 	        public function maybe_do_upgrade() {
+	        	return;
 		        $up_to_date = get_option( 'umw_advisories_version', false );
 		        if ( $up_to_date != Plugin::$version && current_user_can( 'delete_users' ) && isset( $_REQUEST['test_alerts_upgrade'] ) ) {
 			        require_once( plugin_dir_path( __FILE__ ) . 'class-umw-advisories-upgrade.php' );
@@ -114,16 +137,22 @@ namespace UMW_Advisories {
              * @return void
              */
             private function is_root() {
-	            if ( defined( 'UMW_IS_ROOT' ) ) {
-		            if ( is_numeric( UMW_IS_ROOT ) && $GLOBALS['blog_id'] == UMW_IS_ROOT ) {
-			            $this->is_root = true;
-			            $this->root_url = get_bloginfo( 'url' );
-		            } else if ( is_numeric( UMW_IS_ROOT ) ) {
-			            $this->root_url = get_blog_option( UMW_IS_ROOT, 'home_url', null );
-		            } else {
-			            $this->root_url = esc_url( UMW_IS_ROOT );
-		            }
+            	if ( ! defined ( 'UMW_IS_ROOT' ) )
+            		return;
+
+            	if ( ! is_numeric( UMW_IS_ROOT ) ) {
+            		$this->root_url = esc_url( UMW_IS_ROOT );
+            		return;
 	            }
+
+	            if ( UMW_IS_ROOT == $GLOBALS['blog_id'] ) {
+            		$this->is_root = true;
+            		$this->root_url = get_bloginfo( 'url' );
+	            } else {
+            		$this->root_url = get_blog_option( UMW_IS_ROOT, 'home_url', null );
+	            }
+
+	            return;
             }
 
             /**
@@ -144,55 +173,88 @@ namespace UMW_Advisories {
             	if ( ! defined( 'UMW_ADVISORIES_SITE' ) )
             		return;
 
-	            if ( is_numeric( UMW_ADVISORIES_SITE ) ) {
-		            if ( UMW_ADVISORIES_SITE == $GLOBALS['blog_id'] ) {
-			            $this->is_alerts = true;
-			            $this->alerts_url = esc_url( get_bloginfo( 'url' ) );
-			            $this->setup_alerts_site();
-		            } else {
-			            $this->is_alerts = false;
-			            $this->alerts_url = esc_url( get_blog_option( UMW_ADVISORIES_SITE, 'home' ) );
-			            $this->add_syndication_actions();
-		            }
-	            } else {
-		            $this->is_alerts = false;
+            	$this->is_alerts = false;
+
+            	if ( ! is_numeric( UMW_ADVISORIES_SITE ) ) {
 		            $this->alerts_url = esc_url( UMW_ADVISORIES_SITE );
 		            $this->add_syndication_actions();
+		            return;
 	            }
+
+	            if ( UMW_ADVISORIES_SITE == $GLOBALS['blog_id'] ) {
+		            $this->is_alerts = true;
+		            $this->alerts_url = esc_url( get_bloginfo( 'url' ) );
+		            $this->setup_alerts_site();
+	            } else {
+		            $this->alerts_url = esc_url( get_blog_option( UMW_ADVISORIES_SITE, 'home' ) );
+		            $this->add_syndication_actions();
+	            }
+
+	            return;
             }
 
 	        /**
 	         * Setup the necessary filters/includes for use with ACF
 	         *
-	         * @access private
+	         * @access public
 	         * @since  2018.1
 	         * @return void
 	         */
-	        private function setup_acf() {
-	        	add_filter( 'acf/settings/path', function() { return plugin_dir_path( __FILE__ ) . '/inc/acf/'; } );
-	        	add_filter( 'acf/settings/dir', function() { return plugin_dir_url( __FILE__ ) . '/inc/acf/'; } );
-
+	        public function setup_acf() {
 	        	if ( ! function_exists( 'is_plugin_active' ) ) {
 			        include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 		        }
 
 	        	if ( ! is_plugin_active( 'advanced-custom-fields-pro' ) && ( is_multisite() && ! is_plugin_active_for_network( 'advanced-custom-fields-pro' ) ) ) {
+			        add_filter( 'acf/settings/path', array( $this, 'acf_path' ) );
+			        add_filter( 'acf/settings/dir', array( $this, 'acf_url' ) );
 	        		add_filter( 'acf/settings/show_admin', '__return_false' );
+			        include_once( plugin_dir_path( __FILE__ ) . '/inc/acf/acf.php' );
 		        }
-		        include_once( plugin_dir_path( __FILE__ ) . '/inc/acf/acf.php' );
+
 	        	include_once( plugin_dir_path( __FILE__ ) . '/inc/acf-fields.php' );
 
-	        	add_filter( 'acf/load_value/type=date_time_picker', array( $this, 'default_expiry' ) );
+	        	add_filter( 'acf/load_value/type=date_time_picker', array( $this, 'default_expiry' ), 10, 3 );
 	        }
 
 	        /**
-	         * Set up a default expiration date/time for the advisory
+	         * Return the path to ACF within this plugin
+	         * @param string $path the existing path
 	         *
 	         * @access public
 	         * @since  1.0
 	         * @return string
 	         */
-	        public function default_expiry( $val ) {
+	        public function acf_path( $path ) {
+		        return plugin_dir_path( __FILE__ ) . 'inc/acf/';
+	        }
+
+	        /**
+	         * Return the URL to ACF within this plugin
+	         * @param string $url the existing URL
+	         *
+	         * @access public
+	         * @since  1.0
+	         * @return string
+	         */
+	        public function acf_url( $url ) {
+		        return plugin_dir_url( __FILE__ ) . 'inc/acf/';
+	        }
+
+	        /**
+	         * Set up a default expiration date/time for the advisory
+	         * @param mixed $val the value of the current field
+	         * @param int $post_id the ID of the post being edited
+	         * @param array $field the information about the specific field
+	         *
+	         * @access public
+	         * @since  1.0
+	         * @return string
+	         */
+	        public function default_expiry( $val=null, $post_id=0, $field=array() ) {
+	        	if ( ! empty( $val ) )
+	        		return $val;
+
 	        	return strtotime( '+24 hours', current_time( 'U' ) );
 	        }
 
@@ -225,11 +287,158 @@ namespace UMW_Advisories {
 	         */
 	        private function register_post_types() {
 	        	if ( $this->is_alerts ) {
-	        		require_once( plugin_dir_path( __FILE__ ) . '/inc/post-types-root.php' );
+	        		add_action( 'init', array( $this, 'register_main_advisory_post_types' ) );
 		        } else {
-	        		require_once( plugin_dir_path( __FILE__ ) . '/inc/post-types-remote.php' );
+	        		add_action( 'init', array( $this, 'register_local_advisory_post_type' ) );
 		        }
-		        $this->setup_acf();
+
+		        add_action( 'plugins_loaded', array( $this, 'setup_acf' ) );
+	        }
+
+	        /**
+	         * Register the local advisory post type
+	         *
+	         * @access public
+	         * @since  1.0
+	         * @return void
+	         */
+	        public function register_local_advisory_post_type() {
+		        $labels = array(
+			        'name' => __( 'Advisories', 'twentyseventeen' ),
+			        'singular_name' => __( 'Advisory', 'twentyseventeen' ),
+		        );
+
+		        $args = array(
+			        'label' => __( 'Advisories', 'twentyseventeen' ),
+			        'labels' => $labels,
+			        'description' => '',
+			        'public' => true,
+			        'publicly_queryable' => true,
+			        'show_ui' => true,
+			        'show_in_rest' => true,
+			        'rest_base' => '',
+			        'has_archive' => false,
+			        'show_in_menu' => true,
+			        'exclude_from_search' => false,
+			        'capability_type' => 'post',
+			        'map_meta_cap' => true,
+			        'hierarchical' => false,
+			        'rewrite' => array( 'slug' => 'advisory', 'with_front' => false ),
+			        'query_var' => true,
+			        'menu_position' => 20,
+			        'menu_icon' => 'dashicons-admin-comments',
+			        'supports' => array( 'title', 'editor', 'excerpt', 'author' ),
+		        );
+
+		        register_post_type( 'advisory', $args );
+	        }
+
+	        /**
+	         * Register the emergency alerts and normal advisories post types
+	         *
+	         * @access public
+	         * @since  1.0
+	         * @return void
+	         */
+	        public function register_main_advisory_post_types() {
+		        /**
+		         * Post Type: Advisories.
+		         */
+
+		        $labels = array(
+			        'name' => __( 'Advisories', 'twentyseventeen' ),
+			        'singular_name' => __( 'Advisory', 'twentyseventeen' ),
+		        );
+
+		        $args = array(
+			        'label' => __( 'Advisories', 'twentyseventeen' ),
+			        'labels' => $labels,
+			        'description' => 'These are community-wide announcements and updates that need to be prominently featured, but are not urgent.',
+			        'public' => true,
+			        'publicly_queryable' => true,
+			        'show_ui' => true,
+			        'show_in_rest' => true,
+			        'rest_base' => '',
+			        'has_archive' => false,
+			        'show_in_menu' => true,
+			        'exclude_from_search' => false,
+			        'capability_type' => 'page',
+			        'map_meta_cap' => true,
+			        'hierarchical' => false,
+			        'rewrite' => array( 'slug' => 'advisory', 'with_front' => false ),
+			        'query_var' => true,
+			        'menu_position' => 5,
+			        'menu_icon' => 'dashicons-welcome-view-site',
+			        'supports' => array( 'title', 'editor', 'excerpt', 'author' ),
+		        );
+
+		        register_post_type( 'advisory', $args );
+
+		        /**
+		         * Post Type: Emergency Alerts.
+		         */
+
+		        $labels = array(
+			        'name' => __( 'Emergency Alerts', 'twentyseventeen' ),
+			        'singular_name' => __( 'Emergency Alert', 'twentyseventeen' ),
+		        );
+
+		        $args = array(
+			        'label' => __( 'Emergency Alerts', 'twentyseventeen' ),
+			        'labels' => $labels,
+			        'description' => 'These are community-wide, urgent messages that need to be broadcast across the entire UMW website',
+			        'public' => true,
+			        'publicly_queryable' => true,
+			        'show_ui' => true,
+			        'show_in_rest' => true,
+			        'rest_base' => '',
+			        'has_archive' => false,
+			        'show_in_menu' => true,
+			        'exclude_from_search' => false,
+			        'capability_type' => 'page',
+			        'map_meta_cap' => true,
+			        'hierarchical' => false,
+			        'rewrite' => array( 'slug' => 'alert', 'with_front' => false ),
+			        'query_var' => true,
+			        'menu_position' => 5,
+			        'menu_icon' => 'dashicons-welcome-comments',
+			        'supports' => array( 'title', 'editor', 'excerpt', 'author' ),
+		        );
+
+		        register_post_type( 'alert', $args );
+
+		        /**
+		         * Post Type: External Advisories.
+		         */
+
+		        $labels = array(
+			        'name' => __( 'External Advisories', 'twentyseventeen' ),
+			        'singular_name' => __( 'External Advisory', 'twentyseventeen' ),
+		        );
+
+		        $args = array(
+			        'label' => __( 'External Advisories', 'twentyseventeen' ),
+			        'labels' => $labels,
+			        'description' => 'These are advisories that have been syndicated *into* this site from other sites within the UMW system. These advisories should never be published/modified directly within the Advisories website; instead, they should be published/modified from the external source where they should originate.',
+			        'public' => true,
+			        'publicly_queryable' => true,
+			        'show_ui' => true,
+			        'show_in_rest' => true,
+			        'rest_base' => '',
+			        'has_archive' => false,
+			        'show_in_menu' => true,
+			        'exclude_from_search' => false,
+			        'capability_type' => 'page',
+			        'map_meta_cap' => true,
+			        'hierarchical' => false,
+			        'rewrite' => array( 'slug' => 'external_advisory', 'with_front' => false ),
+			        'query_var' => true,
+			        'menu_position' => 10,
+			        'menu_icon' => 'dashicons-admin-comments',
+			        'supports' => array( 'title', 'editor' ),
+		        );
+
+		        register_post_type( 'external_advisory', $args );
 	        }
 
             /**
