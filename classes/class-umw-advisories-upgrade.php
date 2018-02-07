@@ -60,8 +60,10 @@ namespace UMW_Advisories {
 			private function remove_old_version() {
 				$types = get_option( 'wpcf-custom-types', array() );
 
-				if ( ! is_array( $types ) )
+				if ( ! is_array( $types ) ) {
+					error_log( '[Alerts Debug]: Did not find any post types that need to be removed' );
 					return false;
+				}
 
 				if ( is_array( $types ) && array_key_exists( 'advisory', $types ) )
 					$this->remove_types_types( $types );
@@ -87,6 +89,7 @@ namespace UMW_Advisories {
 				if ( array_key_exists( 'alert', $types ) )
 					unset( $types['alert'] );
 
+				error_log( '[Alerts Debug]: Preparing to update the list of post types to ' . print_r( $types, true ) );
 				update_option( 'wpcf-custom-types', $types );
 
 				return true;
@@ -101,11 +104,12 @@ namespace UMW_Advisories {
 			 * @return bool
 			 */
 			private function remove_types_field_groups() {
-				$groups = get_posts( array( 'post_type' => 'types-field-group', 'numberposts' => -1 ) );
+				$groups = get_posts( array( 'post_type' => 'wp-types-group', 'numberposts' => -1 ) );
+				error_log( '[Alerts Debug]: List of field groups looks like: ' . print_r( $groups, true ) );
 				$fields_to_remove = array();
 
 				foreach ( $groups as $group ) {
-					$types = get_post_meta( $group->ID, '_wp_types_group_post_types', array() );
+					$types = get_post_meta( $group->ID, '_wp_types_group_post_types', true );
 					if ( ! is_array( $types ) )
 						$types = explode( ',', $types );
 
@@ -121,19 +125,22 @@ namespace UMW_Advisories {
 					}
 
 					if ( empty( $new_types ) ) {
-						$tmp = get_post_meta( $group->ID, '_wp_types_group_fields', array() );
+						$tmp = get_post_meta( $group->ID, '_wp_types_group_fields', true );
 						if ( ! is_array( $tmp ) )
 							$tmp = explode( ',', $tmp );
 
 						$tmp = array_filter( $tmp );
 
 						$fields_to_remove = $fields_to_remove + $tmp;
+						error_log( '[Alerts Debug]: Preparing to delete the field group with an ID of ' . $group->ID );
 						wp_delete_post( $group->ID, true );
 					} else {
+						error_log( '[Alerts Debug]: The field group with an ID of ' . $group->ID . ' still appears to be used on some types, so it will not be removed: ' . print_r( $new_types, true ) );
 						update_post_meta( $group->ID, '_wp_types_group_post_types', $new_types );
 					}
 				}
 
+				error_log( '[Alerts Debug]: Preparing to attempt to remove the following fields: ' . print_r( $fields_to_remove, true ) );
 				$this->remove_types_fields( $fields_to_remove );
 
 				return true;
@@ -152,12 +159,12 @@ namespace UMW_Advisories {
 				if ( empty( $fields ) )
 					return false;
 
-				$groups = get_posts( array( 'post_type' => 'types-field-group', 'numberposts' => -1 ) );
+				$groups = get_posts( array( 'post_type' => 'wp-types-group', 'numberposts' => -1 ) );
 
 				$fields_to_keep = array();
 
 				foreach ( $groups as $group ) {
-					$tmp = get_post_meta( $group->ID, '_wp_types_group_fields', array() );
+					$tmp = get_post_meta( $group->ID, '_wp_types_group_fields', true );
 					if ( ! is_array( $tmp ) )
 						$tmp = explode( ',', $tmp );
 
@@ -168,7 +175,12 @@ namespace UMW_Advisories {
 
 				$fields_to_remove = array_diff( $fields, $fields_to_keep );
 
+				error_log( '[Alerts Debug]: The list of fields to remove looks like: ' . print_r( $fields_to_remove, true ) );
+				error_log( '[Alerts Debug]: The list of fields to keep looks like: '. print_r( $fields_to_keep, true ) );
+
 				$all_fields = get_option( 'wpcf-fields', array() );
+
+				error_log( '[Alerts Debug]: The list of all fields we retrieved from the DB looks like: ' . print_r( $all_fields, true ) );
 
 				foreach ( $fields_to_remove as $field ) {
 					if ( ! array_key_exists( $field, $all_fields ) )
@@ -177,6 +189,7 @@ namespace UMW_Advisories {
 					unset( $all_fields[$field] );
 				}
 
+				error_log( '[Alerts Debug]: Preparing to update the list of Types Fields to ' . print_r( $all_fields, true ) );
 				update_option( 'wpcf-fields', $all_fields );
 
 				return true;
