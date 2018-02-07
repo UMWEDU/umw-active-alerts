@@ -174,6 +174,17 @@ namespace UMW_Advisories {
 	        	add_filter( 'acf/load_value/type=date_time_picker', array( $this, 'default_expiry' ) );
 	        }
 
+	        /**
+	         * Set up a default expiration date/time for the advisory
+	         *
+	         * @access public
+	         * @since  1.0
+	         * @return string
+	         */
+	        public function default_expiry( $val ) {
+	        	return strtotime( '+24 hours', current_time( 'U' ) );
+	        }
+
             /**
              * Setup any actions/filters that need to be registered on the
              * 		main Advisories site
