@@ -43,10 +43,10 @@ namespace UMW_Advisories {
 				$this->_get_api_uris();
 				$this->_set_api_headers();
 
-				/*add_action( 'save_post_advisory', array( $this, 'push_advisory' ), 10, 2 );
+				add_action( 'save_post_advisory', array( $this, 'push_advisory' ), 10, 2 );
 				add_action( 'wp_trash_post', array( $this, 'trash_advisory' ) );
 				add_action( 'untrashed_post', array( $this, 'untrash_advisory' ) );
-				add_action( 'delete_post', array( $this, 'delete_advisory' ) );*/
+				add_action( 'delete_post', array( $this, 'delete_advisory' ) );
 			}
 
 			/**
@@ -74,11 +74,11 @@ namespace UMW_Advisories {
 			 */
 			private function _get_api_uris() {
 				$this->api_uris = apply_filters( 'umw-alerts-api-uris', array(
-					'publish' => $this->alerts_url . '/wp-json/wp/v2/advisories',
-					'update'  => $this->alerts_url . '/wp-json/wp/v2/advisories/%1$d',
-					'delete'  => $this->alerts_url . '/wp-json/wp/v2/advisories/%1$d',
-					'trash'   => $this->alerts_url . '/wp-json/wp/v2/advisories/%1$d',
-					'meta'    => $this->alerts_url . '/wp-json/wp/v2/posts/%1d/meta',
+					'publish' => Plugin::instance()->get_alerts_url() . '/wp-json/wp/v2/advisories',
+					'update'  => Plugin::instance()->get_alerts_url() . '/wp-json/wp/v2/advisories/%1$d',
+					'delete'  => Plugin::instance()->get_alerts_url() . '/wp-json/wp/v2/advisories/%1$d',
+					'trash'   => Plugin::instance()->get_alerts_url() . '/wp-json/wp/v2/advisories/%1$d',
+					'meta'    => Plugin::instance()->get_alerts_url() . '/wp-json/wp/v2/posts/%1d/meta',
 				) );
 			}
 
@@ -197,6 +197,8 @@ namespace UMW_Advisories {
 			/**
 			 * Push a new external advisory from the source site to the
 			 * 		central Advisories site
+			 * @param int $post_id the ID of the post being syndicated
+			 * @param \WP_Post $p the post object being pushed
 			 *
 			 * @access public
 			 * @since  1.0
@@ -285,6 +287,13 @@ namespace UMW_Advisories {
 
 			/**
 			 * Create a new external advisory based on the data from the advisory being created
+			 * @param array $body the array of body content being pushed
+			 * @param string $url the syndication URL
+			 * @param string $method the HTTP method being used to push
+			 *
+			 * @access private
+			 * @since  0.1
+			 * @return bool|object|array
 			 */
 			private function _push_advisory_new( $body, $url, $method='POST' ) {
 				$args = array( 'headers' => $this->_get_api_headers(), 'body' => http_build_query( $body ) );
@@ -303,6 +312,14 @@ namespace UMW_Advisories {
 
 			/**
 			 * Update an existing external advisory based on the new data from the advisory being edited
+			 * @param int $syndicated_id the ID of the post on the central advisories site
+			 * @param array $body the array of body content that needs to be syndicated
+			 * @param string $url the URL of the destination site
+			 * @param string $method the HTTP method to use for this action
+			 *
+			 * @access private
+			 * @since  0.1
+			 * @return bool|object|array
 			 */
 			private function _push_advisory_edit( $syndicated_id, $body, $url, $method='PUT' ) {
 				$body['ID'] = $syndicated_id;
@@ -322,6 +339,12 @@ namespace UMW_Advisories {
 
 			/**
 			 * Add or update any post meta information needed for the syndicated advisory
+			 * @param string $url the REST API URL
+			 * @param array $meta the array of meta data being pushed
+			 *
+			 * @access private
+			 * @since  0.1
+			 * @return void
 			 */
 			private function _push_advisory_meta( $url, $meta ) {
 				$original = wp_remote_get( $url, array( 'headers' => $this->_get_api_headers(), 'body' => '' ) );
@@ -366,8 +389,14 @@ namespace UMW_Advisories {
 			/**
 			 * If a syndicated post is pulled into the Advisories site with the API,
 			 * 		we may need to fix some of the formatting
+			 * @param int $post_id the ID of the post being syndicated
+			 * @param \WP_Post $p the post object being syndicated
+			 *
+			 * @access public
+			 * @since  0.1
+			 * @return void
 			 */
-			function fix_api_formatting( $post_id=null, $p=null ) {
+			public function fix_api_formatting( $post_id=null, $p=null ) {
 				if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
 					return;
 				if ( wp_is_post_revision( $post_id ) )
@@ -376,7 +405,7 @@ namespace UMW_Advisories {
 				if ( empty( $p ) )
 					$p = get_post( $post_id );
 
-				remove_action( 'save_post_external-advisory', array( $this, 'fix_api_formatting' ), 10, 2 );
+				remove_action( 'save_post_external-advisory', array( $this, 'fix_api_formatting' ), 10 );
 
 				wp_update_post( array( 'ID' => $p->ID, 'post_title' => stripslashes( $p->post_title ), 'post_content' => stripslashes( $p->post_content ) ) );
 
@@ -386,8 +415,13 @@ namespace UMW_Advisories {
 			/**
 			 * Since there is currently no process to permanently delete a post with the API,
 			 * 		let's do it a different way
+			 * @param int $post_id the ID of the post being removed
+			 *
+			 * @access public
+			 * @since  0.1
+			 * @return void
 			 */
-			function really_delete_syndicated_advisory( $post_id ) {
+			public function really_delete_syndicated_advisory( $post_id ) {
 				if ( wp_is_post_revision( $post_id ) )
 					$post_id = wp_is_post_revision( $post_id );
 
@@ -405,6 +439,12 @@ namespace UMW_Advisories {
 
 			/**
 			 * Trash an external advisory on the main Advisories site
+			 * @param int $post_id the ID of the post being trashed
+			 * @param bool $force whether to skip the trash or not
+			 *
+			 * @access public
+			 * @since  0.1
+			 * @return bool
 			 */
 			function trash_advisory( $post_id=null, $force=false ) {
 				$force = true;
@@ -431,7 +471,7 @@ namespace UMW_Advisories {
 				if ( true === $force ) {
 					add_query_arg( 'force', 'true', $url );
 					$body['force'] = true;
-					remove_action( 'save_post_advisory', array( $this, 'push_advisory' ), 10, 2 );
+					remove_action( 'save_post_advisory', array( $this, 'push_advisory' ), 10 );
 					delete_post_meta( $post_id, '_syndicated-alert-id', $syndicated_id );
 					add_action( 'save_post_advisory', array( $this, 'push_advisory' ), 10, 2 );
 				}
@@ -450,6 +490,11 @@ namespace UMW_Advisories {
 
 			/**
 			 * Re-syndicate a post after it has been untrashed
+			 * @param int $post_id the ID of the post being re-published
+			 *
+			 * @access public
+			 * @since  0.1
+			 * @return bool
 			 */
 			function untrash_advisory( $post_id=null ) {
 				if ( empty( $post_id ) ) {
@@ -460,7 +505,7 @@ namespace UMW_Advisories {
 
 				$p = get_post( $post_id );
 				if ( 'advisory' != $p->post_type )
-					return;
+					return false;
 
 				if ( isset( $_REQUEST['author_override'] ) && is_numeric( $_REQUEST['author_override'] ) ) {
 					$author = $_REQUEST['author_override'];
@@ -521,10 +566,17 @@ namespace UMW_Advisories {
 				$this->_push_advisory_meta( $url, $meta );
 
 				update_post_meta( $post_id, '_syndicated-alert-id', $result_id );
+
+				return true;
 			}
 
 			/**
 			 * Permanently delete an advisory on the main Advisories site
+			 * @param int $post_id the ID of the post being deleted
+			 *
+			 * @access public
+			 * @since  0.1
+			 * @return bool
 			 */
 			function delete_advisory( $post_id=null ) {
 				if ( empty( $post_id ) ) {

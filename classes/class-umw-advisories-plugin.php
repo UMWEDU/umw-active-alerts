@@ -90,6 +90,17 @@ namespace UMW_Advisories {
 		        }
 	        }
 
+	        /**
+	         * Retrieve and return the Alerts URL
+	         *
+	         * @access public
+	         * @since  1.0
+	         * @return string
+	         */
+	        public function get_alerts_url() {
+	        	return esc_url( $this->alerts_url );
+	        }
+
             /**
              * Determines whether this is the root UMW site
              * Also determines the URL to the root UMW site
