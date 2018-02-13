@@ -118,7 +118,7 @@
                 {
                     "param": "post_type",
                     "operator": "==",
-                    "value": "external_advisory"
+                    "value": "external-advisory"
                 }
             ]
         ],

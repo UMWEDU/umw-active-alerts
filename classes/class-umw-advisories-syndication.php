@@ -45,7 +45,7 @@ namespace UMW_Advisories {
 			 * @since  2018.1
 			 */
 			private function __construct() {
-				$this->do_init();
+				add_action( 'plugins_loaded', array( $this, 'do_init' ) );
 			}
 
 			/**
@@ -81,14 +81,10 @@ namespace UMW_Advisories {
 				$this->_get_api_uris();
 				$this->_set_api_headers();
 
-				/*if ( ! has_action( 'save_post_advisory', array( $this, 'push_advisory' ) ) )
-					add_action( 'save_post_advisory', array( $this, 'push_advisory' ), 10, 2 );
-				if ( ! has_action( 'wp_trash_post', array( $this, 'trash_advisory' ) ) )
-					add_action( 'wp_trash_post', array( $this, 'trash_advisory' ) );
-				if ( ! has_action( 'untrashed_post', array( $this, 'untrash_advisory' ) ) )
-					add_action( 'untrashed_post', array( $this, 'untrash_advisory' ) );
-				if ( ! has_action( 'delete_post', array( $this, 'delete_advisory' ) ) )
-					add_action( 'delete_post', array( $this, 'delete_advisory' ) );*/
+				add_action( 'save_post_advisory', array( $this, 'push_advisory' ), 10, 2 );
+				add_action( 'wp_trash_post', array( $this, 'trash_advisory' ) );
+				add_action( 'untrashed_post', array( $this, 'untrash_advisory' ) );
+				add_action( 'delete_post', array( $this, 'delete_advisory' ) );
 
 				return;
 			}
@@ -328,6 +324,7 @@ namespace UMW_Advisories {
 				$args = array( 'headers' => $this->_get_api_headers(), 'body' => http_build_query( $body ) );
 				$done = wp_safe_remote_post( $url, $args );
 				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+					error_log( '[Alert API Debug]: Push URL: ' . $url );
 					error_log( '[Alert API Debug]: ' . print_r( $done, true ) );
 					/*print( '<pre><code>' );
 					var_dump( $done );
@@ -376,8 +373,13 @@ namespace UMW_Advisories {
 			 * @return void
 			 */
 			private function _push_advisory_meta( $url, $meta ) {
+				error_log( '[Alerts API Debug]: Meta API URL: ' . $url );
+				error_log( '[Alerts API Debug]: Attempting to push the following meta data: ' . print_r( $meta, true ) );
+
 				$original = wp_remote_get( $url, array( 'headers' => $this->_get_api_headers(), 'body' => '' ) );
 				$original = @json_decode( wp_remote_retrieve_body( $original ) );
+
+				error_log( '[ALerts API Debug]: The original meta data looks like: ' . print_r( $original, true ) );
 
 				foreach ( $meta as $m ) {
 					$u = $url;

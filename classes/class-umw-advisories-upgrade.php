@@ -137,11 +137,9 @@ namespace UMW_Advisories {
 						$types = explode( ',', $types );
 
 					$types = array_filter( $types );
-
-					$types = array_flip( $types );
 					$new_types = array();
 
-					foreach ( $types as $type=>$val ) {
+					foreach ( $types as $type ) {
 						if ( ! empty( $type ) && ! in_array( $type, array( 'advisory', 'external-advisory', 'alert' ) ) ) {
 							$new_types[] = $type;
 						}
@@ -156,10 +154,17 @@ namespace UMW_Advisories {
 
 						$fields_to_remove = $fields_to_remove + $tmp;
 						error_log( '[Alerts Debug]: Preparing to delete the field group with an ID of ' . $group->ID );
-						wp_delete_post( $group->ID, true );
+						/*if ( defined( 'WPCF_INC_ABSPATH' ) ) {
+							if ( ! function_exists( 'wpcf_admin_fields_delete_group' ) ) {
+								require_once WPCF_INC_ABSPATH . '/fields.php';
+							}
+							wpcf_admin_fields_delete_group( intval( $group->ID ) );
+						} else {*/
+							wp_delete_post( $group->ID, true );
+						/*}*/
 					} else {
 						error_log( '[Alerts Debug]: The field group with an ID of ' . $group->ID . ' still appears to be used on some types, so it will not be removed: ' . print_r( $new_types, true ) );
-						update_post_meta( $group->ID, '_wp_types_group_post_types', $new_types );
+						update_post_meta( $group->ID, '_wp_types_group_post_types', implode( ',', $new_types ) );
 					}
 				}
 

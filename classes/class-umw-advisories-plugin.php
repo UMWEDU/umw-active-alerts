@@ -60,7 +60,7 @@ namespace UMW_Advisories {
             	if ( is_network_admin() )
             		return;
 
-            	$this->do_init();
+            	add_action( 'muplugins_loaded', array( $this, 'do_init' ) );
             }
 
             /**
@@ -95,6 +95,7 @@ namespace UMW_Advisories {
 		        $this->is_root();
 		        $this->is_advisories();
 		        add_action( 'init', array( $this, 'maybe_do_upgrade' ) );
+		        add_filter( 'is_protected_meta', array( $this, 'unprotect_meta' ), 10, 2 );
 	        }
 
 	        /**
@@ -105,12 +106,18 @@ namespace UMW_Advisories {
 	         * @return void
 	         */
 	        public function maybe_do_upgrade() {
-	        	return;
+	        	if ( ! current_user_can( 'delete_users' ) )
+	        		return;
+
+	        	if ( ! isset( $_REQUEST['test_alerts_upgrade'] ) )
+	        		return;
+
 		        $up_to_date = get_option( 'umw_advisories_version', false );
-		        if ( $up_to_date != Plugin::$version && current_user_can( 'delete_users' ) && isset( $_REQUEST['test_alerts_upgrade'] ) ) {
-			        require_once( plugin_dir_path( __FILE__ ) . 'class-umw-advisories-upgrade.php' );
-			        Upgrade::instance();
-		        }
+		        if ( $up_to_date == Plugin::$version )
+		        	return;
+
+		        require_once( plugin_dir_path( __FILE__ ) . 'class-umw-advisories-upgrade.php' );
+		        Upgrade::instance();
 	        }
 
 	        /**
@@ -267,7 +274,9 @@ namespace UMW_Advisories {
              * @return void
              */
             private function setup_alerts_site() {
+            	add_action( 'rest_api_init', array( $this, 'register_meta_fields' ) );
 	            add_action( 'rest_api_init', array( $this, 'bypass_cas' ) );
+	            $this->register_post_types();
             }
 
 	        /**
@@ -275,6 +284,7 @@ namespace UMW_Advisories {
 	         */
 	        private function add_syndication_actions() {
 		        $this->register_post_types();
+		        add_action( 'rest_api_init', array( $this, 'register_meta_fields' ) );
 
 		        if ( ! class_exists( 'Syndication' ) ) {
 			        require_once( plugin_dir_path( __FILE__ ) . '/class-umw-advisories-syndication.php' );
@@ -424,21 +434,21 @@ namespace UMW_Advisories {
 			        'publicly_queryable' => true,
 			        'show_ui' => true,
 			        'show_in_rest' => true,
-			        'rest_base' => '',
+			        'rest_base' => 'advisories',
 			        'has_archive' => false,
 			        'show_in_menu' => true,
 			        'exclude_from_search' => false,
-			        'capability_type' => 'page',
+			        'capability_type' => 'post',
 			        'map_meta_cap' => true,
 			        'hierarchical' => false,
-			        'rewrite' => array( 'slug' => 'external_advisory', 'with_front' => false ),
+			        'rewrite' => array( 'slug' => 'external-advisory', 'with_front' => false ),
 			        'query_var' => true,
 			        'menu_position' => 10,
 			        'menu_icon' => 'dashicons-admin-comments',
-			        'supports' => array( 'title', 'editor' ),
+			        'supports' => array( 'title', 'editor', 'custom-fields' ),
 		        );
 
-		        register_post_type( 'external_advisory', $args );
+		        register_post_type( 'external-advisory', $args );
 	        }
 
             /**
@@ -456,6 +466,35 @@ namespace UMW_Advisories {
 	            if ( ! defined( 'WPCAS_BYPASS' ) )
 		            define( 'WPCAS_BYPASS', true );
             }
+
+	        /**
+	         * Register any meta fields that need to be exposed to the REST API
+	         *
+	         * @access public
+	         * @since  1.0
+	         * @return void
+	         */
+	        public function register_meta_fields() {
+            	$tmp = register_meta( 'post', '_advisory_expires_time', array( 'type' => 'string', 'description' => __( 'The time the advisory should expire' ), 'single' => true, 'show_in_rest' => true ) );
+            	error_log( '[Alerts API debug]: Registered the expires time meta field with a result of ' . print_r( $tmp, true ) );
+
+            	if ( ! $this->is_alerts )
+            		return;
+
+            	$tmp = register_meta( 'post', '_advisory_permalink', array( 'type' => 'string', 'description' => __( 'The original location of this advisory' ), 'single' => true, 'sanitize_callback' => 'esc_url', 'show_in_rest' => true ) );
+		        error_log( '[Alerts API debug]: Registered the permalink meta field with a result of ' . print_r( $tmp, true ) );
+            	$tmp = register_meta( 'post', '_advisory_author', array( 'type' => 'string', 'description' => __( 'The name of the advisory author' ), 'single' => true, 'show_in_rest' => true ) );
+		        error_log( '[Alerts API debug]: Registered the author meta field with a result of ' . print_r( $tmp, true ) );
+
+		        return;
+	        }
+
+	        public function unprotect_meta( $protected, $key ) {
+            	if ( ! in_array( $key, array( '_advisory_expires_time', '_advisory_permalink', '_advisory_author' ) ) )
+            		return $protected;
+
+            	return false;
+	        }
         }
     }
 }
