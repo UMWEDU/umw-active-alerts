@@ -96,6 +96,9 @@ namespace UMW_Advisories {
 		        $this->is_advisories();
 		        add_action( 'init', array( $this, 'maybe_do_upgrade' ) );
 		        add_filter( 'is_protected_meta', array( $this, 'unprotect_meta' ), 10, 2 );
+
+		        if ( defined( 'WP_DEBUG' ) && WP_DEBUG )
+		        	require_once( plugin_dir_path( __FILE__ ) . 'class-umw-advisories-debug.php' );
 	        }
 
 	        /**
@@ -477,15 +480,15 @@ namespace UMW_Advisories {
 	         */
 	        public function register_meta_fields() {
             	$tmp = register_meta( 'post', '_advisory_expires_time', array( 'type' => 'string', 'description' => __( 'The time the advisory should expire' ), 'single' => true, 'show_in_rest' => true ) );
-            	error_log( '[Alerts API debug]: Registered the expires time meta field with a result of ' . print_r( $tmp, true ) );
+		        Debug::log( '[Alerts API debug]: Registered the expires time meta field with a result of ' . print_r( $tmp, true ) );
 
             	if ( ! $this->is_alerts )
             		return;
 
             	$tmp = register_meta( 'post', '_advisory_permalink', array( 'type' => 'string', 'description' => __( 'The original location of this advisory' ), 'single' => true, 'sanitize_callback' => 'esc_url', 'show_in_rest' => true ) );
-		        error_log( '[Alerts API debug]: Registered the permalink meta field with a result of ' . print_r( $tmp, true ) );
+		        Debug::log( '[Alerts API debug]: Registered the permalink meta field with a result of ' . print_r( $tmp, true ) );
             	$tmp = register_meta( 'post', '_advisory_author', array( 'type' => 'string', 'description' => __( 'The name of the advisory author' ), 'single' => true, 'show_in_rest' => true ) );
-		        error_log( '[Alerts API debug]: Registered the author meta field with a result of ' . print_r( $tmp, true ) );
+		        Debug::log( '[Alerts API debug]: Registered the author meta field with a result of ' . print_r( $tmp, true ) );
 
 		        return;
 	        }
@@ -516,7 +519,7 @@ namespace UMW_Advisories {
 	         */
 	        public function update_syndicated_meta( $post, $request, $creating=true ) {
 	        	$params = $request->get_params();
-	        	error_log( '[Alerts API Debug]: REST request params look like: ' . print_r( $params, true ) );
+		        Debug::log( '[Alerts API Debug]: REST request params look like: ' . print_r( $params, true ) );
 	        	$meta = $request->get_param( 'post_meta' );
 	        	if ( empty( $meta ) ) {
 			        $meta = $request->get_param( 'meta' );
@@ -527,11 +530,11 @@ namespace UMW_Advisories {
 		        }
 
 		        if ( ! is_array( $meta ) && ! is_object( $meta ) ) {
-	        		error_log( '[Alerts API Debug]: Could not get the meta information to be an array. It looks like: ' . print_r( $meta, true ) );
+			        Debug::log( '[Alerts API Debug]: Could not get the meta information to be an array. It looks like: ' . print_r( $meta, true ) );
 	        		return;
 		        }
 
-	        	error_log( '[Alerts API Debug]: Meta array looks like: ' . print_r( $meta, true ) );
+		        Debug::log( '[Alerts API Debug]: Meta array looks like: ' . print_r( $meta, true ) );
 
 	        	$keys = array( '_advisory_expires_time', '_advisory_permalink', '_advisory_author' );
 
@@ -555,10 +558,10 @@ namespace UMW_Advisories {
 	        			continue;
 
 	        		if ( $creating ) {
-	        			error_log( '[Alerts API Debug]: Attempting to add ' . $v . ' as the value of ' . $k . ' for the post with an ID of ' . $post->ID );
+				        Debug::log( '[Alerts API Debug]: Attempting to add ' . $v . ' as the value of ' . $k . ' for the post with an ID of ' . $post->ID );
 	        			add_post_meta( $post->ID, $k, $v, true );
 			        } else {
-				        error_log( '[Alerts API Debug]: Attempting to update ' . $v . ' as the value of ' . $k . ' for the post with an ID of ' . $post->ID );
+				        Debug::log( '[Alerts API Debug]: Attempting to update ' . $v . ' as the value of ' . $k . ' for the post with an ID of ' . $post->ID );
 	        			update_post_meta( $post->ID, $k, $v );
 			        }
 		        }
