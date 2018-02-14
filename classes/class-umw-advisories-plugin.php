@@ -274,8 +274,9 @@ namespace UMW_Advisories {
              * @return void
              */
             private function setup_alerts_site() {
-            	add_action( 'rest_api_init', array( $this, 'register_meta_fields' ) );
+            	/*add_action( 'rest_api_init', array( $this, 'register_meta_fields' ) );*/
 	            add_action( 'rest_api_init', array( $this, 'bypass_cas' ) );
+	            add_action( 'rest_insert_external-advisory', array( $this, 'update_syndicated_meta' ), 10, 3 );
 	            $this->register_post_types();
             }
 
@@ -489,11 +490,80 @@ namespace UMW_Advisories {
 		        return;
 	        }
 
+	        /**
+	         * Make sure that the appropriate custom fields are not blocked from the REST API
+	         * @param bool $protected whether the field is supposed to be blocked
+	         * @param string $key the meta field key to check
+	         *
+	         * @access public
+	         * @since  1.0
+	         * @return bool
+	         */
 	        public function unprotect_meta( $protected, $key ) {
             	if ( ! in_array( $key, array( '_advisory_expires_time', '_advisory_permalink', '_advisory_author' ) ) )
             		return $protected;
 
             	return false;
+	        }
+
+	        /**
+	         * Attempt to update/add post meta when an advisory is syndicated
+	         * @param \WP_Post         $post     Inserted or updated post object.
+	         * @param \WP_REST_Request $request  Request object.
+	         * @param bool             $creating True when creating a post, false when updating.
+	         *
+	         * @return void
+	         */
+	        public function update_syndicated_meta( $post, $request, $creating=true ) {
+	        	$params = $request->get_params();
+	        	error_log( '[Alerts API Debug]: REST request params look like: ' . print_r( $params, true ) );
+	        	$meta = $request->get_param( 'post_meta' );
+	        	if ( empty( $meta ) ) {
+			        $meta = $request->get_param( 'meta' );
+		        }
+
+		        if ( ! is_array( $meta ) && ! is_object( $meta ) ) {
+	        		$meta = @json_decode( $meta );
+		        }
+
+		        if ( ! is_array( $meta ) && ! is_object( $meta ) ) {
+	        		error_log( '[Alerts API Debug]: Could not get the meta information to be an array. It looks like: ' . print_r( $meta, true ) );
+	        		return;
+		        }
+
+	        	error_log( '[Alerts API Debug]: Meta array looks like: ' . print_r( $meta, true ) );
+
+	        	$keys = array( '_advisory_expires_time', '_advisory_permalink', '_advisory_author' );
+
+	        	if ( is_object( $meta ) ) {
+	        		foreach ( $keys as $key ) {
+	        			if ( ! property_exists( $meta, $key ) )
+	        				continue;
+
+	        			if ( $creating ) {
+					        add_post_meta( $post->ID, $key, $meta->{$key}, true );
+				        } else {
+					        update_post_meta( $post->ID, $key, $meta->{$key} );
+				        }
+			        }
+
+			        return;
+		        }
+
+	        	foreach ( $meta as $k=>$v ) {
+	        		if ( ! in_array( $k, $keys ) )
+	        			continue;
+
+	        		if ( $creating ) {
+	        			error_log( '[Alerts API Debug]: Attempting to add ' . $v . ' as the value of ' . $k . ' for the post with an ID of ' . $post->ID );
+	        			add_post_meta( $post->ID, $k, $v, true );
+			        } else {
+				        error_log( '[Alerts API Debug]: Attempting to update ' . $v . ' as the value of ' . $k . ' for the post with an ID of ' . $post->ID );
+	        			update_post_meta( $post->ID, $k, $v );
+			        }
+		        }
+
+		        return;
 	        }
         }
     }

@@ -186,18 +186,9 @@ namespace UMW_Advisories {
 			 */
 			private function _get_advisory_meta_data( $expires=null, $post_id=null, $author='' ) {
 				return array(
-					(object)array(
-						'key'   => '_advisory_expires_time',
-						'value' => $expires,
-					),
-					(object)array(
-						'key'   => '_advisory_permalink',
-						'value' => esc_url( get_permalink( $post_id ) ),
-					),
-					(object)array(
-						'key'   => '_advisory_author',
-						'value' => $author,
-					),
+					'_advisory_expires_time' => $expires,
+					'_advisory_permalink' => esc_url( get_permalink( $post_id ) ),
+					'_advisory_author' => $author,
 				);
 			}
 
