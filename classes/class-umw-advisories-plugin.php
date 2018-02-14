@@ -274,7 +274,7 @@ namespace UMW_Advisories {
              * @return void
              */
             private function setup_alerts_site() {
-            	/*add_action( 'rest_api_init', array( $this, 'register_meta_fields' ) );*/
+            	add_action( 'rest_api_init', array( $this, 'register_meta_fields' ) );
 	            add_action( 'rest_api_init', array( $this, 'bypass_cas' ) );
 	            add_action( 'rest_insert_external-advisory', array( $this, 'update_syndicated_meta' ), 10, 3 );
 	            $this->register_post_types();

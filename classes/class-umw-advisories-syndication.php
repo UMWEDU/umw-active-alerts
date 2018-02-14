@@ -81,7 +81,7 @@ namespace UMW_Advisories {
 				$this->_get_api_uris();
 				$this->_set_api_headers();
 
-				add_action( 'save_post_advisory', array( $this, 'push_advisory' ), 10, 2 );
+				add_action( 'save_post', array( $this, 'push_advisory' ), 20, 2 );
 				add_action( 'wp_trash_post', array( $this, 'trash_advisory' ) );
 				add_action( 'untrashed_post', array( $this, 'untrash_advisory' ) );
 				add_action( 'delete_post', array( $this, 'delete_advisory' ) );
@@ -211,6 +211,26 @@ namespace UMW_Advisories {
 			}
 
 			/**
+			 * Retrieve the expiry time for an advisory
+			 * @param \WP_Post $post the Post object being syndicated
+			 *
+			 * @access private
+			 * @since  1.0
+			 * @return null|string the expiry time
+			 */
+			private function _get_advisory_expiry( $post ) {
+				if ( isset( $_REQUEST ) && array_key_exists( 'acf', $_REQUEST ) ) {
+					foreach ( $_REQUEST['acf'] as $field=>$value ) {
+						$object = acf_get_local_field( $field );
+						if ( '_advisory_expires_time' == $object['name'] ) {
+							return $value;
+						}
+					}
+				}
+				return get_field( '_advisory_expires_time', $post->ID, false );
+			}
+
+			/**
 			 * Push a new external advisory from the source site to the
 			 * 		central Advisories site
 			 * @param int $post_id the ID of the post being syndicated
@@ -229,9 +249,15 @@ namespace UMW_Advisories {
 				if ( empty( $p ) )
 					$p = get_post( $post_id );
 
+				if ( 'advisory' != get_post_type( $p->ID ) )
+					return;
+
 				$syndicated_id = $this->_get_syndicated_id( $p );
 				$author = $this->_get_advisory_author( $p );
-				$expires = get_field( '_advisory_expires_time', $p->ID, false );
+				$expires = $this->_get_advisory_expiry( $p );
+
+				error_log( '[Alerts API Debug]: Expires time pulled with ACF looks like: ' . $expires );
+				error_log( '[Alerts API Debug]: Expires time pulled by get_post_meta() looks like: ' . get_post_meta( $p->ID, '_advisory_expires_time', true ) );
 
 				$meta = $this->_get_advisory_meta_data( $expires, $post_id, $author );
 
@@ -282,6 +308,12 @@ namespace UMW_Advisories {
 							}
 						}
 					}
+				}
+
+				if ( is_object( $result ) ) {
+					update_post_meta( $p->ID, '_syndicated-alert-id', $result->id );
+				} else if ( is_array( $result ) ) {
+					update_post_meta( $p->ID, '_syndicated-alert-id', $result['id'] );
 				}
 
 				return true;
@@ -395,57 +427,6 @@ namespace UMW_Advisories {
 			}
 
 			/**
-			 * If a syndicated post is pulled into the Advisories site with the API,
-			 * 		we may need to fix some of the formatting
-			 * @param int $post_id the ID of the post being syndicated
-			 * @param \WP_Post $p the post object being syndicated
-			 *
-			 * @access public
-			 * @since  0.1
-			 * @return void
-			 */
-			public function fix_api_formatting( $post_id=null, $p=null ) {
-				if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
-					return;
-				if ( wp_is_post_revision( $post_id ) )
-					return;
-
-				if ( empty( $p ) )
-					$p = get_post( $post_id );
-
-				remove_action( 'save_post_external-advisory', array( $this, 'fix_api_formatting' ), 10 );
-
-				wp_update_post( array( 'ID' => $p->ID, 'post_title' => stripslashes( $p->post_title ), 'post_content' => stripslashes( $p->post_content ) ) );
-
-				add_action( 'save_post_external-advisory', array( $this, 'fix_api_formatting' ), 10, 2 );
-			}
-
-			/**
-			 * Since there is currently no process to permanently delete a post with the API,
-			 * 		let's do it a different way
-			 * @param int $post_id the ID of the post being removed
-			 *
-			 * @access public
-			 * @since  0.1
-			 * @return void
-			 */
-			public function really_delete_syndicated_advisory( $post_id ) {
-				if ( wp_is_post_revision( $post_id ) )
-					$post_id = wp_is_post_revision( $post_id );
-
-				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-					error_log( '[Alerts API Debug]: We should be permanently deleting the external advisory with an ID of ' . $post_id );
-				}
-				$p = get_post( $post_id );
-				if ( 'external-advisory' != $p->post_type )
-					return;
-
-				remove_action( 'wp_trash_post', array( $this, 'really_delete_syndicated_advisory' ) );
-				wp_delete_post( $post_id, true );
-				add_action( 'wp_trash_post', array( $this, 'really_delete_syndicated_advisory' ) );
-			}
-
-			/**
 			 * Trash an external advisory on the main Advisories site
 			 * @param int $post_id the ID of the post being trashed
 			 * @param bool $force whether to skip the trash or not
@@ -479,9 +460,9 @@ namespace UMW_Advisories {
 				if ( true === $force ) {
 					add_query_arg( 'force', 'true', $url );
 					$body['force'] = true;
-					remove_action( 'save_post_advisory', array( $this, 'push_advisory' ), 10 );
+					remove_action( 'save_post', array( $this, 'push_advisory' ), 10 );
 					delete_post_meta( $post_id, '_syndicated-alert-id', $syndicated_id );
-					add_action( 'save_post_advisory', array( $this, 'push_advisory' ), 10, 2 );
+					add_action( 'save_post', array( $this, 'push_advisory' ), 10, 2 );
 				}
 
 				$args = array( 'method' => 'DELETE', 'headers' => $this->_get_api_headers(), 'body' => http_build_query( $body ) );
@@ -512,42 +493,17 @@ namespace UMW_Advisories {
 					return false;
 
 				$p = get_post( $post_id );
-				if ( 'advisory' != $p->post_type )
+				if ( 'advisory' != get_post_type( $p ) )
 					return false;
 
-				if ( isset( $_REQUEST['author_override'] ) && is_numeric( $_REQUEST['author_override'] ) ) {
-					$author = $_REQUEST['author_override'];
-				} else if ( isset( $_REQUEST['post_author'] ) && is_numeric( $_REQUEST['post_author'] ) ) {
-					$author = $_REQUEST['post_author'];
-				} else {
-					$author = $p->post_author;
-				}
-				$author = get_user_by( 'id', $author );
-				$author = $author->display_name;
+				$syndicated_id = $this->_get_syndicated_id( $p );
+				$author = $this->_get_advisory_author( $p );
+				$expires = $this->_get_advisory_expiry( $p );
 
-				$meta = array(
-					(object)array(
-						'key'   => '_advisory_expires_time',
-						'value' => get_field( '_advisory_expires_time', $post_id, false ),
-					),
-					(object)array(
-						'key'   => '_advisory_permalink',
-						'value' => esc_url( get_permalink( $post_id ) ),
-					),
-					(object)array(
-						'key'   => '_advisory_author',
-						'value' => $author,
-					),
-				);
+				$meta = $this->_get_advisory_meta_data( $expires, $p->ID, $author );
 
-				$body = array(
-					'title'   => $p->post_title,
-					'content' => $p->post_content,
-					'status'  => $p->post_status,
-					'post_meta' => json_encode( $meta ),
-				);
+				$body = $this->_get_syndication_body( $p, $meta );
 
-				$syndicated_id = get_post_meta( $post_id, '_syndicated-alert-id', true );
 				if( empty( $syndicated_id ) )
 					return false;
 
@@ -568,10 +524,6 @@ namespace UMW_Advisories {
 					$result_id = $result['id'];
 				else
 					$result_id = $result->id;
-
-				$url = sprintf( $this->api_uris['meta'], $result_id, $result_id );
-
-				$this->_push_advisory_meta( $url, $meta );
 
 				update_post_meta( $post_id, '_syndicated-alert-id', $result_id );
 
