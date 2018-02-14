@@ -284,20 +284,6 @@ namespace UMW_Advisories {
 					}
 				}
 
-				if ( is_array( $result ) )
-					$result_id = $result['id'];
-				else
-					$result_id = $result->id;
-
-				$url = sprintf( $this->api_uris['meta'], $result_id, $result_id );
-
-				$this->_push_advisory_meta( $url, $meta );
-				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-					error_log( '[Alert API Debug]: Just pushed the meta data for the post with a result ID of ' . $result_id );
-				}
-
-				update_post_meta( $post_id, '_syndicated-alert-id', $result_id );
-
 				return true;
 			}
 
