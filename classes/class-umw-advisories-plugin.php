@@ -95,10 +95,26 @@ namespace UMW_Advisories {
 		        $this->is_root();
 		        $this->is_advisories();
 		        add_action( 'init', array( $this, 'maybe_do_upgrade' ) );
+
+		        /* Register the meta fields so that they show up in VIEW contexts */
+		        add_action( 'rest_api_init', array( $this, 'register_meta_fields' ) );
+
+		        /* Unprotect the meta fields so that they show up in VIEW contexts */
 		        add_filter( 'is_protected_meta', array( $this, 'unprotect_meta' ), 10, 2 );
+
+		        /* Allow sorting API requests by meta information */
+		        add_filter( 'rest_endpoints', array( $this, 'rest_order_meta' ) );
+		        $types = ['advisory','external-advisory','alert'];
+		        foreach ( $types as $type ) {
+		        	add_filter( "rest_{$type}_query", array( $this, 'rest_meta_args' ), 10, 2 );
+		        }
 
 		        if ( defined( 'WP_DEBUG' ) && WP_DEBUG )
 		        	require_once( plugin_dir_path( __FILE__ ) . 'class-umw-advisories-debug.php' );
+
+		        if ( ! is_admin() ) {
+		        	add_action( 'wp', array( $this, 'setup_ajax' ) );
+		        }
 	        }
 
 	        /**
@@ -277,10 +293,10 @@ namespace UMW_Advisories {
              * @return void
              */
             private function setup_alerts_site() {
-            	add_action( 'rest_api_init', array( $this, 'register_meta_fields' ) );
+	            $this->register_post_types();
+
 	            add_action( 'rest_api_init', array( $this, 'bypass_cas' ) );
 	            add_action( 'rest_insert_external-advisory', array( $this, 'update_syndicated_meta' ), 10, 3 );
-	            $this->register_post_types();
             }
 
 	        /**
@@ -288,7 +304,6 @@ namespace UMW_Advisories {
 	         */
 	        private function add_syndication_actions() {
 		        $this->register_post_types();
-		        add_action( 'rest_api_init', array( $this, 'register_meta_fields' ) );
 
 		        if ( ! class_exists( 'Syndication' ) ) {
 			        require_once( plugin_dir_path( __FILE__ ) . '/class-umw-advisories-syndication.php' );
@@ -341,7 +356,7 @@ namespace UMW_Advisories {
 			        'query_var' => true,
 			        'menu_position' => 20,
 			        'menu_icon' => 'dashicons-admin-comments',
-			        'supports' => array( 'title', 'editor', 'excerpt', 'author' ),
+			        'supports' => array( 'title', 'editor', 'excerpt', 'author', 'custom-fields' ),
 		        );
 
 		        register_post_type( 'advisory', $args );
@@ -383,7 +398,7 @@ namespace UMW_Advisories {
 			        'query_var' => true,
 			        'menu_position' => 5,
 			        'menu_icon' => 'dashicons-welcome-view-site',
-			        'supports' => array( 'title', 'editor', 'excerpt', 'author' ),
+			        'supports' => array( 'title', 'editor', 'excerpt', 'author', 'custom-fields' ),
 		        );
 
 		        register_post_type( 'advisory', $args );
@@ -416,7 +431,7 @@ namespace UMW_Advisories {
 			        'query_var' => true,
 			        'menu_position' => 5,
 			        'menu_icon' => 'dashicons-welcome-comments',
-			        'supports' => array( 'title', 'editor', 'excerpt', 'author' ),
+			        'supports' => array( 'title', 'editor', 'excerpt', 'author', 'custom-fields' ),
 		        );
 
 		        register_post_type( 'alert', $args );
@@ -567,6 +582,69 @@ namespace UMW_Advisories {
 		        }
 
 		        return;
+	        }
+
+	        /**
+	         * Allow REST API requests to be ordered by specific meta keys
+	         * @param array $routes the existing route information
+	         * @see https://github.com/WP-API/WP-API/issues/2308#issuecomment-262886432
+	         *
+	         * @access public
+	         * @since  1.0
+	         * @return array
+	         */
+	        public function rest_order_meta( $routes=array() ) {
+	        	$types = array( 'advisory', 'external-advisory', 'alert' );
+	        	foreach ( $types as $type ) {
+			        if ( ! ( $route =& $routes['/wp/v2/' . $type] ) ) {
+				        continue;
+			        }
+
+			        // Allow ordering by my meta value
+			        $route[0]['args']['orderby']['enum'][] = 'meta_value_num';
+
+			        // Allow only the meta keys that I want
+			        $route[0]['args']['meta_key'] = array(
+				        'description'       => 'The meta key to query.',
+				        'type'              => 'datetime',
+				        'enum'              => ['_advisory_expires_time', '_advisory_author'],
+				        'validate_callback' => 'rest_validate_request_arg',
+			        );
+		        }
+
+		        return $routes;
+	        }
+
+	        /**
+	         * Make sure the REST query allows the meta_key args for sorting purposes
+	         * @param array $args the existing array of arguments
+	         * @param \WP_REST_Request $request the REST request being handled
+	         * @see https://github.com/WP-API/WP-API/issues/2308#issuecomment-265875108
+	         *
+	         * @access public
+	         * @since  1.0
+	         * @return array the updated list of query args
+	         */
+	        public function rest_meta_args( $args, $request ) {
+	        	if ( $key = $request->get_param( 'meta_key' ) ) {
+	        		$args['meta_key'] = $key;
+		        }
+
+		        return $args;
+	        }
+
+	        /**
+	         * Call/instantiate the AJAX class
+	         *
+	         * @access public
+	         * @since  1.0
+	         * @return void
+	         */
+	        public function setup_ajax() {
+	        	if ( ! class_exists( 'Ajax' ) ) {
+	        		require_once( plugin_dir_path( __FILE__ ) . 'class-umw-advisories-ajax.php' );
+		        }
+		        Ajax::instance( array( 'is_alerts' => $this->is_alerts, 'is_root' => $this->is_root, 'alerts_url' => $this->alerts_url ) );
 	        }
         }
     }
