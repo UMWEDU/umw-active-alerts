@@ -108,6 +108,7 @@ namespace UMW_Advisories {
 				$vars = array(
 					'alerts_url' => sprintf( '%s/wp-json/wp/v2/advisory', Plugin::instance()->get_alerts_url() ),
 					'local_url' => get_rest_url( $GLOBALS['blog_id'], '/wp/v2/advisory' ),
+					'emergency_url' => sprintf( '%s/wp-json/wp/v2/alert', Plugin::instance()->get_alerts_url() ),
 					'is_root' => $this->is_root,
 					'is_alerts' => $this->is_alerts,
 				);
