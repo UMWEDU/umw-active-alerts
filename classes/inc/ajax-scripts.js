@@ -62,6 +62,7 @@
             };
         },
         'gatherAlertInfo' : function( e ) {
+            this.log( e );
             if ( typeof e !== 'object' ) {
                 this.log( typeof e );
                 this.log( 'The alert info does not appear to be an array' );
