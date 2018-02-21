@@ -72,7 +72,13 @@
                 'dataType' : 'json'
             } );
         },
-        'insertLocalAlert' : function( e ) {
+        'gatherAlertInfo' : function( e ) {
+            if ( typeof e !== 'array' ) {
+                this.log( 'The alert info does not appear to be an array' );
+                this.log( e );
+                return '';
+            }
+
             var alert = e[0];
             var author = alert._embedded.author[0].name;
             if ( 'meta' in alert ) {
@@ -89,33 +95,29 @@
                 'date' : date
             }
 
-            var body = this.alertBody( data );
+            return this.alertBody( data );
+        },
+        'insertLocalAlert' : function( e ) {
+            body = this.gatherAlertInfo( e );
 
             this.log( e );
             this.log( body );
+
+            if ( document.querySelectorAll( '.content' ).length >= 1 ) {
+                jQuery( body ).prependTo( '.content' );
+            } else if ( document.querySelectorAll( '#content' ).length >= 1 ) {
+                jQuery( body ).prependTo( '#content' );
+            }
+
             return false;
         },
         'insertGlobalAlert' : function( e ) {
-            var alert = e[0];
-            var author = alert._embedded.author[0].name;
-            if ( 'meta' in alert ) {
-                if ( '_advisory_author' in alert.meta ) {
-                    author = alert.meta._advisory_author;
-                }
-            }
-            var date = new Date( alert.date );
-            date = this.humanDate( date );
-            var data = {
-                'url' : alert.link,
-                'title' : alert.title.rendered,
-                'author' : author,
-                'date' : date
-            }
-
-            var body = this.alertBody( data );
+            var body = this.gatherAlertInfo( e );
 
             this.log( e );
             this.log( body );
+            jQuery( body ).prependTo( 'body' );
+
             return false;
         },
         'log' : function( m ) {
