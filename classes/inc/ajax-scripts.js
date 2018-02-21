@@ -7,6 +7,8 @@
             } else {
                 this.doLocalAlert();
             }
+
+            this.doGlobalEmergency();
         },
         'formatDate' : function( date ) {
             var year = date.getFullYear();
