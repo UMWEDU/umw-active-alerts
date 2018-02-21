@@ -39,6 +39,17 @@
 
             return monthNames[month] + ' ' + day + ', ' + year + ' at ' + hour + ':' + min + ' ' + ap;
         },
+        'enqueueStyles' : function() {
+            var link = document.createElement( 'link' );
+            link.href = this.css_url;
+            link.type = 'text/css';
+            link.rel = 'stylesheet';
+            link.media = 'all';
+
+            this.did_css = true;
+
+            document.getElementsByTagName( 'head' )[0].appendChild( link );
+        },
         'getQueryArgs' : function() {
             return {
                 'orderby' : 'meta_value_num',
@@ -174,6 +185,10 @@
             console.log( m );
         },
         'alertBody' : function( e ) {
+            if ( false === this.did_css ) {
+                this.enqueueStyles();
+            }
+
             return '<div class="wrap"><article class="alert"><header class="alert-heading"><h2><a href="' + e.url + '" title="Read the details of ' + e.title + '">' + e.title + '</a></h2></header>' +
                 '<footer class="alert-meta">Posted by <span class="alert-author">' + e.author + '</span> on <span class="alert-time">' + e.date + '</span></footer></article></div>';
         },
@@ -182,7 +197,9 @@
         'local_url' : advisoriesObject.local_url,
         'emergency_url' : advisoriesObject.emergency_url,
         'is_root' : advisoriesObject.is_root,
-        'is_alerts' : advisoriesObject.is_alerts
+        'is_alerts' : advisoriesObject.is_alerts,
+        'css_url' : advisoriesObject.css_url,
+        'did_css' : false
     };
 
     advisoriesFunctions.init();

@@ -111,6 +111,7 @@ namespace UMW_Advisories {
 					'emergency_url' => sprintf( '%s/wp-json/wp/v2/alert', Plugin::instance()->get_alerts_url() ),
 					'is_root' => $this->is_root,
 					'is_alerts' => $this->is_alerts,
+					'css_url' => plugin_dir_url( dirname( __FILE__ ) ) . '/styles/umw-active-alerts.css', 
 				);
 
 				return json_encode( $vars );
