@@ -58,7 +58,19 @@
                 'per_page' : 1,
                 '_embed' : 1
             };
-            jQuery.ajax( { 'url' : this.alerts_url, 'data' : args, 'success' : function( data ) { advisoriesFunctions.log( data ); }, 'error' : function( xhr, status, error ) { advisoriesFunctions.log( xhr ); advisoriesFunctions.log( status ); advisoriesFunctions.log( error ); }, 'dataType' : 'json' } );
+            jQuery.ajax( {
+                'url' : this.alerts_url,
+                'data' : args,
+                'success' : function( data ) {
+                    return advisoriesFunctions.insertGlobalAlert( data );
+                },
+                'error' : function( xhr, status, error ) {
+                    advisoriesFunctions.log( xhr );
+                    advisoriesFunctions.log( status );
+                    advisoriesFunctions.log( error );
+                },
+                'dataType' : 'json'
+            } );
         },
         'insertLocalAlert' : function( e ) {
             var alert = e[0];
@@ -77,13 +89,33 @@
                 'date' : date
             }
 
-            this.alertBody( data );
+            var body = this.alertBody( data );
 
             this.log( e );
+            this.log( body );
             return false;
         },
         'insertGlobalAlert' : function( e ) {
+            var alert = e[0];
+            var author = alert._embedded.author[0].name;
+            if ( 'meta' in alert ) {
+                if ( '_advisory_author' in alert.meta ) {
+                    author = alert.meta._advisory_author;
+                }
+            }
+            var date = new Date( alert.date );
+            date = this.humanDate( date );
+            var data = {
+                'url' : e.link,
+                'title' : e.title.rendered,
+                'author' : author,
+                'date' : date
+            }
+
+            var body = this.alertBody( data );
+
             this.log( e );
+            this.log( body );
             return false;
         },
         'log' : function( m ) {
