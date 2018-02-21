@@ -106,12 +106,12 @@ namespace UMW_Advisories {
 			 */
 			private function _get_script_vars() {
 				$vars = array(
-					'alerts_url' => sprintf( '%s/wp-json/wp/v2/advisory', Plugin::instance()->get_alerts_url() ),
-					'local_url' => get_rest_url( $GLOBALS['blog_id'], '/wp/v2/advisory' ),
-					'emergency_url' => sprintf( '%s/wp-json/wp/v2/alert', Plugin::instance()->get_alerts_url() ),
+					'alerts_url' => sprintf( '%s/wp-json/wp/v2/advisory', str_replace( array( 'http:', 'https:' ), '', Plugin::instance()->get_alerts_url() ) ),
+					'local_url' => str_replace( array( 'http:', 'https:' ), '', get_rest_url( $GLOBALS['blog_id'], '/wp/v2/advisory' ) ),
+					'emergency_url' => sprintf( '%s/wp-json/wp/v2/alert', str_replace( array( 'http:', 'https:' ), '', Plugin::instance()->get_alerts_url() ) ),
 					'is_root' => $this->is_root,
 					'is_alerts' => $this->is_alerts,
-					'css_url' => add_query_arg( 'v', Plugin::$version, plugin_dir_url( dirname( __FILE__ ) ) . '/styles/umw-active-alerts.css' ),
+					'css_url' => str_replace( array( 'http:', 'https:' ), '', add_query_arg( 'v', Plugin::$version, plugin_dir_url( dirname( __FILE__ ) ) . '/styles/umw-active-alerts.css' ) ),
 				);
 
 				return json_encode( $vars );
