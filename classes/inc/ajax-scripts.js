@@ -140,6 +140,9 @@
         /* Site-specific alerts */
         'insertLocalAlert' : function( e ) {
             body = this.wrapLocalAlert( this.gatherAlertInfo( e ) );
+            if ( false === body ) {
+                return false;
+            }
 
             this.log( e );
             this.log( body );
@@ -155,6 +158,9 @@
         /* Emergency campus-wide alerts */
         'insertGlobalAlert' : function( e ) {
             var body = this.wrapGlobalEmergency( this.gatherAlertInfo( e ) );
+            if ( false === body ) {
+                return false;
+            }
 
             this.log( e );
             this.log( body );
@@ -165,6 +171,9 @@
         /* Non-emergency campus-wide alerts */
         'insertGlobalAdvisory' : function( e ) {
             var body = this.wrapGlobalAlert( this.gatherAlertInfo( e ) );
+            if ( false === body ) {
+                return false;
+            }
 
             this.log( e );
             this.log( body );
