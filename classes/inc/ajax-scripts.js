@@ -96,6 +96,10 @@
                     return advisoriesFunctions.insertLocalAlert( data );
                 },
                 'error' : function( xhr, status, error ) {
+                    advisoriesFunctions.log( advisoriesFunctions.local_url );
+                    advisoriesFunctions.log( advisoriesFunctions.getQueryArgs() );
+                    advisoriesFunctions.log( xhr );
+                    advisoriesFunctions.log( status );
                     advisoriesFunctions.log( error );
                 },
                 'dataType' : 'json'
