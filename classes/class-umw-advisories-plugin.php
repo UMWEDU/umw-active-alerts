@@ -18,7 +18,7 @@ namespace UMW_Advisories {
              * @var string $version holds the version number for the plugin
              * @access public
              */
-            public static $version = '2018.1';
+            public static $version = '2018.1.1';
 
 	        /**
 	         * @var bool $is_root whether this is the root site of the UMW system or not
@@ -114,6 +114,7 @@ namespace UMW_Advisories {
 
 		        if ( ! is_admin() ) {
 		        	add_action( 'wp', array( $this, 'setup_ajax' ) );
+		        	add_filter( 'body_class', array( $this, 'body_class' ) );
 		        }
 	        }
 
@@ -645,6 +646,20 @@ namespace UMW_Advisories {
 	        		require_once( plugin_dir_path( __FILE__ ) . 'class-umw-advisories-ajax.php' );
 		        }
 		        Ajax::instance( array( 'is_alerts' => $this->is_alerts, 'is_root' => $this->is_root, 'alerts_url' => $this->alerts_url ) );
+	        }
+
+	        /**
+	         * Add an appropriate body class to allow easier styling among
+	         *      various WordPress themes used by UMW
+	         * @param array $classes the existing list of body classes
+	         *
+	         * @access public
+	         * @since  1.0
+	         * @return array the updated list of body classes
+	         */
+	        public function body_class( $classes=array() ) {
+	        	$classes[] = get_stylesheet();
+	        	return $classes;
 	        }
         }
     }

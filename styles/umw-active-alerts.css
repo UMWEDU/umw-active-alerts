@@ -3,7 +3,7 @@
  * @package umw-active-alerts
  * @version 1.0
  */
-aside.campus-advisory, 
+aside.campus-advisory,
 .previous-advisory, 
 aside.emergency-alert, 
 aside.local-advisory, 
@@ -82,6 +82,18 @@ aside.emergency-alert,
 	-moz-box-sizing: border-box;
 	padding: 16px;
 	background: none;
+}
+
+.alert {
+	margin: 0 auto;
+}
+
+.outreach-pro .alert {
+	max-width: 1140px;
+}
+
+.umw .alert {
+	max-width: 960px;
 }
 
 .alert h2, 
