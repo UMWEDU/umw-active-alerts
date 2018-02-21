@@ -74,6 +74,7 @@
         },
         'gatherAlertInfo' : function( e ) {
             if ( typeof e !== 'array' ) {
+                this.log( typeof e );
                 this.log( 'The alert info does not appear to be an array' );
                 this.log( e );
                 return '';
