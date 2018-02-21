@@ -93,14 +93,13 @@
                 'url' : this.local_url,
                 'data' : this.getQueryArgs(),
                 'success' : function( data ) {
-                    advisoriesFunctions.log( data );
+                    return advisoriesFunctions.insertLocalAlert( data );
                 },
                 'error' : function( xhr, status, error ) {
                     advisoriesFunctions.log( error );
                 },
                 'dataType' : 'json'
             } );
-            jQuery.get( this.local_url, args, function( data, status ) { advisoriesFunctions.log( data ) }, 'json' );
         },
         /* Non-emergency campus-wide alert */
         'doGlobalAlert' : function() {
