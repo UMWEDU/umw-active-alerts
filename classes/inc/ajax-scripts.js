@@ -83,8 +83,8 @@
             var date = new Date( alert.date );
             date = this.humanDate( date );
             var data = {
-                'url' : e.link,
-                'title' : e.title.rendered,
+                'url' : alert.link,
+                'title' : alert.title.rendered,
                 'author' : author,
                 'date' : date
             }
@@ -106,8 +106,8 @@
             var date = new Date( alert.date );
             date = this.humanDate( date );
             var data = {
-                'url' : e.link,
-                'title' : e.title.rendered,
+                'url' : alert.link,
+                'title' : alert.title.rendered,
                 'author' : author,
                 'date' : date
             }
