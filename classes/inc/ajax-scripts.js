@@ -175,12 +175,24 @@
             }
         },
         'wrapLocalAlert' : function( body ) {
+            if ( body === '' ) {
+                return false;
+            }
+
             return '<aside class="' + e.class + '">' + body + '</aside>';
         },
         'wrapGlobalEmergency' : function( body ) {
+            if ( body === '' ) {
+                return false;
+            }
+
             return '<aside class="emergency-alert">' + body + '</aside>';
         },
         'wrapGlobalAlert' : function( body ) {
+            if ( body === '' ) {
+                return false;
+            }
+
             return '<aside class="campus-advisory">' + body + '</aside>';
         },
         'log' : function( m ) {
