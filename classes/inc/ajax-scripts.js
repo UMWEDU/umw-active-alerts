@@ -1,6 +1,7 @@
 ;jQuery( function( $ ) {
     var advisoriesFunctions = {
         'init' : function() {
+            this.nowFormatted = this.formatDate( this.now );
             if ( this.is_alerts || this.is_root ) {
                 this.doGlobalAlert();
             } else {
@@ -96,7 +97,6 @@
                 '<footer class="alert-meta">Posted by <span class="alert-author">' + e.author + '</span> on <span class="alert-time">' + e.date + '</span></footer></article></div>';
         },
         'now' : new Date(),
-        'nowFormatted' : this.formatDate( this.now ),
         'alerts_url' : advisoriesObject.alerts_url,
         'local_url' : advisoriesObject.local_url,
         'is_root' : advisoriesObject.is_root,
