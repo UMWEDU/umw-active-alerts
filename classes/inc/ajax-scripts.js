@@ -214,14 +214,6 @@
 
             return '<aside class="campus-advisory">' + body + '</aside>';
         },
-        'log' : function( m ) {
-            if ( typeof console === 'undefined' )
-                return;
-            if ( ! jQuery( 'body' ).hasClass( 'logged-in' ) )
-                return;
-
-            console.log( m );
-        },
         'alertBody' : function( e ) {
             if ( false === this.did_css ) {
                 this.enqueueStyles();
@@ -229,6 +221,14 @@
 
             return '<div class="wrap"><article class="alert"><header class="alert-heading"><h2><a href="' + e.url + '" title="Read the details of ' + e.title + '">' + e.title + '</a></h2></header>' +
                 '<footer class="alert-meta">Posted by <span class="alert-author">' + e.author + '</span> on <span class="alert-time">' + e.date + '</span></footer></article></div>';
+        },
+        'log' : function( m ) {
+            if ( typeof console === 'undefined' )
+                return;
+            if ( ! jQuery( 'body' ).hasClass( 'logged-in' ) )
+                return;
+
+            console.log( m );
         },
         'now' : new Date(),
         'alerts_url' : advisoriesObject.alerts_url,
