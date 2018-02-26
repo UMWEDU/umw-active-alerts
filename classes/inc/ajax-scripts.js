@@ -93,6 +93,9 @@
                 'url' : this.local_url,
                 'data' : this.getQueryArgs(),
                 'success' : function( data ) {
+                    advisoriesFunctions.log( 'Retrieved local alert information from ' . advisoriesFunctions.local_url );
+                    advisoriesFunctions.log( advisoriesFunctions.getQueryArgs() );
+                    advisoriesFunctions.log( data );
                     return advisoriesFunctions.insertLocalAlert( data );
                 },
                 'error' : function( xhr, status, error ) {
@@ -110,6 +113,9 @@
                 'url' : this.alerts_url,
                 'data' : this.getQueryArgs(),
                 'success' : function( data ) {
+                    advisoriesFunctions.log( 'Retrieved global alert information from ' . advisoriesFunctions.alerts_url );
+                    advisoriesFunctions.log( advisoriesFunctions.getQueryArgs() );
+                    advisoriesFunctions.log( data );
                     return advisoriesFunctions.insertGlobalAdvisory( data );
                 },
                 'error' : function( xhr, status, error ) {
@@ -127,6 +133,9 @@
                 'url' : this.emergency_url,
                 'data' : this.getQueryArgs(),
                 'success' : function( data ) {
+                    advisoriesFunctions.log( 'Retrieved global emergency information from ' . advisoriesFunctions.emergency_url );
+                    advisoriesFunctions.log( advisoriesFunctions.getQueryArgs() );
+                    advisoriesFunctions.log( data );
                     return advisoriesFunctions.insertGlobalAlert( data );
                 },
                 'error' : function( xhr, status, error ) {
@@ -207,6 +216,8 @@
         },
         'log' : function( m ) {
             if ( typeof console === 'undefined' )
+                return;
+            if ( ! jQuery( 'body' ).hasClass( 'logged-in' ) )
                 return;
 
             console.log( m );
