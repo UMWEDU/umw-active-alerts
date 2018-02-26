@@ -96,11 +96,10 @@
                     return advisoriesFunctions.insertLocalAlert( data );
                 },
                 'error' : function( xhr, status, error ) {
+                    advisoriesFunctions.log( 'Failed retrieving local alert' );
+                    advisoriesFunctions.log( error );
                     advisoriesFunctions.log( advisoriesFunctions.local_url );
                     advisoriesFunctions.log( advisoriesFunctions.getQueryArgs() );
-                    advisoriesFunctions.log( xhr );
-                    advisoriesFunctions.log( status );
-                    advisoriesFunctions.log( error );
                 },
                 'dataType' : 'json'
             } );
@@ -114,9 +113,10 @@
                     return advisoriesFunctions.insertGlobalAdvisory( data );
                 },
                 'error' : function( xhr, status, error ) {
-                    advisoriesFunctions.log( xhr );
-                    advisoriesFunctions.log( status );
+                    advisoriesFunctions.log( 'Failed retrieving global alert' );
                     advisoriesFunctions.log( error );
+                    advisoriesFunctions.log( advisoriesFunctions.alerts_url );
+                    advisoriesFunctions.log( advisoriesFunctions.getQueryArgs() );
                 },
                 'dataType' : 'json'
             } );
@@ -130,9 +130,10 @@
                     return advisoriesFunctions.insertGlobalAlert( data );
                 },
                 'error' : function( xhr, status, error ) {
-                    advisoriesFunctions.log( xhr );
-                    advisoriesFunctions.log( status );
+                    advisoriesFunctions.log( 'Failed retrieving global emergency' );
                     advisoriesFunctions.log( error );
+                    advisoriesFunctions.log( advisoriesFunctions.emergency_url );
+                    advisoriesFunctions.log( advisoriesFunctions.getQueryArgs() );
                 },
                 'dataType' : 'json'
             } );
