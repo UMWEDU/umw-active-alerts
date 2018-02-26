@@ -93,7 +93,7 @@
                 'url' : this.local_url,
                 'data' : this.getQueryArgs(),
                 'success' : function( data ) {
-                    advisoriesFunctions.log( 'Retrieved local alert information from ' . advisoriesFunctions.local_url );
+                    advisoriesFunctions.log( 'Retrieved local alert information from ' + advisoriesFunctions.local_url );
                     advisoriesFunctions.log( advisoriesFunctions.getQueryArgs() );
                     advisoriesFunctions.log( data );
                     return advisoriesFunctions.insertLocalAlert( data );
@@ -113,7 +113,7 @@
                 'url' : this.alerts_url,
                 'data' : this.getQueryArgs(),
                 'success' : function( data ) {
-                    advisoriesFunctions.log( 'Retrieved global alert information from ' . advisoriesFunctions.alerts_url );
+                    advisoriesFunctions.log( 'Retrieved global alert information from ' + advisoriesFunctions.alerts_url );
                     advisoriesFunctions.log( advisoriesFunctions.getQueryArgs() );
                     advisoriesFunctions.log( data );
                     return advisoriesFunctions.insertGlobalAdvisory( data );
@@ -133,7 +133,7 @@
                 'url' : this.emergency_url,
                 'data' : this.getQueryArgs(),
                 'success' : function( data ) {
-                    advisoriesFunctions.log( 'Retrieved global emergency information from ' . advisoriesFunctions.emergency_url );
+                    advisoriesFunctions.log( 'Retrieved global emergency information from ' + advisoriesFunctions.emergency_url );
                     advisoriesFunctions.log( advisoriesFunctions.getQueryArgs() );
                     advisoriesFunctions.log( data );
                     return advisoriesFunctions.insertGlobalAlert( data );
