@@ -27,11 +27,11 @@ namespace UMW_Advisories {
 			 * @since  0.1
 			 */
 			private function __construct() {
-				if ( is_network_admin() ) {
+				if ( is_network_admin() || ! is_admin() ) {
 					return;
 				}
 
-				if ( ! isset( $_REQUEST['test_alerts_upgrade'] ) || ! current_user_can( 'delete_users' ) )
+				if ( ! current_user_can( 'delete_users' ) )
 					return;
 
 				$this->do_init();

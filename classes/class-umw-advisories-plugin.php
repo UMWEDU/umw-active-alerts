@@ -129,7 +129,7 @@ namespace UMW_Advisories {
 	        	if ( ! current_user_can( 'delete_users' ) )
 	        		return;
 
-	        	if ( ! isset( $_REQUEST['test_alerts_upgrade'] ) )
+	        	if ( is_network_admin() || ! is_admin() )
 	        		return;
 
 		        $up_to_date = get_option( 'umw_advisories_version', false );
