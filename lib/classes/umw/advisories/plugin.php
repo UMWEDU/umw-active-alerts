@@ -49,6 +49,16 @@ namespace UMW\Advisories {
 	         * @access private
 	         */
 	        private $did_init = false;
+	        /**
+	         * @var string $plugin_path the root path to this plugin
+	         * @access public
+	         */
+	        public static $plugin_path = '';
+	        /**
+	         * @var string $plugin_url the root URL to this plugin
+	         * @access public
+	         */
+	        public static $plugin_url = '';
 
             /**
              * Creates the \UMW\Advisories\Plugin object
@@ -80,6 +90,74 @@ namespace UMW\Advisories {
             }
 
 	        /**
+	         * Set the root path to this plugin
+	         *
+	         * @access public
+	         * @since  1.0
+	         * @return void
+	         */
+	        public static function set_plugin_path() {
+		        self::$plugin_path = plugin_dir_path( dirname( dirname( dirname( dirname( __FILE__ ) ) ) ) );
+	        }
+
+	        /**
+	         * Set the root URL to this plugin
+	         *
+	         * @access public
+	         * @since  1.0
+	         * @return void
+	         */
+	        public static function set_plugin_url() {
+		        self::$plugin_url = plugin_dir_url( dirname( dirname( dirname( dirname( __FILE__ ) ) ) ) );
+	        }
+
+	        /**
+	         * Returns an absolute path based on the relative path passed
+	         *
+	         * @param string $path the path relative to the root of this plugin
+	         *
+	         * @access public
+	         * @since  1.0
+	         * @return string the absolute path
+	         */
+	        public static function plugin_dir_path( $path = '' ) {
+		        if ( empty( self::$plugin_path ) ) {
+			        self::set_plugin_path();
+		        }
+
+		        $rt = self::$plugin_path;
+
+		        if ( '/' === substr( $path, - 1 ) ) {
+			        $rt = untrailingslashit( $rt );
+		        }
+
+		        return $rt . $path;
+	        }
+
+	        /**
+	         * Returns an absolute URL based on the relative path passed
+	         *
+	         * @param string $url the URL relative to the root of this plugin
+	         *
+	         * @access public
+	         * @since  1.0
+	         * @return string the absolute URL
+	         */
+	        public static function plugin_dir_url( $url = '' ) {
+		        if ( empty( self::$plugin_url ) ) {
+			        self::set_plugin_url();
+		        }
+
+		        $rt = self::$plugin_url;
+
+		        if ( '/' === substr( $url, - 1 ) ) {
+			        $rt = untrailingslashit( $rt );
+		        }
+
+		        return $rt . $url;
+	        }
+
+	        /**
 	         * Run any startup actions that need to happen
 	         *
 	         * @access public
@@ -109,9 +187,6 @@ namespace UMW\Advisories {
 		        	add_filter( "rest_{$type}_query", array( $this, 'rest_meta_args' ), 10, 2 );
 		        }
 
-		        if ( defined( 'WP_DEBUG' ) && WP_DEBUG )
-		        	require_once( plugin_dir_path( __FILE__ ) . 'class-umw-advisories-debug.php' );
-
 		        if ( ! is_admin() ) {
 		        	add_action( 'wp', array( $this, 'setup_ajax' ) );
 		        	add_filter( 'body_class', array( $this, 'body_class' ) );
@@ -136,7 +211,6 @@ namespace UMW\Advisories {
 		        if ( $up_to_date == Plugin::$version )
 		        	return;
 
-		        require_once( plugin_dir_path( __FILE__ ) . 'class-umw-advisories-upgrade.php' );
 		        Upgrade::instance();
 	        }
 
@@ -236,10 +310,10 @@ namespace UMW\Advisories {
 			        add_filter( 'acf/settings/path', array( $this, 'acf_path' ) );
 			        add_filter( 'acf/settings/dir', array( $this, 'acf_url' ) );
 	        		add_filter( 'acf/settings/show_admin', '__return_false' );
-			        include_once( plugin_dir_path( __FILE__ ) . '/inc/acf/acf.php' );
+			        include_once( $this->plugin_dir_path( '/lib/classes/acf/acf.php' ) );
 		        }
 
-	        	include_once( plugin_dir_path( __FILE__ ) . '/inc/acf-fields.php' );
+	        	include_once( $this->plugin_dir_path( '/lib/classes/acf/acf-fields.php' ) );
 
 	        	add_filter( 'acf/load_value/type=date_time_picker', array( $this, 'default_expiry' ), 10, 3 );
 	        }
@@ -253,7 +327,7 @@ namespace UMW\Advisories {
 	         * @return string
 	         */
 	        public function acf_path( $path ) {
-		        return plugin_dir_path( __FILE__ ) . 'inc/acf/';
+		        return $this->plugin_dir_path( 'lib/classes/acf/' );
 	        }
 
 	        /**
@@ -265,7 +339,7 @@ namespace UMW\Advisories {
 	         * @return string
 	         */
 	        public function acf_url( $url ) {
-		        return plugin_dir_url( __FILE__ ) . 'inc/acf/';
+		        return $this->plugin_dir_url( 'lib/classes/acf/' );
 	        }
 
 	        /**
@@ -306,10 +380,7 @@ namespace UMW\Advisories {
 	        private function add_syndication_actions() {
 		        $this->register_post_types();
 
-		        if ( ! class_exists( 'Syndication' ) ) {
-			        require_once( plugin_dir_path( __FILE__ ) . '/class-umw-advisories-syndication.php' );
-			        Syndication::instance();
-		        }
+		        Syndication::instance();
 	        }
 
 	        /**
@@ -642,9 +713,6 @@ namespace UMW\Advisories {
 	         * @return void
 	         */
 	        public function setup_ajax() {
-	        	if ( ! class_exists( 'Ajax' ) ) {
-	        		require_once( plugin_dir_path( __FILE__ ) . 'class-umw-advisories-ajax.php' );
-		        }
 		        Ajax::instance( array( 'is_alerts' => $this->is_alerts, 'is_root' => $this->is_root, 'alerts_url' => $this->alerts_url ) );
 	        }
 
