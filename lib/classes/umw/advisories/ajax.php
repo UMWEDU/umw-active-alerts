@@ -111,7 +111,7 @@ namespace UMW\Advisories {
 					'emergency_url' => sprintf( '%s/wp-json/wp/v2/alert', str_replace( array( 'http:', 'https:' ), '', Plugin::instance()->get_alerts_url() ) ),
 					'is_root' => $this->is_root,
 					'is_alerts' => $this->is_alerts,
-					'css_url' => str_replace( array( 'http:', 'https:' ), '', add_query_arg( 'v', Plugin::$version, $this->plugin_dir_url( '/lib/styles/umw-active-alerts.css' ) ) ),
+					'css_url' => str_replace( array( 'http:', 'https:' ), '', add_query_arg( 'v', Plugin::$version, Plugin::plugin_dir_url( '/lib/styles/umw-active-alerts.css' ) ) ),
 				);
 
 				return json_encode( $vars );
@@ -128,7 +128,7 @@ namespace UMW\Advisories {
 				echo '<script type="text/javascript">';
 				printf( 'var advisoriesObject = advisoriesObject || %s;', $this->_get_script_vars() );
 				ob_start();
-				require_once( $this->plugin_dir_path( '/lib/scripts/umw-active-alerts.js' ) );
+				require_once( Plugin::plugin_dir_path( '/lib/scripts/umw-active-alerts.js' ) );
 				echo ob_get_clean();
 				echo '</script>';
 			}
