@@ -313,7 +313,7 @@ namespace UMW\Advisories {
 			        include_once( $this->plugin_dir_path( '/lib/classes/acf/acf.php' ) );
 		        }
 
-	        	include_once( $this->plugin_dir_path( '/includes/umw/advisories/acf-fields.php' ) );
+	        	include_once( $this->plugin_dir_path( '/lib/includes/umw/advisories/acf-fields.php' ) );
 
 	        	/*add_filter( 'acf/load_value/type=date_time_picker', array( $this, 'default_expiry' ), 10, 3 );*/
 	        }
