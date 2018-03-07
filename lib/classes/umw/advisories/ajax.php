@@ -128,7 +128,7 @@ namespace UMW\Advisories {
 				echo '<script type="text/javascript">';
 				printf( 'var advisoriesObject = advisoriesObject || %s;', $this->_get_script_vars() );
 				ob_start();
-				require_once( $this->plugin_dir_path( '/lib/scripts/ajax-scripts.js' ) );
+				require_once( $this->plugin_dir_path( '/lib/scripts/umw-active-alerts.js' ) );
 				echo ob_get_clean();
 				echo '</script>';
 			}
