@@ -5,11 +5,11 @@ namespace {
 	}
 }
 
-namespace UMW_Advisories {
+namespace UMW\Advisories {
 	if ( ! class_exists( 'Ajax' ) ) {
 		class Ajax {
 			/**
-			 * @var \UMW_Advisories\Ajax $instance holds the single instance of this class
+			 * @var \UMW\Advisories\Ajax $instance holds the single instance of this class
 			 * @access private
 			 */
 			private static $instance;
@@ -33,7 +33,7 @@ namespace UMW_Advisories {
 			private $is_alerts = false;
 
 			/**
-			 * Creates the \UMW_Advisories\Ajax object
+			 * Creates the \UMW\Advisories\Ajax object
 			 *
 			 * @access private
 			 * @since  0.1
@@ -53,7 +53,7 @@ namespace UMW_Advisories {
 			 *
 			 * @access  public
 			 * @since   0.1
-			 * @return  \UMW_Advisories\Ajax
+			 * @return  \UMW\Advisories\Ajax
 			 */
 			public static function instance( $args=array() ) {
 				if ( ! isset( self::$instance ) ) {

@@ -5,11 +5,11 @@ namespace {
 	}
 }
 
-namespace UMW_Advisories {
+namespace UMW\Advisories {
 	if ( ! class_exists( 'Syndication' ) ) {
 		class Syndication {
 			/**
-			 * @var \UMW_Advisories\Syndication $instance holds the single instance of this class
+			 * @var \UMW\Advisories\Syndication $instance holds the single instance of this class
 			 * @access private
 			 */
 			private static $instance;
@@ -39,7 +39,7 @@ namespace UMW_Advisories {
 			private $did_init = false;
 
 			/**
-			 * Construct our \UMW_Advisories\Syndication object
+			 * Construct our \UMW\Advisories\Syndication object
 			 *
 			 * @access private
 			 * @since  2018.1
@@ -53,7 +53,7 @@ namespace UMW_Advisories {
 			 *
 			 * @access  public
 			 * @since   0.1
-			 * @return  \UMW_Advisories\Syndication
+			 * @return  \UMW\Advisories\Syndication
 			 */
 			public static function instance() {
 				if ( ! isset( self::$instance ) ) {
@@ -250,7 +250,7 @@ namespace UMW_Advisories {
 					$p = get_post( $post_id );
 
 				if ( 'advisory' != get_post_type( $p->ID ) )
-					return;
+					return false;
 
 				$syndicated_id = $this->_get_syndicated_id( $p );
 				$author = $this->_get_advisory_author( $p );

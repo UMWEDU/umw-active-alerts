@@ -5,17 +5,17 @@ namespace {
 	}
 }
 
-namespace UMW_Advisories {
+namespace UMW\Advisories {
 	if ( ! class_exists( 'Debug' ) ) {
 		class Debug {
 			/**
-			 * @var \UMW_Advisories\Debug $instance holds the single instance of this class
+			 * @var \UMW\Advisories\Debug $instance holds the single instance of this class
 			 * @access private
 			 */
 			private static $instance;
 
 			/**
-			 * Creates the \UMW_Advisories\Debug object
+			 * Creates the \UMW\Advisories\Debug object
 			 *
 			 * @access private
 			 * @since  0.1
@@ -28,7 +28,7 @@ namespace UMW_Advisories {
 			 *
 			 * @access  public
 			 * @since   0.1
-			 * @return  \UMW_Advisories\Debug
+			 * @return  \UMW\Advisories\Debug
 			 */
 			public static function instance() {
 				if ( ! isset( self::$instance ) ) {

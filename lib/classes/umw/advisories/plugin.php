@@ -5,11 +5,11 @@ namespace {
     }
 }
 
-namespace UMW_Advisories {
+namespace UMW\Advisories {
     if ( ! class_exists('Plugin') ) {
         class Plugin {
             /**
-             * @var \UMW_Advisories\Plugin $instance holds the single instance of this class
+             * @var \UMW\Advisories\Plugin $instance holds the single instance of this class
              * @access private
              */
             private static $instance;
@@ -51,7 +51,7 @@ namespace UMW_Advisories {
 	        private $did_init = false;
 
             /**
-             * Creates the \UMW_Advisories\Plugin object
+             * Creates the \UMW\Advisories\Plugin object
              *
              * @access private
              * @since  0.1
@@ -68,7 +68,7 @@ namespace UMW_Advisories {
              *
              * @access  public
              * @since   0.1
-             * @return  \UMW_Advisories\Plugin
+             * @return  \UMW\Advisories\Plugin
              */
             public static function instance() {
                 if ( ! isset( self::$instance ) ) {
@@ -156,8 +156,8 @@ namespace UMW_Advisories {
              * Also determines the URL to the root UMW site
              *
              * @uses UMW_IS_ROOT
-             * @uses \UMW_Advisories\Plugin::$is_root
-             * @uses \UMW_Advisories\Plugin::$root_url
+             * @uses \UMW\Advisories\Plugin::$is_root
+             * @uses \UMW\Advisories\Plugin::$root_url
              *
              * @access private
              * @since  1.0
@@ -187,10 +187,10 @@ namespace UMW_Advisories {
              * Also determines the URL to the main Advisories site
              *
              * @uses UMW_ADVISORIES_SITE
-             * @uses \UMW_Advisories\Plugin::$is_alerts
-             * @uses \UMW_Advisories\Plugin::$alerts_url
-             * @uses \UMW_Advisories\Plugin::setup_alerts_site()
-             * @uses \UMW_Advisories\Plugin::add_syndication_actions()
+             * @uses \UMW\Advisories\Plugin::$is_alerts
+             * @uses \UMW\Advisories\Plugin::$alerts_url
+             * @uses \UMW\Advisories\Plugin::setup_alerts_site()
+             * @uses \UMW\Advisories\Plugin::add_syndication_actions()
              *
              * @access private
              * @since  1.0

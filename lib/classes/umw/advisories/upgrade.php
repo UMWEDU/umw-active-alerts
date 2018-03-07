@@ -5,11 +5,11 @@ namespace {
 	}
 }
 
-namespace UMW_Advisories {
+namespace UMW\Advisories {
 	if ( ! class_exists( 'Upgrade' ) ) {
 		class Upgrade {
 			/**
-			 * @var \UMW_Advisories\Upgrade $instance holds the single instance of this class
+			 * @var \UMW\Advisories\Upgrade $instance holds the single instance of this class
 			 * @access private
 			 */
 			private static $instance;
@@ -21,7 +21,7 @@ namespace UMW_Advisories {
 			private $did_init = false;
 
 			/**
-			 * Creates the \UMW_Advisories\Plugin object
+			 * Creates the \UMW\Advisories\Plugin object
 			 *
 			 * @access private
 			 * @since  0.1
@@ -42,7 +42,7 @@ namespace UMW_Advisories {
 			 *
 			 * @access  public
 			 * @since   0.1
-			 * @return  \UMW_Advisories\Upgrade
+			 * @return  \UMW\Advisories\Upgrade
 			 */
 			public static function instance() {
 				if ( ! isset( self::$instance ) ) {
@@ -93,7 +93,7 @@ namespace UMW_Advisories {
 
 				$this->remove_types_field_groups();
 
-				update_option( 'umw_advisories_version', Plugin::$version );
+				return update_option( 'umw_advisories_version', Plugin::$version );
 			}
 
 			/**
