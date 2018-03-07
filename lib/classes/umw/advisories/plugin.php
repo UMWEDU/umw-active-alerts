@@ -127,8 +127,10 @@ namespace UMW\Advisories {
 
 		        $rt = self::$plugin_path;
 
-		        if ( '/' === substr( $path, - 1 ) ) {
+		        if ( '/' === substr( $path, 0, 1 ) ) {
 			        $rt = untrailingslashit( $rt );
+		        } else {
+			        $rt = trailingslashit( $rt );
 		        }
 
 		        return $rt . $path;
@@ -150,8 +152,10 @@ namespace UMW\Advisories {
 
 		        $rt = self::$plugin_url;
 
-		        if ( '/' === substr( $url, - 1 ) ) {
+		        if ( '/' === substr( $url, 0, -1 ) ) {
 			        $rt = untrailingslashit( $rt );
+		        } else {
+		        	$rt = trailingslashit( $rt );
 		        }
 
 		        return $rt . $url;
