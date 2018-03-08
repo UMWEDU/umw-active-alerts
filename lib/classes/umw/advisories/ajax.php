@@ -98,6 +98,29 @@ namespace UMW\Advisories {
 			}
 
 			/**
+			 * Retrieve the format/template for the body of an alert/advisory
+			 *
+			 * @access private
+			 * @since  1.0
+			 * @return string
+			 */
+			private function _get_alert_body_template() {
+				$rt = '
+	<div class="wrap">
+		<article class="alert">
+			<header class="alert-heading">
+				<h2>
+					<a href="{1}" title="Read the details of {2}">{2}</a>
+				</h2>
+			</header>
+			<footer class="alert-meta">
+				Posted by <span class="alert-author">{3}</span> on <span class="alert-time">{4}</span>
+			</footer>
+		</article>
+	</div>';
+			}
+
+			/**
 			 * Retrieve the appropriate values that need to be localized for the JavaScript
 			 *
 			 * @access private
@@ -112,6 +135,7 @@ namespace UMW\Advisories {
 					'is_root' => $this->is_root,
 					'is_alerts' => $this->is_alerts,
 					'css_url' => str_replace( array( 'http:', 'https:' ), '', add_query_arg( 'v', Plugin::$version, Plugin::plugin_dir_url( '/lib/styles/umw-active-alerts.css' ) ) ),
+					'body_template' => $this->_get_alert_body_template(),
 				);
 
 				return json_encode( $vars );
