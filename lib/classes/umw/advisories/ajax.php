@@ -105,16 +105,16 @@ namespace UMW\Advisories {
 			 * @return string
 			 */
 			private function _get_alert_body_template() {
-				$rt = '
+				return '
 	<div class="wrap">
 		<article class="alert">
 			<header class="alert-heading">
 				<h2>
-					<a href="{1}" title="Read the details of {2}">{2}</a>
+					<a href="{0}" title="Read the details of {1}">{1}</a>
 				</h2>
 			</header>
 			<footer class="alert-meta">
-				Posted by <span class="alert-author">{3}</span> on <span class="alert-time">{4}</span>
+				Posted by <span class="alert-author">{2}</span> on <span class="alert-time">{3}</span>
 			</footer>
 		</article>
 	</div>';
