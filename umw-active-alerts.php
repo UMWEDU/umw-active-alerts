@@ -6,6 +6,7 @@ Version: 1.0
 Author: Curtiss Grymala
 Author URI: http://ten-321.com/
 License: GPL2
+@TODO Implement widget for Local Advisories display on Advisories website (previously implemented with a View)
 */
 
 namespace {

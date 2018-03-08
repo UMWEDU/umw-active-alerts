@@ -70,7 +70,10 @@ namespace UMW\Advisories {
             	if ( is_network_admin() )
             		return;
 
-            	add_action( 'muplugins_loaded', array( $this, 'do_init' ) );
+	            if ( isset( $_SERVER['PHP_AUTH_USER'] ) && ! defined( 'WPCAS_BYPASS' ) )
+		            define( 'WPCAS_BYPASS', true );
+
+	            add_action( 'muplugins_loaded', array( $this, 'do_init' ) );
             }
 
             /**
