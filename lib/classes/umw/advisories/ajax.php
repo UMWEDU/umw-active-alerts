@@ -152,7 +152,7 @@ namespace UMW\Advisories {
 				echo '<script type="text/javascript">';
 				printf( 'var advisoriesObject = advisoriesObject || %s;', $this->_get_script_vars() );
 				ob_start();
-				require_once( Plugin::plugin_dir_path( '/lib/scripts/umw-active-alerts.js' ) );
+				require_once( Plugin::plugin_dir_path( '/lib/scripts/umw/advisories/umw-active-alerts.min.js' ) );
 				echo ob_get_clean();
 				echo '</script>';
 			}
