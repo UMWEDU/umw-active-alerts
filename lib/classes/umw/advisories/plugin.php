@@ -332,7 +332,7 @@ namespace UMW\Advisories {
 
 				include_once( $this->plugin_dir_path( '/lib/includes/umw/advisories/acf-fields.php' ) );
 
-				/*add_filter( 'acf/load_value/type=date_time_picker', array( $this, 'default_expiry' ), 10, 3 );*/
+				add_filter( 'acf/load_value/name=_advisory_expires_time', array( $this, 'default_expiry' ), 10, 3 );
 			}
 
 			/**
