@@ -11,7 +11,7 @@ if( function_exists('acf_add_local_field_group') ):
 				'name' => '_advisory_expires_time',
 				'type' => 'date_time_picker',
 				'instructions' => '',
-				'required' => 0,
+				'required' => 1,
 				'conditional_logic' => 0,
 				'wrapper' => array(
 					'width' => '',

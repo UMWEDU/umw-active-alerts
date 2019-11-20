@@ -19,7 +19,7 @@ namespace UMW\Advisories {
 			 * @var string $version holds the version number for the plugin
 			 * @access public
 			 */
-			public static $version = '2018.1.2.2';
+			public static $version = '2018.1.2.4';
 
 			/**
 			 * @var bool $is_root whether this is the root site of the UMW system or not
@@ -756,6 +756,25 @@ namespace UMW\Advisories {
 					'meta_value' => $request->get_param( 'meta_value' ),
 					'meta_query' => $request->get_param( 'meta_query' ),
 				);
+
+				if ( ! empty( $new_vars['meta_query'] ) && is_array( $new_vars['meta_query'] ) ) {
+					foreach ( $new_vars['meta_query'] as $key => $value ) {
+						if ( is_array( $value ) && array_key_exists( 'type', $value ) && 'DATETIME' == $value['type'] ) {
+							switch( $value['value'] ) {
+								case 'TODAY' :
+									$new_vars['meta_query'][$key]['value'] = date( "Y-m-d" );
+									break;
+								case 'NOW' :
+									$new_vars['meta_query'][$key]['value'] = date( "Y-m-d H:i:s" );
+									break;
+								default :
+									$new_vars['meta_query'][$key]['value'] = $value['value'];
+									break;
+							}
+						}
+					}
+				}
+
 				if ( 'meta_value' == $request->get_param( 'orderby' ) || 'meta_value_num' == $request->get_param( 'orderby' ) ) {
 					$new_vars['orderby'] = 'meta_value';
 				}
