@@ -22,7 +22,7 @@
             },
             {
                 "key": "field_5e6bacade7105",
-                "label": "Include author and publish date?",
+                "label": "Hide author and publish date?",
                 "name": "_advisory_meta_include",
                 "type": "true_false",
                 "instructions": "",
@@ -34,7 +34,7 @@
                     "id": ""
                 },
                 "message": "",
-                "default_value": 1,
+                "default_value": 0,
                 "ui": 1,
                 "ui_on_text": "",
                 "ui_off_text": ""
@@ -133,7 +133,7 @@
             },
             {
                 "key": "field_5e6bad50101ee",
-                "label": "Include author and publish date?",
+                "label": "Hide author and publish date?",
                 "name": "_advisory_meta_include",
                 "type": "true_false",
                 "instructions": "",
@@ -145,7 +145,7 @@
                     "id": ""
                 },
                 "message": "",
-                "default_value": 1,
+                "default_value": 0,
                 "ui": 1,
                 "ui_on_text": "",
                 "ui_off_text": ""

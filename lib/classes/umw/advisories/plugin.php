@@ -19,7 +19,7 @@ namespace UMW\Advisories {
 			 * @var string $version holds the version number for the plugin
 			 * @access public
 			 */
-			public static $version = '2020.03.13.17';
+			public static $version = '2020.03.13.18';
 
 			/**
 			 * @var bool $is_root whether this is the root site of the UMW system or not
@@ -639,7 +639,8 @@ namespace UMW\Advisories {
 				if ( ! in_array( $key, array(
 					'_advisory_expires_time',
 					'_advisory_permalink',
-					'_advisory_author'
+					'_advisory_author',
+					'_advisory_meta_include',
 				) ) ) {
 					return $protected;
 				}
@@ -676,7 +677,7 @@ namespace UMW\Advisories {
 
 				Debug::log( '[Alerts API Debug]: Meta array looks like: ' . print_r( $meta, true ) );
 
-				$keys = array( '_advisory_expires_time', '_advisory_permalink', '_advisory_author' );
+				$keys = array( '_advisory_expires_time', '_advisory_permalink', '_advisory_author', '_advisory_meta_include' );
 
 				if ( is_object( $meta ) ) {
 					foreach ( $keys as $key ) {
