@@ -594,6 +594,12 @@ namespace UMW\Advisories {
 					'single'       => true,
 					'show_in_rest' => true
 				) );
+				$tmp = register_meta( 'post', '_advisory_meta_include', array(
+					'type' => 'boolean',
+					'description' => __( 'Whether or not to show the author/date information' ),
+					'single' => true,
+					'show_in_rest' => true
+				) );
 				Debug::log( '[Alerts API debug]: Registered the expires time meta field with a result of ' . print_r( $tmp, true ) );
 
 				if ( ! $this->is_alerts ) {
