@@ -179,16 +179,18 @@ namespace UMW\Advisories {
 			 * @param string $expires the expiry date/time for the advisory
 			 * @param int $post_id the ID of the post being pushed
 			 * @param string $author the author display name for the advisory
+			 * @param bool $showmeta whether to show the author/date info in the advisory
 			 *
 			 * @access private
 			 * @since  1.0
 			 * @return array
 			 */
-			private function _get_advisory_meta_data( $expires=null, $post_id=null, $author='' ) {
+			private function _get_advisory_meta_data( $expires=null, $post_id=null, $author='', $showmeta=true ) {
 				return array(
 					'_advisory_expires_time' => $expires,
 					'_advisory_permalink' => esc_url( get_permalink( $post_id ) ),
 					'_advisory_author' => $author,
+					'_advisory_meta_include' => $showmeta,
 				);
 			}
 
@@ -231,6 +233,26 @@ namespace UMW\Advisories {
 			}
 
 			/**
+			 * Retrieve the value of the show author/date checkbox
+			 * @param \WP_Post $post the Post object being syndicated
+			 *
+			 * @access private
+			 * @since  1.0
+			 * @return bool whether to show the data or not
+			 */
+			private function _get_show_meta_value( $post ) {
+				if ( isset( $_REQUEST ) && array_key_exists( 'acf', $_REQUEST ) ) {
+					foreach( $_REQUEST['acf'] as $field=>$value ) {
+						$object = acf_get_local_field( $field );
+						if ( '_advisory_meta_include' == $object['name'] ) {
+							return $value;
+						}
+					}
+				}
+				return get_field( '_advisory_meta_include', $post->ID, false );
+			}
+
+			/**
 			 * Push a new external advisory from the source site to the
 			 * 		central Advisories site
 			 * @param int $post_id the ID of the post being syndicated
@@ -255,11 +277,12 @@ namespace UMW\Advisories {
 				$syndicated_id = $this->_get_syndicated_id( $p );
 				$author = $this->_get_advisory_author( $p );
 				$expires = $this->_get_advisory_expiry( $p );
+				$showmeta = $this->_get_show_meta_value( $p );
 
 				Debug::log( '[Alerts API Debug]: Expires time pulled with ACF looks like: ' . $expires );
 				Debug::log( '[Alerts API Debug]: Expires time pulled by get_post_meta() looks like: ' . get_post_meta( $p->ID, '_advisory_expires_time', true ) );
 
-				$meta = $this->_get_advisory_meta_data( $expires, $post_id, $author );
+				$meta = $this->_get_advisory_meta_data( $expires, $post_id, $author, $showmeta );
 
 				$body = $this->_get_syndication_body( $p, $meta );
 

@@ -19,6 +19,25 @@
                 "display_format": "F j, Y g:i a",
                 "return_format": "Y-m-d H:i:s",
                 "first_day": 0
+            },
+            {
+                "key": "field_5e6bacade7105",
+                "label": "Include author and publish date?",
+                "name": "_advisory_meta_include",
+                "type": "true_false",
+                "instructions": "",
+                "required": 0,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "",
+                    "class": "",
+                    "id": ""
+                },
+                "message": "",
+                "default_value": 1,
+                "ui": 1,
+                "ui_on_text": "",
+                "ui_off_text": ""
             }
         ],
         "location": [
@@ -111,6 +130,25 @@
                 "prepend": "",
                 "append": "",
                 "maxlength": ""
+            },
+            {
+                "key": "field_5e6bad50101ee",
+                "label": "Include author and publish date?",
+                "name": "_advisory_meta_include",
+                "type": "true_false",
+                "instructions": "",
+                "required": 0,
+                "conditional_logic": 0,
+                "wrapper": {
+                    "width": "",
+                    "class": "",
+                    "id": ""
+                },
+                "message": "",
+                "default_value": 1,
+                "ui": 1,
+                "ui_on_text": "",
+                "ui_off_text": ""
             }
         ],
         "location": [
