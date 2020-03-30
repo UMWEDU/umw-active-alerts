@@ -1,4 +1,5 @@
 <?php
+
 namespace {
 	if ( ! defined( 'ABSPATH' ) ) {
 		die( 'You do not have permission to access this file directly.' );
@@ -33,14 +34,21 @@ namespace UMW\Advisories {
 			private $is_alerts = false;
 
 			/**
+			 * @var bool $is_front_page whether this is the front page of the site or not
+			 * @access private
+			 */
+			private $is_front_page = false;
+
+			/**
 			 * Creates the \UMW\Advisories\Ajax object
 			 *
 			 * @access private
 			 * @since  0.1
 			 */
-			private function __construct( $args=array() ) {
-				if ( is_admin() )
+			private function __construct( $args = array() ) {
+				if ( is_admin() ) {
 					return;
+				}
 
 				if ( is_array( $args ) && ! empty( $args ) ) {
 					$this->_set_vars( $args );
@@ -52,10 +60,10 @@ namespace UMW\Advisories {
 			 * Returns the instance of this class.
 			 *
 			 * @access  public
-			 * @since   0.1
 			 * @return  \UMW\Advisories\Ajax
+			 * @since   0.1
 			 */
-			public static function instance( $args=array() ) {
+			public static function instance( $args = array() ) {
 				if ( ! isset( self::$instance ) ) {
 					$className      = __CLASS__;
 					self::$instance = new $className( $args );
@@ -66,18 +74,22 @@ namespace UMW\Advisories {
 
 			/**
 			 * Set the vars that we need
+			 *
 			 * @param array $args the vars that need to be set
 			 *
 			 * @access private
-			 * @since  1.0
 			 * @return void
+			 * @since  1.0
 			 */
-			private function _set_vars( $args=array() ) {
+			private function _set_vars( $args = array() ) {
 				if ( array_key_exists( 'is_alerts', $args ) ) {
 					$this->is_alerts = $args['is_alerts'];
 				}
 				if ( array_key_exists( 'is_root', $args ) ) {
 					$this->is_root = $args['is_root'];
+				}
+				if ( array_key_exists( 'is_front_page', $args ) ) {
+					$this->is_front_page = $args['is_front_page'];
 				}
 			}
 
@@ -85,12 +97,13 @@ namespace UMW\Advisories {
 			 * Set up any actions that need to happen for retrieval/display of advisories
 			 *
 			 * @access public
-			 * @since  1.0
 			 * @return void
+			 * @since  1.0
 			 */
 			public function startup() {
-				if ( $this->started )
+				if ( $this->started ) {
 					return;
+				}
 
 				$this->started = true;
 
@@ -101,8 +114,8 @@ namespace UMW\Advisories {
 			 * Retrieve the format/template for the body of an alert/advisory
 			 *
 			 * @access private
-			 * @since  1.0
 			 * @return string
+			 * @since  1.0
 			 */
 			private function _get_alert_body_template() {
 				return '
@@ -124,17 +137,30 @@ namespace UMW\Advisories {
 			 * Retrieve the appropriate values that need to be localized for the JavaScript
 			 *
 			 * @access private
-			 * @since  1.0
 			 * @return string
+			 * @since  1.0
 			 */
 			private function _get_script_vars() {
 				$vars = array(
-					'alerts_url' => sprintf( '%s/wp-json/wp/v2/advisory', str_replace( array( 'http:', 'https:' ), '', Plugin::instance()->get_alerts_url() ) ),
-					'local_url' => str_replace( array( 'http:', 'https:' ), '', get_rest_url( $GLOBALS['blog_id'], '/wp/v2/advisory' ) ),
-					'emergency_url' => sprintf( '%s/wp-json/wp/v2/alert', str_replace( array( 'http:', 'https:' ), '', Plugin::instance()->get_alerts_url() ) ),
-					'is_root' => $this->is_root,
-					'is_alerts' => $this->is_alerts,
-					'css_url' => str_replace( array( 'http:', 'https:' ), '', add_query_arg( 'v', Plugin::$version, Plugin::plugin_dir_url( '/lib/styles/umw-active-alerts.css' ) ) ),
+					'alerts_url'    => sprintf( '%s/wp-json/wp/v2/advisory', str_replace( array(
+						'http:',
+						'https:'
+					), '', Plugin::instance()->get_alerts_url() ) ),
+					'local_url'     => str_replace( array(
+						'http:',
+						'https:'
+					), '', get_rest_url( $GLOBALS['blog_id'], '/wp/v2/advisory' ) ),
+					'emergency_url' => sprintf( '%s/wp-json/wp/v2/alert', str_replace( array(
+						'http:',
+						'https:'
+					), '', Plugin::instance()->get_alerts_url() ) ),
+					'is_root'       => $this->is_root,
+					'is_alerts'     => $this->is_alerts,
+					'is_front_page' => $this->is_front_page,
+					'css_url'       => str_replace( array(
+						'http:',
+						'https:'
+					), '', add_query_arg( 'v', Plugin::$version, Plugin::plugin_dir_url( '/lib/styles/umw-active-alerts.css' ) ) ),
 					'body_template' => $this->_get_alert_body_template(),
 				);
 
@@ -145,8 +171,8 @@ namespace UMW\Advisories {
 			 * Output the JavaScript that needs to go in the footer
 			 *
 			 * @access public
-			 * @since  1.0
 			 * @return void
+			 * @since  1.0
 			 */
 			public function footer_scripts() {
 				echo '<script type="text/javascript">';
