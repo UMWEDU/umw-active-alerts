@@ -19,7 +19,7 @@ namespace UMW\Advisories {
 			 * @var string $version holds the version number for the plugin
 			 * @access public
 			 */
-			public static $version = '2020.03.13.18';
+			public static $version = '2020.03.30.1';
 
 			/**
 			 * @var bool $is_root whether this is the root site of the UMW system or not
@@ -595,9 +595,9 @@ namespace UMW\Advisories {
 					'show_in_rest' => true
 				) );
 				$tmp = register_meta( 'post', '_advisory_meta_include', array(
-					'type' => 'boolean',
-					'description' => __( 'Whether or not to show the author/date information' ),
-					'single' => true,
+					'type'         => 'boolean',
+					'description'  => __( 'Whether or not to show the author/date information' ),
+					'single'       => true,
 					'show_in_rest' => true
 				) );
 				Debug::log( '[Alerts API debug]: Registered the expires time meta field with a result of ' . print_r( $tmp, true ) );
@@ -677,7 +677,12 @@ namespace UMW\Advisories {
 
 				Debug::log( '[Alerts API Debug]: Meta array looks like: ' . print_r( $meta, true ) );
 
-				$keys = array( '_advisory_expires_time', '_advisory_permalink', '_advisory_author', '_advisory_meta_include' );
+				$keys = array(
+					'_advisory_expires_time',
+					'_advisory_permalink',
+					'_advisory_author',
+					'_advisory_meta_include'
+				);
 
 				if ( is_object( $meta ) ) {
 					foreach ( $keys as $key ) {
@@ -767,15 +772,15 @@ namespace UMW\Advisories {
 				if ( ! empty( $new_vars['meta_query'] ) && is_array( $new_vars['meta_query'] ) ) {
 					foreach ( $new_vars['meta_query'] as $key => $value ) {
 						if ( is_array( $value ) && array_key_exists( 'type', $value ) && 'DATETIME' == $value['type'] ) {
-							switch( $value['value'] ) {
+							switch ( $value['value'] ) {
 								case 'TODAY' :
-									$new_vars['meta_query'][$key]['value'] = date( "Y-m-d" );
+									$new_vars['meta_query'][ $key ]['value'] = date( "Y-m-d" );
 									break;
 								case 'NOW' :
-									$new_vars['meta_query'][$key]['value'] = date( "Y-m-d H:i:s" );
+									$new_vars['meta_query'][ $key ]['value'] = date( "Y-m-d H:i:s" );
 									break;
 								default :
-									$new_vars['meta_query'][$key]['value'] = $value['value'];
+									$new_vars['meta_query'][ $key ]['value'] = $value['value'];
 									break;
 							}
 						}
@@ -799,9 +804,10 @@ namespace UMW\Advisories {
 			 */
 			public function setup_ajax() {
 				Ajax::instance( array(
-					'is_alerts'  => $this->is_alerts,
-					'is_root'    => $this->is_root,
-					'alerts_url' => $this->alerts_url
+					'is_alerts'     => $this->is_alerts,
+					'is_root'       => $this->is_root,
+					'is_front_page' => is_front_page(),
+					'alerts_url'    => $this->alerts_url
 				) );
 			}
 
