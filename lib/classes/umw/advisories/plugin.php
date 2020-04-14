@@ -323,7 +323,7 @@ namespace UMW\Advisories {
 					include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 				}
 
-				if ( ! is_plugin_active( 'advanced-custom-fields-pro' ) && ( is_multisite() && ! is_plugin_active_for_network( 'advanced-custom-fields-pro' ) ) ) {
+				if ( ! is_plugin_active( 'advanced-custom-fields-pro/acf.php' ) && ( is_multisite() && ! is_plugin_active_for_network( 'advanced-custom-fields-pro/acf.php' ) ) ) {
 					add_filter( 'acf/settings/path', array( $this, 'acf_path' ) );
 					add_filter( 'acf/settings/dir', array( $this, 'acf_url' ) );
 					add_filter( 'acf/settings/show_admin', '__return_false' );
