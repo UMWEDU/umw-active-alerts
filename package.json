@@ -1,0 +1,47 @@
+{
+  "name": "umw-active-alerts",
+  "version": "1.0.0",
+  "dependencies": {
+    "@rjsf/core": "^4.2.3",
+    "@wordpress/blocks": "^11.13.0",
+    "babel-core": "^6.26.3",
+    "babel-preset-react": "^6.24.1",
+    "html-react-parser": "^3.0.1",
+    "jsx-loader": "^0.13.2",
+    "normalize.css": "^8.0.1",
+    "react-dom": "^18.2.0",
+    "sass-npm": "^1.0.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.18.10",
+    "@wordpress/scripts": "^23.6.0",
+    "babel-loader": "^8.2.5",
+    "clean-css-cli": "^5.6.1",
+    "concat": "^1.0.3",
+    "css-loader": "^6.7.1",
+    "node-sass": "^7.0.1",
+    "react": "^18.2.0",
+    "sass": "^1.54.3",
+    "sass-loader": "^13.0.2",
+    "style-loader": "^3.3.1",
+    "uglify-es": "^3.3.9",
+    "valuelink": "^2.0.9",
+    "webpack": "^5.74.0",
+    "webpack-cli": "^4.10.0"
+  },
+  "scripts": {
+    "scss-main": "node-sass -o dist/css src/scss/umw-active-alerts.scss --source-map=true",
+    "scss-blocks": "node-sass -o dist/css/blocks/alerts src/scss/blocks/alerts/editor.scss --source-map=true && node-sass -o dist/css/blocks/alerts src/scss/blocks/alerts/block.scss --source-map=true",
+    "scss": "npm run scss-main && npm run scss-blocks",
+    "cssmin-main": "cleancss -o dist/css/umw-active-alerts.min.css dist/css/umw-active-alerts.css",
+    "cssmin-blocks": "cleancss -o dist/css/blocks/alerts/editor.min.css dist/css/blocks/alerts/editor.css && cleancss -o dist/css/blocks/alerts/block.min.css dist/css/blocks/alerts/block.css",
+    "cssmin": "npm run cssmin-main && npm run cssmin-blocks",
+    "webpack": "webpack",
+    "uglify-main": "uglifyjs -o dist/js/umw-active-alerts.min.js dist/js/umw-active-alerts.js",
+    "uglify-blocks": "uglifyjs -o dist/js/blocks/alerts.min.js dist/js/blocks/alerts.js",
+    "uglify": "npm run uglify-main && npm run uglify-blocks",
+    "build:css": "npm run scss && npm run cssmin",
+    "build:js": "npm run webpack && npm run uglify",
+    "build": "npm run build:css && npm run build:js"
+  }
+}
