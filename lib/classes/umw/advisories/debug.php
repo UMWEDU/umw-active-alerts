@@ -48,7 +48,7 @@ namespace UMW\Advisories {
 			 * @return void
 			 */
 			public static function log( $message ) {
-				if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG )
+				if ( ! defined( 'UMW_DEBUG' ) || ! UMW_DEBUG )
 					return;
 
 				error_log( '[UMW Advisories Debug] ' . $message );

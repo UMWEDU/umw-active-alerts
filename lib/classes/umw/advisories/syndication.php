@@ -297,22 +297,20 @@ namespace UMW\Advisories {
 				}
 
 				if ( ! is_object( $result ) && ! is_array( $result ) ) {
-					if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-						Debug::log( '[Alert API Debug]: Attempted to get the result ID, but result did not appear to be an object or an array' );
-						Debug::log( '[Alert API Debug]: ' . print_r( $result, true ) );
-					}
+					Debug::log( '[Alert API Debug]: Attempted to get the result ID, but result did not appear to be an object or an array' );
+					Debug::log( '[Alert API Debug]: ' . print_r( $result, true ) );
+
 					return false;
 				}
 				if ( is_object( $result ) && ! property_exists( $result, 'id' ) ) {
-					if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-						Debug::log( '[Alert API Debug]: Attempted to get the result ID, but that property did not exist within the result object' );
-					}
+					Debug::log( '[Alert API Debug]: Attempted to get the result ID, but that property did not exist within the result object' );
+
 					return false;
 				} else if ( is_array( $result ) && ! array_key_exists( 'id', $result ) ) {
 					$r = array_shift( $result );
-					if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-						Debug::log( '[Alert API Debug]: Successfully pushed the advisory with a result ID of ' . $r->id );
-					}
+
+					Debug::log( '[Alert API Debug]: Successfully pushed the advisory with a result ID of ' . $r->id );
+
 					if ( is_object( $r ) ) {
 						if ( property_exists( $r, 'code' ) && 'rest_post_invalid_id' == $r->code ) {
 							$url = $this->api_uris['publish'];
@@ -347,10 +345,10 @@ namespace UMW\Advisories {
 			private function _push_advisory_new( $body, $url, $method='POST' ) {
 				$args = array( 'headers' => $this->_get_api_headers(), 'body' => http_build_query( $body ) );
 				$done = wp_safe_remote_post( $url, $args );
-				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-					Debug::log( '[Alert API Debug]: Push URL: ' . $url );
-					Debug::log( '[Alert API Debug]: ' . print_r( $done, true ) );
-				}
+
+				Debug::log( '[Alert API Debug]: Push URL: ' . $url );
+				Debug::log( '[Alert API Debug]: ' . print_r( $done, true ) );
+
 				$result = @json_decode( wp_remote_retrieve_body( $done ) );
 
 				return $result;
@@ -371,9 +369,9 @@ namespace UMW\Advisories {
 				$body['ID'] = $syndicated_id;
 				$args = array( 'method' => 'PUT', 'headers' => $this->_get_api_headers(), 'body' => http_build_query( $body ) );
 				$done = wp_remote_request( $url, $args );
-				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-					Debug::log( '[Alert API Debug]: ' . print_r( $done, true ) );
-				}
+
+				Debug::log( '[Alert API Debug]: ' . print_r( $done, true ) );
+
 				$result = @json_decode( wp_remote_retrieve_body( $done ) );
 
 				return $result;
@@ -419,9 +417,9 @@ namespace UMW\Advisories {
 					}
 
 					$args = array( 'headers' => $this->_get_api_headers(), 'body' => '' );
-					if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-						Debug::log( '[API Alert Debug]: Attempted to modify meta for an advisory. The meta key is: ' . $m->key . ', the meta value is: ' . $m->value . ' and the URL for the request is: ' . $u );
-					}
+
+					Debug::log( '[API Alert Debug]: Attempted to modify meta for an advisory. The meta key is: ' . $m->key . ', the meta value is: ' . $m->value . ' and the URL for the request is: ' . $u );
+
 					if ( 'PUT' == $method ) {
 						$args['method'] = 'PUT';
 						$tmp = wp_remote_request( $u, $args );
@@ -457,9 +455,8 @@ namespace UMW\Advisories {
 					return false;
 				}
 
-				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-					Debug::log( '[Alert API Debug]: We are attempting to trash the syndicated post with an ID of ' . $syndicated_id );
-				}
+				Debug::log( '[Alert API Debug]: We are attempting to trash the syndicated post with an ID of ' . $syndicated_id );
+
 				$url = sprintf( $this->api_uris['trash'], intval( $syndicated_id ) );
 
 				$body = array();
@@ -475,10 +472,10 @@ namespace UMW\Advisories {
 				$args = array( 'method' => 'DELETE', 'headers' => $this->_get_api_headers(), 'body' => http_build_query( $body ) );
 
 				$done = wp_remote_request( $url, $args );
-				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-					Debug::log( '[Alert API Debug]: Trashed post with an ID of ' . $syndicated_id . ' by using URL ' . $url );
-					Debug::log( '[Alert API Debug]: Trash result: ' . print_r( $done, true ) );
-				}
+
+				Debug::log( '[Alert API Debug]: Trashed post with an ID of ' . $syndicated_id . ' by using URL ' . $url );
+				Debug::log( '[Alert API Debug]: Trash result: ' . print_r( $done, true ) );
+
 				$result = @json_decode( wp_remote_retrieve_body( $done ) );
 
 				return $result;
