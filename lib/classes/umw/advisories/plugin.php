@@ -13,53 +13,53 @@ namespace UMW\Advisories {
 			 * @var \UMW\Advisories\Plugin $instance holds the single instance of this class
 			 * @access private
 			 */
-			private static $instance;
+			private static Plugin $instance;
 
 			/**
 			 * @var string $version holds the version number for the plugin
 			 * @access public
 			 */
-			public static $version = '2022.09.21.2';
+			public static string $version = '2022.09.21.2';
 
 			/**
 			 * @var bool $is_root whether this is the root site of the UMW system or not
 			 * @access private
 			 */
-			private $is_root = false;
+			private bool $is_root = false;
 
 			/**
 			 * @var string $root_url the URL to the root UMW site
 			 * @access private
 			 */
-			private $root_url = null;
+			private ?string $root_url = null;
 
 			/**
 			 * @var bool $is_alerts whether this is the main Advisories site or not
 			 * @access private
 			 */
-			private $is_alerts = false;
+			private bool $is_alerts = false;
 
 			/**
 			 * @var string $alerts_url the URL to the main Advisories site
 			 * @access private
 			 */
-			private $alerts_url = null;
+			private ?string $alerts_url = null;
 
 			/**
 			 * @var bool a variable to determine whether we've performed init actions or not
 			 * @access private
 			 */
-			private $did_init = false;
+			private bool $did_init = false;
 			/**
 			 * @var string $plugin_path the root path to this plugin
 			 * @access public
 			 */
-			public static $plugin_path = '';
+			public static string $plugin_path = '';
 			/**
 			 * @var string $plugin_url the root URL to this plugin
 			 * @access public
 			 */
-			public static $plugin_url = '';
+			public static string $plugin_url = '';
 
 			/**
 			 * Creates the \UMW\Advisories\Plugin object
@@ -86,7 +86,7 @@ namespace UMW\Advisories {
 			 * @return  \UMW\Advisories\Plugin
 			 * @since   0.1
 			 */
-			public static function instance() {
+			public static function instance(): Plugin {
 				if ( ! isset( self::$instance ) ) {
 					$className      = __CLASS__;
 					self::$instance = new $className;
@@ -126,7 +126,7 @@ namespace UMW\Advisories {
 			 * @return string the absolute path
 			 * @since  1.0
 			 */
-			public static function plugin_dir_path( $path = '' ) {
+			public static function plugin_dir_path( $path = '' ): string {
 				if ( empty( self::$plugin_path ) ) {
 					self::set_plugin_path();
 				}
@@ -151,7 +151,7 @@ namespace UMW\Advisories {
 			 * @return string the absolute URL
 			 * @since  1.0
 			 */
-			public static function plugin_dir_url( $url = '' ) {
+			public static function plugin_dir_url( $url = '' ): string {
 				if ( empty( self::$plugin_url ) ) {
 					self::set_plugin_url();
 				}
@@ -234,7 +234,7 @@ namespace UMW\Advisories {
 			 * @return string
 			 * @since  1.0
 			 */
-			public function get_alerts_url() {
+			public function get_alerts_url(): string {
 				return esc_url( $this->alerts_url );
 			}
 
@@ -344,7 +344,7 @@ namespace UMW\Advisories {
 			 * @return string
 			 * @since  1.0
 			 */
-			public function acf_path( $path ) {
+			public function acf_path( $path ): string {
 				return $this->plugin_dir_path( 'lib/classes/acf/' );
 			}
 
@@ -357,7 +357,7 @@ namespace UMW\Advisories {
 			 * @return string
 			 * @since  1.0
 			 */
-			public function acf_url( $url ) {
+			public function acf_url( $url ): string {
 				return $this->plugin_dir_url( 'lib/classes/acf/' );
 			}
 
@@ -372,7 +372,7 @@ namespace UMW\Advisories {
 			 * @return string
 			 * @since  1.0
 			 */
-			public function default_expiry( $val = null, $post_id = 0, $field = array() ) {
+			public function default_expiry( $val = null, $post_id = 0, $field = array() ): string {
 				if ( ! empty( $val ) ) {
 					return $val;
 				}
@@ -635,7 +635,7 @@ namespace UMW\Advisories {
 			 * @return bool
 			 * @since  1.0
 			 */
-			public function unprotect_meta( $protected, $key ) {
+			public function unprotect_meta( $protected, $key ): bool {
 				if ( ! in_array( $key, array(
 					'_advisory_expires_time',
 					'_advisory_permalink',
@@ -728,7 +728,7 @@ namespace UMW\Advisories {
 			 *
 			 * @access public
 			 */
-			public function rest_order_meta( $routes = array() ) {
+			public function rest_order_meta( $routes = array() ): array {
 				$types = array( 'advisory', 'external-advisory', 'alert' );
 				foreach ( $types as $type ) {
 					if ( ! ( $route =& $routes[ '/wp/v2/' . $type ] ) ) {
@@ -762,7 +762,7 @@ namespace UMW\Advisories {
 			 *
 			 * @access public
 			 */
-			public function rest_meta_args( $vars, $request ) {
+			public function rest_meta_args( $vars, $request ): array {
 				$new_vars = array(
 					'meta_key'   => $request->get_param( 'meta_key' ),
 					'meta_value' => $request->get_param( 'meta_value' ),
@@ -821,7 +821,7 @@ namespace UMW\Advisories {
 			 * @return array the updated list of body classes
 			 * @since  1.0
 			 */
-			public function body_class( $classes = array() ) {
+			public function body_class( $classes = array() ): array {
 				$classes[] = get_stylesheet();
 
 				return $classes;
