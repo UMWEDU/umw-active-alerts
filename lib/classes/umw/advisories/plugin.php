@@ -774,10 +774,10 @@ namespace UMW\Advisories {
 						if ( is_array( $value ) && array_key_exists( 'type', $value ) && 'DATETIME' == $value['type'] ) {
 							switch ( $value['value'] ) {
 								case 'TODAY' :
-									$new_vars['meta_query'][ $key ]['value'] = date( "Y-m-d" );
+									$new_vars['meta_query'][ $key ]['value'] = wp_date( "Y-m-d" );
 									break;
 								case 'NOW' :
-									$new_vars['meta_query'][ $key ]['value'] = date( "Y-m-d H:i:s" );
+									$new_vars['meta_query'][ $key ]['value'] = wp_date( "Y-m-d H:i:s" );
 									break;
 								default :
 									$new_vars['meta_query'][ $key ]['value'] = $value['value'];
