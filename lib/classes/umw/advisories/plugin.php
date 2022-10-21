@@ -19,7 +19,7 @@ namespace UMW\Advisories {
 			 * @var string $version holds the version number for the plugin
 			 * @access public
 			 */
-			public static string $version = '2022.09.21.3';
+			public static string $version = '2022.10.21.01';
 
 			/**
 			 * @var bool $is_root whether this is the root site of the UMW system or not
