@@ -304,7 +304,9 @@ namespace UMW\Advisories {
 					$this->alerts_url = esc_url( get_bloginfo( 'url' ) );
 					$this->setup_alerts_site();
 				} else {
-					$this->alerts_url = esc_url( get_blog_option( UMW_ADVISORIES_SITE, 'home' ) );
+					if ( function_exists( 'get_blog_option' ) ) {
+						$this->alerts_url = esc_url( get_blog_option( UMW_ADVISORIES_SITE, 'home' ) );
+					}
 					$this->add_syndication_actions();
 				}
 
