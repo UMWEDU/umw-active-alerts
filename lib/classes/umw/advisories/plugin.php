@@ -253,7 +253,9 @@ namespace UMW\Advisories {
 			private function is_root() {
 				/* Quick fix to show global non-emergency alerts on the "In" front page */
 				if ( defined( 'UMW_IN_SITE' ) && is_numeric( UMW_IN_SITE ) ) {
-					$this->is_root = true;
+					if ( UMW_IN_SITE == $GLOBALS['blog_id'] ) {
+						$this->is_root = true;
+					}
 				}
 
 				if ( ! defined( 'UMW_IS_ROOT' ) ) {
