@@ -164,10 +164,13 @@ namespace UMW\Advisories {
 			 */
 			public function footer_scripts() {
 				echo '<script type="text/javascript">';
-				printf( 'var advisoriesObject = advisoriesObject || %s;', $this->_get_script_vars() );
+				printf( 'let advisoriesObject = advisoriesObject || %s;', $this->_get_script_vars() );
 				ob_start();
 				require_once( Plugin::plugin_dir_path( '/lib/dist/js/umw-active-alerts.min.js' ) );
 				echo ob_get_clean();
+				echo PHP_EOL;
+				echo 'const umwActiveAlertsObj = new UmwActiveAlerts();';
+				echo PHP_EOL;
 				echo '</script>';
 			}
 		}
