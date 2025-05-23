@@ -19,7 +19,7 @@ namespace UMW\Advisories {
 			 * @var bool $started whether or not we've already handled the startup functions
 			 * @access private
 			 */
-			private bool $started;
+			private bool $started = false;
 
 			/**
 			 * @var bool $is_root whether this is the root site of the UMW system or not
@@ -107,7 +107,11 @@ namespace UMW\Advisories {
 
 				$this->started = true;
 
-				add_action( 'wp_print_footer_scripts', array( $this, 'footer_scripts' ) );
+				wp_enqueue_style( 'umw-active-alerts', Plugin::plugin_dir_url( '/lib/dist/css/umw-active-alerts.min.css' ), array(), time() );
+				wp_enqueue_script( 'umw-active-alerts', Plugin::plugin_dir_url( '/lib/dist/js/umw-active-alerts.min.js' ), array(), time(), array( 'in_footer' => true ) );
+				wp_localize_script( 'umw-active-alerts', 'advisoriesObject', json_decode( $this->_get_script_vars() ) );
+
+				/*add_action( 'wp_print_footer_scripts', array( $this, 'footer_scripts' ) );*/
 			}
 
 			/**
@@ -164,13 +168,10 @@ namespace UMW\Advisories {
 			 */
 			public function footer_scripts() {
 				echo '<script type="text/javascript">';
-				printf( 'let advisoriesObject = advisoriesObject || %s;', $this->_get_script_vars() );
+				printf( 'let advisoriesObject = %s;', $this->_get_script_vars() );
 				ob_start();
 				require_once( Plugin::plugin_dir_path( '/lib/dist/js/umw-active-alerts.min.js' ) );
 				echo ob_get_clean();
-				echo PHP_EOL;
-				echo 'const umwActiveAlertsObj = new UmwActiveAlerts();';
-				echo PHP_EOL;
 				echo '</script>';
 			}
 		}
