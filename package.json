@@ -1,0 +1,32 @@
+{
+  "name": "umw-active-alerts",
+  "version": "1.0",
+  "dependencies": {
+    "babel-core": "^6.26.3",
+    "jsx-loader": "^0.13.2",
+    "normalize.css": "^8.0.1",
+    "sass-npm": "^1.0.2"
+  },
+  "devDependencies": {
+    "@babel/core": "7.27.1",
+    "babel-loader": "^10.0.0",
+    "clean-css-cli": "^5.6.3",
+    "concat": "^1.0.3",
+    "css-loader": "^7.1.2",
+    "sass": "^1.86.0",
+    "sass-loader": "^16.0.5",
+    "style-loader": "^4.0.0",
+    "uglify-es": "^3.3.10",
+    "webpack": "5.99.9",
+    "webpack-cli": "^6.0.1"
+  },
+  "scripts": {
+    "scss": "sass lib/src/scss/umw-active-alerts.scss lib/dist/css/umw-active-alerts.css",
+    "cssmin": "cleancss -o lib/dist/css/umw-active-alerts.min.css lib/dist/css/umw-active-alerts.css",
+    "webpack": "webpack",
+    "uglify": "uglifyjs -o lib/dist/js/umw-active-alerts.min.js lib/dist/js/umw-active-alerts.js",
+    "build:css": "npm run scss && npm run cssmin",
+    "build:js": "npm run webpack && npm run uglify",
+    "build": "npm run build:css && npm run build:js"
+  }
+}

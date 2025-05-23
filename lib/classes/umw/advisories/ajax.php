@@ -13,31 +13,31 @@ namespace UMW\Advisories {
 			 * @var \UMW\Advisories\Ajax $instance holds the single instance of this class
 			 * @access private
 			 */
-			private static $instance;
+			private static Ajax $instance;
 
 			/**
 			 * @var bool $started whether or not we've already handled the startup functions
 			 * @access private
 			 */
-			private $started;
+			private bool $started;
 
 			/**
 			 * @var bool $is_root whether this is the root site of the UMW system or not
 			 * @access private
 			 */
-			private $is_root = false;
+			private bool $is_root = false;
 
 			/**
 			 * @var bool $is_alerts whether this is the main Advisories site or not
 			 * @access private
 			 */
-			private $is_alerts = false;
+			private bool $is_alerts = false;
 
 			/**
 			 * @var bool $is_front_page whether this is the front page of the site or not
 			 * @access private
 			 */
-			private $is_front_page = false;
+			private bool $is_front_page = false;
 
 			/**
 			 * Creates the \UMW\Advisories\Ajax object
@@ -63,7 +63,7 @@ namespace UMW\Advisories {
 			 * @return  \UMW\Advisories\Ajax
 			 * @since   0.1
 			 */
-			public static function instance( $args = array() ) {
+			public static function instance( $args = array() ): Ajax {
 				if ( ! isset( self::$instance ) ) {
 					$className      = __CLASS__;
 					self::$instance = new $className( $args );
@@ -117,7 +117,7 @@ namespace UMW\Advisories {
 			 * @return string
 			 * @since  1.0
 			 */
-			private function _get_alert_body_template() {
+			private function _get_alert_body_template(): string {
 				return '
 	<div class="wrap">
 		<article class="alert">
@@ -140,27 +140,15 @@ namespace UMW\Advisories {
 			 * @return string
 			 * @since  1.0
 			 */
-			private function _get_script_vars() {
+			private function _get_script_vars(): string {
 				$vars = array(
-					'alerts_url'    => sprintf( '%s/wp-json/wp/v2/advisory', str_replace( array(
-						'http:',
-						'https:'
-					), '', Plugin::instance()->get_alerts_url() ) ),
-					'local_url'     => str_replace( array(
-						'http:',
-						'https:'
-					), '', get_rest_url( $GLOBALS['blog_id'], '/wp/v2/advisory' ) ),
-					'emergency_url' => sprintf( '%s/wp-json/wp/v2/alert', str_replace( array(
-						'http:',
-						'https:'
-					), '', Plugin::instance()->get_alerts_url() ) ),
+					'alerts_url'    => sprintf( '%s/wp-json/wp/v2/advisory', Plugin::instance()->get_alerts_url() ),
+					'local_url'     => get_rest_url( $GLOBALS['blog_id'], '/wp/v2/advisory' ),
+					'emergency_url' => sprintf( '%s/wp-json/wp/v2/alert', Plugin::instance()->get_alerts_url() ),
 					'is_root'       => $this->is_root,
 					'is_alerts'     => $this->is_alerts,
 					'is_front_page' => $this->is_front_page,
-					'css_url'       => str_replace( array(
-						'http:',
-						'https:'
-					), '', add_query_arg( 'v', Plugin::$version, Plugin::plugin_dir_url( '/lib/styles/umw-active-alerts.css' ) ) ),
+					'css_url'       => add_query_arg( 'v', Plugin::$version, Plugin::plugin_dir_url( '/lib/dist/css/umw-active-alerts.css' ) ),
 					'body_template' => $this->_get_alert_body_template(),
 				);
 
@@ -178,7 +166,7 @@ namespace UMW\Advisories {
 				echo '<script type="text/javascript">';
 				printf( 'var advisoriesObject = advisoriesObject || %s;', $this->_get_script_vars() );
 				ob_start();
-				require_once( Plugin::plugin_dir_path( '/lib/scripts/umw/advisories/umw-active-alerts.min.js' ) );
+				require_once( Plugin::plugin_dir_path( '/lib/dist/js/umw-active-alerts.min.js' ) );
 				echo ob_get_clean();
 				echo '</script>';
 			}
