@@ -6,12 +6,12 @@ function cptui_register_my_cpts() {
 	 */
 
 	$labels = array(
-		'name' => __( 'Advisories', 'twentyseventeen' ),
-		'singular_name' => __( 'Advisory', 'twentyseventeen' ),
+		'name' => __( 'Advisories', 'umw-active-alerts' ),
+		'singular_name' => __( 'Advisory', 'umw-active-alerts' ),
 	);
 
 	$args = array(
-		'label' => __( 'Advisories', 'twentyseventeen' ),
+		'label' => __( 'Advisories', 'umw-active-alerts' ),
 		'labels' => $labels,
 		'description' => 'These are community-wide announcements and updates that need to be prominently featured, but are not urgent.',
 		'public' => true,
@@ -39,12 +39,12 @@ function cptui_register_my_cpts() {
 	 */
 
 	$labels = array(
-		'name' => __( 'Emergency Alerts', 'twentyseventeen' ),
-		'singular_name' => __( 'Emergency Alert', 'twentyseventeen' ),
+		'name' => __( 'Emergency Alerts', 'umw-active-alerts' ),
+		'singular_name' => __( 'Emergency Alert', 'umw-active-alerts' ),
 	);
 
 	$args = array(
-		'label' => __( 'Emergency Alerts', 'twentyseventeen' ),
+		'label' => __( 'Emergency Alerts', 'umw-active-alerts' ),
 		'labels' => $labels,
 		'description' => 'These are community-wide, urgent messages that need to be broadcast across the entire UMW website',
 		'public' => true,
@@ -72,12 +72,12 @@ function cptui_register_my_cpts() {
 	 */
 
 	$labels = array(
-		'name' => __( 'External Advisories', 'twentyseventeen' ),
-		'singular_name' => __( 'External Advisory', 'twentyseventeen' ),
+		'name' => __( 'External Advisories', 'umw-active-alerts' ),
+		'singular_name' => __( 'External Advisory', 'umw-active-alerts' ),
 	);
 
 	$args = array(
-		'label' => __( 'External Advisories', 'twentyseventeen' ),
+		'label' => __( 'External Advisories', 'umw-active-alerts' ),
 		'labels' => $labels,
 		'description' => 'These are advisories that have been syndicated *into* this site from other sites within the UMW system. These advisories should never be published/modified directly within the Advisories website; instead, they should be published/modified from the external source where they should originate.',
 		'public' => true,

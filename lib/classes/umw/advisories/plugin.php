@@ -333,10 +333,10 @@ namespace UMW\Advisories {
 				}
 
 				if ( ! is_plugin_active( 'advanced-custom-fields-pro/acf.php' ) && ( is_multisite() && ! is_plugin_active_for_network( 'advanced-custom-fields-pro/acf.php' ) ) ) {
+					include_once( $this->plugin_dir_path( '/lib/acf/acf/acf.php' ) );
 					add_filter( 'acf/settings/path', array( $this, 'acf_path' ) );
 					add_filter( 'acf/settings/dir', array( $this, 'acf_url' ) );
 					add_filter( 'acf/settings/show_admin', '__return_false' );
-					include_once( $this->plugin_dir_path( '/lib/classes/acf/acf.php' ) );
 				}
 
 				include_once( $this->plugin_dir_path( '/lib/includes/umw/advisories/acf-fields.php' ) );
@@ -354,7 +354,7 @@ namespace UMW\Advisories {
 			 * @since  1.0
 			 */
 			public function acf_path( $path ): string {
-				return $this->plugin_dir_path( 'lib/classes/acf/' );
+				return $this->plugin_dir_path( 'lib/acf/acf/' );
 			}
 
 			/**
@@ -367,7 +367,7 @@ namespace UMW\Advisories {
 			 * @since  1.0
 			 */
 			public function acf_url( $url ): string {
-				return $this->plugin_dir_url( 'lib/classes/acf/' );
+				return $this->plugin_dir_url( 'lib/acf/acf/' );
 			}
 
 			/**
@@ -435,12 +435,12 @@ namespace UMW\Advisories {
 			 */
 			public function register_local_advisory_post_type() {
 				$labels = array(
-					'name'          => __( 'Advisories', 'twentyseventeen' ),
-					'singular_name' => __( 'Advisory', 'twentyseventeen' ),
+					'name'          => __( 'Advisories', 'umw-active-alerts' ),
+					'singular_name' => __( 'Advisory', 'umw-active-alerts' ),
 				);
 
 				$args = array(
-					'label'               => __( 'Advisories', 'twentyseventeen' ),
+					'label'               => __( 'Advisories', 'umw-active-alerts' ),
 					'labels'              => $labels,
 					'description'         => '',
 					'public'              => true,
@@ -477,12 +477,12 @@ namespace UMW\Advisories {
 				 */
 
 				$labels = array(
-					'name'          => __( 'Advisories', 'twentyseventeen' ),
-					'singular_name' => __( 'Advisory', 'twentyseventeen' ),
+					'name'          => __( 'Advisories', 'umw-active-alerts' ),
+					'singular_name' => __( 'Advisory', 'umw-active-alerts' ),
 				);
 
 				$args = array(
-					'label'               => __( 'Advisories', 'twentyseventeen' ),
+					'label'               => __( 'Advisories', 'umw-active-alerts' ),
 					'labels'              => $labels,
 					'description'         => 'These are community-wide announcements and updates that need to be prominently featured, but are not urgent.',
 					'public'              => true,
@@ -510,12 +510,12 @@ namespace UMW\Advisories {
 				 */
 
 				$labels = array(
-					'name'          => __( 'Emergency Alerts', 'twentyseventeen' ),
-					'singular_name' => __( 'Emergency Alert', 'twentyseventeen' ),
+					'name'          => __( 'Emergency Alerts', 'umw-active-alerts' ),
+					'singular_name' => __( 'Emergency Alert', 'umw-active-alerts' ),
 				);
 
 				$args = array(
-					'label'               => __( 'Emergency Alerts', 'twentyseventeen' ),
+					'label'               => __( 'Emergency Alerts', 'umw-active-alerts' ),
 					'labels'              => $labels,
 					'description'         => 'These are community-wide, urgent messages that need to be broadcast across the entire UMW website',
 					'public'              => true,
@@ -543,12 +543,12 @@ namespace UMW\Advisories {
 				 */
 
 				$labels = array(
-					'name'          => __( 'External Advisories', 'twentyseventeen' ),
-					'singular_name' => __( 'External Advisory', 'twentyseventeen' ),
+					'name'          => __( 'External Advisories', 'umw-active-alerts' ),
+					'singular_name' => __( 'External Advisory', 'umw-active-alerts' ),
 				);
 
 				$args = array(
-					'label'               => __( 'External Advisories', 'twentyseventeen' ),
+					'label'               => __( 'External Advisories', 'umw-active-alerts' ),
 					'labels'              => $labels,
 					'description'         => 'These are advisories that have been syndicated *into* this site from other sites within the UMW system. These advisories should never be published/modified directly within the Advisories website; instead, they should be published/modified from the external source where they should originate.',
 					'public'              => true,

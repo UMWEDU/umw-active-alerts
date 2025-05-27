@@ -6,12 +6,12 @@ function cptui_register_my_cpts() {
 	 */
 
 	$labels = array(
-		'name' => __( 'Advisories', 'twentyseventeen' ),
-		'singular_name' => __( 'Advisory', 'twentyseventeen' ),
+		'name' => __( 'Advisories', 'umw-active-alerts' ),
+		'singular_name' => __( 'Advisory', 'umw-active-alerts' ),
 	);
 
 	$args = array(
-		'label' => __( 'Advisories', 'twentyseventeen' ),
+		'label' => __( 'Advisories', 'umw-active-alerts' ),
 		'labels' => $labels,
 		'description' => '',
 		'public' => true,
