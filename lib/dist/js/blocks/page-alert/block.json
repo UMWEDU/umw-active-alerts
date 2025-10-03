@@ -1,0 +1,27 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "umw/page-alert",
+  "version": "1.0.1",
+  "title": "UMW Page Level Alert",
+  "category": "widgets",
+  "icon": "warning",
+  "description": "Alert message that is displayed on an individual page",
+  "keywords": [
+    "alert",
+    "advisory",
+    "announcement",
+    "warning"
+  ],
+  "attributes": {
+    "title": {
+      "type": "string",
+      "default": ""
+    }
+  },
+  "textdomain": "umw-active-alerts",
+  "editorScript": "file:./block.js",
+  "editorStyle": "file:../../../css/blocks/page-alert/editor.min.css",
+  "style": "file:../../../css/blocks/page-alert/style.min.css",
+  "viewScript": "file:./view.js"
+}

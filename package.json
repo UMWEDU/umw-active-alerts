@@ -1,6 +1,6 @@
 {
   "name": "umw-active-alerts",
-  "version": "1.0",
+  "version": "1.0.4",
   "dependencies": {
     "babel-core": "^6.26.3",
     "jsx-loader": "^0.13.2",
@@ -8,25 +8,37 @@
     "sass-npm": "^1.0.2"
   },
   "devDependencies": {
-    "@babel/core": "7.27.1",
+    "@babel/core": "7.28.4",
+    "@babel/preset-env": "^7.28.3",
+    "@babel/preset-react": "^7.27.1",
+    "@wordpress/block-editor": "^15.5.0",
+    "@wordpress/blocks": "^15.5.0",
     "babel-loader": "^10.0.0",
+    "babel-preset-react": "^6.24.1",
     "clean-css-cli": "^5.6.3",
     "concat": "^1.0.3",
+    "copyfiles": "^2.4.1",
     "css-loader": "^7.1.2",
-    "sass": "^1.86.0",
+    "sass": "^1.93.2",
     "sass-loader": "^16.0.5",
     "style-loader": "^4.0.0",
     "uglify-es": "^3.3.10",
-    "webpack": "5.99.9",
+    "webpack": "5.102.0",
     "webpack-cli": "^6.0.1"
   },
   "scripts": {
+    "blocks:scss": "sass lib/src/scss/blocks/page-alert:lib/dist/css/blocks/page-alert",
+    "blocks:cssmin": "cleancss -o lib/dist/css/blocks/page-alert/editor.min.css lib/dist/css/blocks/page-alert/editor.css && cleancss -o lib/dist/css/blocks/page-alert/style.min.css lib/dist/css/blocks/page-alert/style.css",
+    "blocks:css": "npm run blocks:scss && npm run blocks:cssmin",
+    "blocks:config": "copyfiles -Vf lib/src/js/blocks/page-alert/block.json lib/dist/js/blocks/page-alert/",
+    "blocks:build": "npm run blocks:css && npm run blocks:config",
+    "blocks:uglify": "uglifyjs -o lib/dist/js/blocks/page-alert/block.min.js lib/dist/js/blocks/page-alert/block.js",
     "scss": "sass lib/src/scss/umw-active-alerts.scss lib/dist/css/umw-active-alerts.css",
     "cssmin": "cleancss -o lib/dist/css/umw-active-alerts.min.css lib/dist/css/umw-active-alerts.css",
     "webpack": "webpack",
     "uglify": "uglifyjs -o lib/dist/js/umw-active-alerts.min.js lib/dist/js/umw-active-alerts.js",
     "build:css": "npm run scss && npm run cssmin",
     "build:js": "npm run webpack && npm run uglify",
-    "build": "npm run build:css && npm run build:js"
+    "build": "npm run blocks:build && npm run build:css && npm run build:js"
   }
 }

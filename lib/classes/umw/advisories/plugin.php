@@ -19,7 +19,7 @@ namespace UMW\Advisories {
 			 * @var string $version holds the version number for the plugin
 			 * @access public
 			 */
-			public static string $version = '2023.06.26.05';
+			public static string $version = '2025.10.03.01';
 
 			/**
 			 * @var bool $is_root whether this is the root site of the UMW system or not
@@ -77,6 +77,8 @@ namespace UMW\Advisories {
 				}
 
 				add_action( 'muplugins_loaded', array( $this, 'do_init' ) );
+
+				add_action( 'init', array( $this, 'register_block' ) );
 			}
 
 			/**
@@ -834,6 +836,77 @@ namespace UMW\Advisories {
 				$classes[] = get_stylesheet();
 
 				return $classes;
+			}
+
+			/**
+			 * Register the page-level alert block
+			 *
+			 * @access public
+			 * @since  1.1
+			 * @return void
+			 */
+			public function register_block() {
+				wp_register_style(
+					'umw-page-alert-css',
+					self::plugin_dir_url( '/lib/dist/css/blocks/page-alert/style.min.css' ),
+					array(),
+					time()
+				);
+
+				wp_register_style(
+					'umw-page-alert-edit',
+					self::plugin_dir_url( '/lib/dist/css/blocks/page-alert/editor.min.css' ),
+					array(),
+					time()
+				);
+
+				wp_register_script(
+					'umw-page-alert-script',
+					self::plugin_dir_url( '/lib/dist/js/blocks/page-alert/block.js' ),
+					array(
+						'wp-blocks',
+						'wp-block-editor',
+						'wp-i18n',
+						'wp-element',
+						'wp-editor',
+						'wp-components',
+						'wp-compose',
+					),
+					time(),
+					array(
+						'in_footer' => true,
+						'strategy'  => 'defer',
+					)
+				);
+
+				register_block_type(
+					'umw/page-alert',
+					array(
+						'title' => __( 'UMW Page Level Alert', 'umw-active-alerts' ),
+						'description' => __( 'Alert message that is displayed on an individual page', 'umw-active-alerts' ),
+						'category' => 'widgets',
+						'icon' => 'warning',
+						'keywords' => array(
+							"alert",
+							"advisory",
+							"announcement",
+							"warning"
+						),
+						'attributes' => array(
+							'title' => array(
+								'type' => 'string',
+								'default' => '',
+							)
+						),
+						'style' => 'umw-page-alert-css',
+						'editor_script' => 'umw-page-alert-script',
+						'editor_style' => 'umw-page-alert-edit',
+					)
+				);
+
+				/*register_block_type(
+					self::plugin_dir_path( '/lib/dist/js/blocks/page-alert/' )
+				);*/
 			}
 		}
 	}

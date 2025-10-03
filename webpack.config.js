@@ -3,6 +3,8 @@ const path = require('path');
 module.exports = {
     entry: {
         'umw-active-alerts': './lib/src/js/umw-active-alerts.js',
+        'blocks/page-alert/block': './lib/src/js/blocks/page-alert/block.js',
+        'blocks/page-alert/view': './lib/src/js/blocks/page-alert/view.js'
     },
     output: {
         filename: '[name].js',
