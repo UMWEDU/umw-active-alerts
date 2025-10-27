@@ -846,6 +846,11 @@ namespace UMW\Advisories {
 			 * @return void
 			 */
 			public function register_block() {
+				// Avoid registering this block if it's already getting registered by UMW Custom Blocks
+				if ( class_exists( 'UmwCb\UmwCb' ) ) {
+					return;
+				}
+
 				wp_register_style(
 					'umw-page-alert-css',
 					self::plugin_dir_url( '/lib/dist/css/blocks/page-alert/style.min.css' ),

@@ -108,7 +108,7 @@ namespace UMW\Advisories {
 				$this->started = true;
 
 				wp_enqueue_style( 'umw-active-alerts', Plugin::plugin_dir_url( '/lib/dist/css/umw-active-alerts.min.css' ), array(), time() );
-				wp_enqueue_script( 'umw-active-alerts', Plugin::plugin_dir_url( '/lib/dist/js/umw-active-alerts.min.js' ), array(), time(), array( 'in_footer' => true ) );
+				wp_enqueue_script( 'umw-active-alerts', Plugin::plugin_dir_url( '/lib/dist/js/umw-active-alerts.min.js' ), array(), time(), array( 'in_footer' => true, 'strategy' => 'defer' ) );
 				wp_localize_script( 'umw-active-alerts', 'advisoriesObject', json_decode( $this->_get_script_vars() ) );
 
 				/*add_action( 'wp_print_footer_scripts', array( $this, 'footer_scripts' ) );*/
