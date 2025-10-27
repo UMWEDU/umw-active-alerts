@@ -2,7 +2,7 @@
 /*
 Plugin Name: UMW Active Alerts
 Description: Inserts the active alert on the home page if there is an active alert.
-Version: 1.0.5.3
+Version: 1.0.5.5
 Author: Curtiss Grymala
 Author URI: http://ten-321.com/
 License: GPL2

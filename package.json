@@ -1,6 +1,6 @@
 {
   "name": "umw-active-alerts",
-  "version": "1.0.5.3",
+  "version": "1.0.5.5",
   "dependencies": {
     "babel-core": "^6.26.3",
     "jsx-loader": "^0.13.2",
